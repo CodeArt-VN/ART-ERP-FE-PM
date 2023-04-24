@@ -1,10 +1,11 @@
 export class Task {
     id!: number;
-    start_date!: string;
     text!: string;
-    progress!: number;
+    start_date!: string;
     duration!: number;
+    progress!: number;
     parent!: number;
+    open!: boolean;
 }
 
 export class Link {
