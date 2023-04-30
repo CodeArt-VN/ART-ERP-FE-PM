@@ -40,7 +40,16 @@
 	}
 }
 
+.gantt_add, .gantt_grid_head_add{
+	background: none;
+    color: var(--ion-color-primary);
+    text-align: center;
+    font-size: 150%;
 
+	&::before {
+		content: "+";
+	}
+}
 
 
 .gantt_container {
