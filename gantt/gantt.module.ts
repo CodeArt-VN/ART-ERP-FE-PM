@@ -12,8 +12,8 @@ import { ShareModule } from 'src/app/share.module';
     CommonModule,
     FormsModule,
     ShareModule,
-    RouterModule.forChild([{ path: '', component: GanttPage }])
+    RouterModule.forChild([{ path: '', component: GanttPage }]),
   ],
-  declarations: [GanttPage]
+  declarations: [GanttPage],
 })
 export class GanttPageModule {}

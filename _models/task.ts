@@ -1,16 +1,16 @@
 export class Task {
-    id!: number;
-    text!: string;
-    start_date!: string;
-    duration!: number;
-    progress!: number;
-    parent!: number;
-    open!: boolean;
+  id!: number;
+  text!: string;
+  start_date!: string;
+  duration!: number;
+  progress!: number;
+  parent!: number;
+  open!: boolean;
 }
 
 export class Link {
-    id!: number;
-    source!: number;
-    target!: number;
-    type!: string;
+  id!: number;
+  source!: number;
+  target!: number;
+  type!: string;
 }
