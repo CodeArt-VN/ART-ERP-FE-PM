@@ -41,20 +41,20 @@ export class TaskPage extends PageBase {
     super.ionViewDidEnter();
 
     var holidays = [
-      new Date(2023, 0, 1),
-      new Date(2023, 0, 21),
-      new Date(2023, 3, 16),
-      new Date(2023, 3, 30), //CN
-      new Date(2023, 4, 1),
-      new Date(2023, 4, 2), //Nghỉ bù
-      new Date(2023, 4, 12),
-      new Date(2023, 4, 27),
-      new Date(2023, 5, 16),
-      new Date(2023, 6, 4),
-      new Date(2023, 8, 2),
-      new Date(2023, 9, 14),
-      new Date(2023, 10, 28),
-      new Date(2023, 11, 25),
+      new Date(2024, 0, 1),
+      new Date(2024, 0, 21),
+      new Date(2024, 3, 16),
+      new Date(2024, 3, 30), //CN
+      new Date(2024, 4, 1),
+      new Date(2024, 4, 2), //Nghỉ bù
+      new Date(2024, 4, 12),
+      new Date(2024, 4, 27),
+      new Date(2024, 5, 16),
+      new Date(2024, 6, 4),
+      new Date(2024, 8, 2),
+      new Date(2024, 9, 14),
+      new Date(2024, 10, 28),
+      new Date(2024, 11, 25),
     ];
 
     for (var i = 0; i < holidays.length; i++) {
@@ -64,7 +64,9 @@ export class TaskPage extends PageBase {
       });
     }
 
-    gantt.config.grid_resize = true;
+
+    gantt.config.resize_rows = true;
+    gantt.config.min_task_grid_row_height = 45;
     gantt.config.scales = [
       { unit: 'month', step: 1, format: '%F, %Y' },
       { unit: 'day', step: 1, format: '%D %j/%n' }, //https://docs.dhtmlx.com/gantt/desktop__date_format.html
@@ -81,13 +83,54 @@ export class TaskPage extends PageBase {
       return '';
     };
 
-    gantt.config.row_height = 25;
-    gantt.config.scale_height = 50;
 
-    gantt.config.scales = [
-      { unit: 'month', step: 1, format: '%F, %Y' },
-      { unit: 'day', step: 1, format: '%j, %D' },
-    ];
+    let firstGridColumns = {
+      columns: [
+        { name: "text", label: "Task Name", tree: true, width: "*", min_width: 150, resize: true },
+        { name: "start_date", label: "Start Time", align: "center", resize: true },
+        { name: "duration", label: "Duration", align: "center", width: 70, resize: true },
+        { name: "progress", label: "Progress", width: 50, resize: true, align: "center", 
+          template: function (task) {
+              return Math.round(task.progress * 100) + "%"
+          }
+        },
+        { name: "add", label: "", align: "center", width: 60 }
+      ]
+    };
+    // let secondGridColumns = {
+    //   columns: [
+    //     {
+    //       name: "status", label: "Status", width: 60, resize: true, align: "center", template: (task) => {
+    //         var progress = task.progress || 0;
+    //         var status = progress === 1 ? "Done" : "Processing";
+    //         var color = progress === 1 ? "green" : "orange";
+    //         return "<div style='color: " + color + "'>" + status + "</div>";
+    //       }
+    //     }
+    //   ]
+    // };
+  
+    gantt.config.layout = {
+      css: "gantt_container",
+      rows: [
+        {
+          cols: [
+            {view: "grid", width: 320, scrollY: "scrollVer", config: firstGridColumns},
+            {resizer: true, width: 1},
+            {view: "timeline", scrollX: "scrollHor", scrollY: "scrollVer"},
+            {resizer: true, width: 1},
+           
+            {view: "scrollbar", id: "scrollVer"}
+          ]
+  
+        },
+        {view: "scrollbar", id: "scrollHor", height: 20}
+      ]
+    };
+
+    gantt.config.row_height = 50;
+    gantt.config.scale_height = 50;
+    gantt.config.open_tree_initially = true;
 
     gantt.templates.rightside_text = function (start, end, task) {
       if (task.type == gantt.config.types.milestone) {
@@ -102,14 +145,23 @@ export class TaskPage extends PageBase {
       { name: 'time', type: 'duration', map_to: 'auto' },
     ];
 
+    gantt.config.grid_resize = true;
     gantt.init(this.ganttContainer.nativeElement);
 
     //create task
-    gantt.attachEvent('onTaskCreated', (task) => {
+    gantt.attachEvent('onTaskCreated', (task: any) => {
       task.id = 0;
-      const date = new Date(task.start_date);
-      const isoDateString = date.toISOString();
-      task.start_date = isoDateString.slice(0, 19);
+      task.durationPlan = 1;
+
+      const startDate = new Date();
+      const utcStartDate = new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000));
+      task.start_date = utcStartDate.toISOString().slice(0, 19);
+      task.start_date_plan = task.start_date;
+
+      const endDate = new Date(utcStartDate.getTime() + (24 * 60 * 60 * 1000));
+      task.end_date = endDate.toISOString().slice(0, 19);
+      task.end_date_plan = task.end_date;
+
       this.openModalForNewTask(this.formatTask(task));
     });
 
@@ -124,15 +176,23 @@ export class TaskPage extends PageBase {
       const link = gantt.getLink(id);
       const src = gantt.getTask(link.source);
       const trg = gantt.getTask(link.target);
-      this.env
-        .showPrompt('Bạn có chắc muốn xóa liên kết ' + '<b>' + src.text + '-' + trg.text + '</b>' + ' không?', null, '')
-        .then((_) => {
-          const deleteLink = dp._router.link.delete;
-          deleteLink.call(dp._router.link, Number(id));
-        })
-        .catch((er) => {
-          this.submitAttempt = false;
-        });
+      if (this.submitAttempt == false) {
+        this.submitAttempt = true;
+        this.env
+          .showPrompt(
+            'Bạn có chắc muốn xóa liên kết ' + '<b>' + src.text + '-' + trg.text + '</b>' + ' không?',
+            null,
+            '',
+          )
+          .then((_) => {
+            this.submitAttempt = false;
+            const deleteLink = dp._router.link.delete;
+            deleteLink.call(dp._router.link, Number(id)); 
+          })
+          .catch((er) => {
+            this.submitAttempt = false;
+          });
+      }
     });
 
     const dp = gantt.createDataProcessor({
@@ -148,7 +208,7 @@ export class TaskPage extends PageBase {
 
     this.loadGantt();
   }
-
+   
   async openModalForNewTask(task) {
     const modal = await this.modalController.create({
       component: TaskModalPage,
@@ -188,6 +248,7 @@ export class TaskPage extends PageBase {
           id: task.Id,
           text: task.Name,
           start_date: task.StartDate.substring(0, 10),
+          end_date: task.EndDate?.substring(0, 10),
           type: task.Type,
           duration: task.Duration,
           progress: task.Progress,
@@ -206,77 +267,99 @@ export class TaskPage extends PageBase {
       });
       gantt.clearAll();
       gantt.parse({ data, links });
+      gantt.eachTask((task) =>{
+        task.$open = true;
+      });
+      gantt.render();
     });
   }
 
   updateTask(task: Task): Promise<void> {
     let _task = this.items.find((d) => d.Id == task.id);
     _task.StartDate = task.start_date;
+    _task.EndDate = task.end_date;
     _task.Progress = task.progress;
     _task.Duration = task.duration;
 
     return new Promise((resolve, reject) => {
-      this.pageProvider
-        .save(_task, this.pageConfig.isForceCreate)
-        .then((savedItem: any) => {
-          this.env.showTranslateMessage('Saving completed!', 'success');
-          resolve(savedItem.Id);
-          this.submitAttempt = false;
-        })
-        .catch((err) => {
-          this.env.showTranslateMessage('Cannot save, please try again', 'danger');
-          this.submitAttempt = false;
-          reject(err);
-        });
+      if (this.submitAttempt == false) {
+        this.submitAttempt = true;
+        this.pageProvider
+          .save(_task, this.pageConfig.isForceCreate)
+          .then((savedItem: any) => {
+            this.env.showTranslateMessage('Saving completed!', 'success');
+            resolve(savedItem.Id);
+            this.submitAttempt = false;
+          })
+          .catch((err) => {
+            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.submitAttempt = false;
+            reject(err);
+          });
+      }
     });
   }
 
   createLink(link: Link): Promise<Link> {
     link.id = 0;
     return new Promise((resolve, reject) => {
-      this.taskLinkService
-        .save(this.formatLink(link), this.pageConfig.isForceCreate)
-        .then((savedItem: any) => {
-          this.env.showTranslateMessage('Saving completed!', 'success');
-          this.submitAttempt = false;
-        })
-        .catch((err) => {
-          this.env.showTranslateMessage('Cannot save, please try again', 'danger');
-          this.submitAttempt = false;
-          reject(err);
-        });
+      if (this.submitAttempt == false) {
+        this.submitAttempt = true;
+        this.taskLinkService
+          .save(this.formatLink(link), this.pageConfig.isForceCreate)
+          .then((data: any) => {
+            this.env.showTranslateMessage('Saving completed!', 'success');
+            this.submitAttempt = false;
+          })
+          .catch((err) => {
+            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.submitAttempt = false;
+            reject(err);
+          });
+      }
     });
   }
 
   updateLink(link: Link): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.taskLinkService
-        .save(this.formatLink(link), this.pageConfig.isForceCreate)
-        .then((savedItem: any) => {
-          this.env.showTranslateMessage('Saving completed!', 'success');
-          this.submitAttempt = false;
-        })
-        .catch((err) => {
-          this.env.showTranslateMessage('Cannot save, please try again', 'danger');
-          this.submitAttempt = false;
-          reject(err);
-        });
+      if (this.submitAttempt == false) {
+        this.submitAttempt = true;
+        this.taskLinkService
+          .save(this.formatLink(link), this.pageConfig.isForceCreate)
+          .then((data: any) => {
+            this.env.showTranslateMessage('Saving completed!', 'success');
+            this.submitAttempt = false;
+          })
+          .catch((err) => {
+            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.submitAttempt = false;
+            reject(err);
+          });
+      }
     });
   }
 
   deleteLink(id: number): Promise<void> {
     let link = gantt.getLink(id);
     return new Promise((resolve, reject) => {
-      this.taskLinkService
-        .delete(this.formatLink(link))
-        .then(() => {
-          this.env.showTranslateMessage('Deleted!', 'success');
-          const linkElement = document.querySelector(`div[data-link-id="${id}"]`);
-          if (linkElement) {
-            linkElement.parentNode.removeChild(linkElement);
-          }
-        })
-        .catch((err) => {});
+      if (this.submitAttempt == false) {
+        this.submitAttempt = true;
+        this.taskLinkService
+          .delete(this.formatLink(link))
+          .then(() => {
+            this.env.showTranslateMessage('Deleted!', 'success');
+            const linkElement = document.querySelector(`div[data-link-id="${id}"]`);
+            if (linkElement) {
+              linkElement.parentNode.removeChild(linkElement);
+            }
+            this.submitAttempt = false;
+          })
+          .catch((err) => {
+            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.submitAttempt = false;
+            reject(err);
+          });
+      }
     });
   }
 
@@ -292,15 +375,15 @@ export class TaskPage extends PageBase {
       Status: '',
       Remark: '',
       Sort: null,
-      EndDate: null,
+      EndDate: e.end_date ?? null,
       PredictedClosingDate: null,
       ExpectedRevenue: 0,
       BudgetedCost: 0,
       ActualCost: 0,
       ActualRevenue: 0,
-      StartDatePlan: null,
-      EndDatePlan: null,
-      DurationPlan: null,
+      StartDatePlan: e.start_date_plan ?? null,
+      EndDatePlan: e.end_date_plan ?? null,
+      DurationPlan: e.durationPlan ?? null,
       Deadline: null,
       Priority: null,
       IsUnscheduled: null,

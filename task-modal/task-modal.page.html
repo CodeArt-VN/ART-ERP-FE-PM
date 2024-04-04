@@ -6,23 +6,12 @@
 
     <ion-buttons slot="primary">
 
-      <ion-button [disabled]="false" *ngIf="!formGroup.controls.Id.value" fill="solid" size="small" color="primary"  (click)="saveTask()">
-        {{'Create' | translate}}
+      <ion-button title="{{ 'Add' | translate }}" (click)="saveTask()">
+        <ion-icon color="success" slot="icon-only" name="add-outline"></ion-icon>
       </ion-button>
-      <ion-button [disabled]="false" *ngIf="formGroup.controls.Id.value" fill="solid" size="small" color="primary"  (click)="saveTask(true)">
-        {{'Update' | translate}}
+      <ion-button *ngIf="formGroup.controls.Id.value" (click)="delete()">
+        <ion-icon color="danger" slot="icon-only" name="trash-outline"></ion-icon>
       </ion-button>
-      <ion-button [disabled]="false" *ngIf="formGroup.controls.Id.value" fill="solid" size="small" color="danger"  (click)="delete()">
-        {{'Delete' | translate}}
-      </ion-button>
-      <ion-button (click)="refresh()" title="{{'Refresh' | translate}}">
-        <ion-icon slot="icon-only" name="reload-outline"></ion-icon>
-      </ion-button>
-
-      <ion-button title="{{'Help' | translate}}" (click)="help()">
-        <ion-icon slot="icon-only" name="help-circle-outline"></ion-icon>
-      </ion-button>
-
       <ion-button title="{{'Close' | translate}}" color="secondary" (click)="closeModal()">
         <ion-icon slot="icon-only" name="close"></ion-icon>
       </ion-button>
@@ -43,36 +32,68 @@
             </ion-list-header>
           </ion-col>
           <ion-col size="12" size-sm="6" size-xl="4">
+            <div class="c-control">
+              <label class="c-label" for="IDOwner">{{'Owner' | translate}}
+                <small>#{{item.IDOwner}}</small>
+              </label>
+              <ng-select class="c-input" (change)="saveChange()"
+                labelForId="IDOwner" formControlName="IDOwner"
+                [items]="_contactDataSource.items$ | async"
+                [typeahead]="_contactDataSource.input$" [loading]="_contactDataSource.loading"
+                [virtualScroll]="true" bindLabel="Name" bindValue="Id"
+                placeholder="{{'Search for name' | translate}}">
+                <ng-template ng-label-tmp let-i="item"> {{i.FullName}} </ng-template>
+                <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
+                  <div *ngIf="i">
+                    <div>
+                      <span [ngOptionHighlight]="search">{{i.FullName}}</span>
+                      <span *ngIf="i.PhoneNumber">
+                        |
+                        <small>
+                          <b [ngOptionHighlight]="search">{{i.PhoneNumber}}</b>
+                        </small></span>
+                    </div>
+                  </div>
+                </ng-template>
+              </ng-select>
+            </div>
             <app-form-control [field]="{id:'Name', label: 'Name', type : 'text', form : formGroup }" (change)="saveChange()">
               <small label *ngIf="item?.Id">Id: {{item.Id}}</small>
             </app-form-control>
-            <app-form-control [field]="{id:'StartDate', type : 'datetime-local', label: 'Start date', form : formGroup }" (change)="saveChange()">
+            <app-form-control [field]="{id:'StartDatePlan', type : 'date', label: 'Start date plan', form : formGroup }" (change)="changeStartDatePlan()">
             </app-form-control>
-            <app-form-control [field]="{id:'StartDatePlan', type : 'datetime-local', label: 'Start date plan', form : formGroup }" (change)="saveChange()">
+            <app-form-control [field]="{id:'EndDatePlan', type : 'date', label: 'End date plan', form : formGroup }" (change)="changeEndDatePlan()">
             </app-form-control>
-            <app-form-control [field]="{id:'Duration', type : 'number', label: 'Duration', form : formGroup }" (change)="saveChange()">
+            <app-form-control [field]="{id:'DurationPlan', type : 'number', label: 'Duration plan', form : formGroup }" (change)="changeDurationPlan()">
             </app-form-control>
-            <app-form-control
-              [field]="{id:'Status', label: 'Status', type : 'ng-select', dataSource: statusDataSource, bindValue:'Code', bindLabel:'Name', form : formGroup }"
-              (change)="saveChange()">
+            <app-form-control [field]="{id:'StartDate', type : 'date', label: 'Start date', form : formGroup }" (change)="changeStartDate()">
             </app-form-control>
+            <app-form-control [field]="{id:'EndDate', type : 'date', label: 'End date', form : formGroup }" (change)="changeEndDate()">
+            </app-form-control>
+            <app-form-control [field]="{id:'Duration', type : 'number', label: 'Duration', form : formGroup }" (change)="changeDuration()">
+            </app-form-control>
+            
           </ion-col>
           <ion-col size="12" size-sm="6" size-xl="4">
             <app-form-control
 									[field]="{id:'Type', label: 'Type', type : 'ng-select', dataSource: typeDataSource, bindValue:'Code', bindLabel:'Name', form : formGroup }"
 									(change)="saveChange()">
 						</app-form-control>
-            <app-form-control [field]="{id:'EndDate', type : 'datetime-local', label: 'End date', form : formGroup }" (change)="saveChange()">
+            <app-form-control
+              [field]="{id:'Status', label: 'Status', type : 'ng-select', dataSource: statusDataSource, bindValue:'Code', bindLabel:'Name', form : formGroup }"
+              (change)="saveChange()">
             </app-form-control>
-            <app-form-control [field]="{id:'EndDatePlan', type : 'datetime-local', label: 'End date plan', form : formGroup }" (change)="saveChange()">
-            </app-form-control>
-            <app-form-control [field]="{id:'DurationPlan', type : 'number', label: 'Duration plan', form : formGroup }" (change)="saveChange()">
+            
+
+            <app-form-control
+              [field]="{id:'Priority', label: 'Priority', type : 'ng-select', dataSource: priorityDataSource, bindValue:'Code', bindLabel:'Name', form : formGroup }"
+              (change)="saveChange()">
             </app-form-control>
           </ion-col>
         </ion-row>
 
         <!-- Other information -->
-        <ion-row class="hr-group" *ngIf="item.Id">
+        <ion-row class="hr-group" *ngIf="formGroup.controls.Id">
           <ion-col size="12" size-sm="12" size-md="12" size-xl="3">
             <ion-list-header class="ion-no-padding">
               <ion-label color="primary">{{'Other information' | translate}}</ion-label>
