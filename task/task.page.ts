@@ -97,7 +97,7 @@ export class TaskPage extends PageBase {
             return Math.round(task.progress * 100) + '%';
           },
         },
-        { name: 'add', label: '', align: 'center', width: 60 },
+        { name: 'add', label: '', align: 'center', width: 40 },
       ],
     };
     // let secondGridColumns = {
@@ -122,7 +122,7 @@ export class TaskPage extends PageBase {
             { resizer: true, width: 1 },
             { view: 'timeline', scrollX: 'scrollHor', scrollY: 'scrollVer' },
             { resizer: true, width: 1 },
-
+            //{ view: 'grid', width: 120, scrollY: 'scrollVer', config: secondGridColumns },
             { view: 'scrollbar', id: 'scrollVer' },
           ],
         },
@@ -130,6 +130,7 @@ export class TaskPage extends PageBase {
       ],
     };
 
+    gantt.config.show_errors = false;
     gantt.config.row_height = 50;
     gantt.config.scale_height = 50;
     gantt.config.open_tree_initially = true;
@@ -276,6 +277,81 @@ export class TaskPage extends PageBase {
     });
   }
 
+  autoCalculateLink() {
+    let currentLinks: any[] = gantt.getLinks();
+
+    let linksUpdate: any[] = [];
+    let linksDelete: any[] = [];
+
+    currentLinks
+      .map((link: any) => {
+        let sourceTask: any = gantt.getTask(link.source);
+        let targetTask: any = gantt.getTask(link.target);
+
+        let priority = this.calculatePriority(sourceTask, targetTask);
+
+        let existingLink: any = gantt.getLink(link.id);
+        if (existingLink && existingLink.type !== priority.toString()) {
+          link.type = priority.toString();
+          linksUpdate.push(link);
+        } else if (!sourceTask || !targetTask) {
+          linksDelete.push(link);
+        }
+        return null;
+      })
+      .filter((link) => link !== null);
+
+    if (this.submitAttempt == false) {
+      this.submitAttempt = true;
+      this.env
+        .showPrompt('Bạn có chắc muốn sắp xếp lại các liên kết không?', null, '')
+        .then((_) => {
+          let obj = {
+            LinksUpdate: linksUpdate,
+            LinksDelete: linksDelete.map(link => link.id),
+          };
+          this.pageProvider.commonService
+            .connect('POST', 'PM/TaskLink/AutoCalculateLink', obj)
+            .toPromise()
+            .then((data: any) => {
+              linksDelete.forEach((link) => {
+                gantt.deleteLink(link.id);
+              });
+
+              linksUpdate.forEach((link) => {
+                gantt.updateLink(link.id);
+              });
+
+              this.submitAttempt = false;
+            })
+            .catch((er) => {
+              this.submitAttempt = false;
+            });
+        })
+        .catch((er) => {
+          this.submitAttempt = false;
+        });
+    }
+  }
+
+  calculatePriority(sourceTask, targetTask) {
+    if (!sourceTask || !targetTask) return 0;
+
+    if (sourceTask.end_date < targetTask.start_date) {
+      // FS: Finish-to-Start
+      return 0;
+    } else if (sourceTask.start_date >= targetTask.start_date) {
+      // SS: Start-to-Start
+      return 1;
+    } else if (sourceTask.end_date >= targetTask.end_date) {
+      // FF: Finish-to-Finish
+      return 2;
+    } else {
+      // SF: Start-to-Finish
+      return 3;
+    }
+  }
+
   updateTask(task: Task): Promise<void> {
     let _task = this.items.find((d) => d.Id == task.id);
     _task.StartDate = task.start_date;
@@ -303,6 +379,7 @@ export class TaskPage extends PageBase {
   }
 
   createLink(link: Link): Promise<Link> {
+    let idBefore = link.id;
     link.id = 0;
     return new Promise((resolve, reject) => {
       if (this.submitAttempt == false) {
@@ -310,6 +387,19 @@ export class TaskPage extends PageBase {
         this.taskLinkService
           .save(this.formatLink(link), this.pageConfig.isForceCreate)
           .then((data: any) => {
+            const newLink = {
+              id: data.Id,
+              source: link.source,
+              target: link.target,
+              type: link.type,
+            };
+            gantt.addLink(newLink);
+            const linkElement = document.querySelector(`[data-link-id="${idBefore}"]`);
+            if (linkElement) {
+              linkElement.setAttribute('data-link-id', data.Id.toString());
+            }
+            linkElement.setAttribute('link_id', data.Id.toString());
+
             this.env.showTranslateMessage('Saving completed!', 'success');
             this.submitAttempt = false;
           })

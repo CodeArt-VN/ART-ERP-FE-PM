@@ -5,6 +5,12 @@
     [selectedItems]="selectedItems"
     [query]="query"
     [page]="this">
+    <ion-button (click)="autoCalculateLink()"  title="{{ 'Auto Calculate Link' | translate }}" class="ion-hide-sm-down" *ngIf="pageConfig.canEdit">
+      <ion-icon
+        slot="icon-only"
+        name="aperture-outline"
+      ></ion-icon>
+    </ion-button>
   </app-toolbar>
 </ion-header>
 
