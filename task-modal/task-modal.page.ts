@@ -204,13 +204,11 @@ export class TaskModalPage extends PageBase {
 
   changeStartDate() {;
     let startDate = new Date(this.formGroup.controls.StartDate.value);
-    let today = new Date(this.item.StartDate);
+    let endDate = new Date(this.formGroup.controls.EndDate.value);
+    const duration = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+    this.formGroup.controls.Duration.setValue(duration);
+    this.formGroup.controls.Duration.markAsDirty();
 
-    if (startDate < today) {
-      startDate = today;
-      this.formGroup.get('StartDate').setValue(lib.dateFormat(today));
-    }
-    let duration = this.formGroup.controls.Duration.value
     let endDateValue = new Date(startDate.getTime() + (duration * 24 * 60 * 60 * 1000));
     this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDateValue));
     this.formGroup.controls.EndDate.markAsDirty();
@@ -250,14 +248,11 @@ export class TaskModalPage extends PageBase {
 
   changeStartDatePlan() {
     let startDatePlan = new Date(this.formGroup.controls.StartDatePlan.value);
-    let today = new Date(this.item.StartDatePlan);
-  
-    if (startDatePlan < today) {
-      startDatePlan = today;
-      this.formGroup.get('StartDatePlan').setValue(lib.dateFormat(today));
-    }
-  
-    let durationPlan = this.formGroup.controls.DurationPlan.value
+    let endDatePlan = new Date(this.formGroup.controls.EndDatePlan.value);
+    const durationPlan = (endDatePlan.getTime() - startDatePlan.getTime()) / (1000 * 60 * 60 * 24);
+    this.formGroup.controls.DurationPlan.setValue(durationPlan);
+    this.formGroup.controls.DurationPlan.markAsDirty();
+
     let endDateValuePlan = new Date(startDatePlan.getTime() + (durationPlan * 24 * 60 * 60 * 1000));
     this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDateValuePlan));
     this.formGroup.controls.EndDatePlan.markAsDirty();
@@ -303,6 +298,5 @@ export class TaskModalPage extends PageBase {
 
   async saveChange() {
     this.saveChange2();
-    this.item = this.formGroup.value;
   }
 }
