@@ -64,6 +64,7 @@ export class TaskPage extends PageBase {
       });
     }
 
+
     gantt.config.resize_rows = true;
     gantt.config.min_task_grid_row_height = 45;
     gantt.config.scales = [
@@ -82,23 +83,19 @@ export class TaskPage extends PageBase {
       return '';
     };
 
+
     let firstGridColumns = {
       columns: [
-        { name: 'text', label: 'Task Name', tree: true, width: '*', min_width: 150, resize: true },
-        { name: 'start_date', label: 'Start Time', align: 'center', resize: true },
-        { name: 'duration', label: 'Duration', align: 'center', width: 70, resize: true },
-        {
-          name: 'progress',
-          label: 'Progress',
-          width: 50,
-          resize: true,
-          align: 'center',
+        { name: "text", label: "Task Name", tree: true, width: "*", min_width: 150, resize: true },
+        { name: "start_date", label: "Start Time", align: "center", resize: true },
+        { name: "duration", label: "Duration", align: "center", width: 70, resize: true },
+        { name: "progress", label: "Progress", width: 50, resize: true, align: "center", 
           template: function (task) {
-            return Math.round(task.progress * 100) + '%';
-          },
+              return Math.round(task.progress * 100) + "%"
+          }
         },
-        { name: 'add', label: '', align: 'center', width: 60 },
-      ],
+        { name: "add", label: "", align: "center", width: 60 }
+      ]
     };
     // let secondGridColumns = {
     //   columns: [
@@ -112,22 +109,23 @@ export class TaskPage extends PageBase {
     //     }
     //   ]
     // };
-
+  
     gantt.config.layout = {
-      css: 'gantt_container',
+      css: "gantt_container",
       rows: [
         {
           cols: [
-            { view: 'grid', width: 320, scrollY: 'scrollVer', config: firstGridColumns },
-            { resizer: true, width: 1 },
-            { view: 'timeline', scrollX: 'scrollHor', scrollY: 'scrollVer' },
-            { resizer: true, width: 1 },
-
-            { view: 'scrollbar', id: 'scrollVer' },
-          ],
+            {view: "grid", width: 320, scrollY: "scrollVer", config: firstGridColumns},
+            {resizer: true, width: 1},
+            {view: "timeline", scrollX: "scrollHor", scrollY: "scrollVer"},
+            {resizer: true, width: 1},
+           
+            {view: "scrollbar", id: "scrollVer"}
+          ]
+  
         },
-        { view: 'scrollbar', id: 'scrollHor', height: 20 },
-      ],
+        {view: "scrollbar", id: "scrollHor", height: 20}
+      ]
     };
 
     gantt.config.row_height = 50;
@@ -156,11 +154,11 @@ export class TaskPage extends PageBase {
       task.durationPlan = 1;
 
       const startDate = new Date();
-      const utcStartDate = new Date(startDate.getTime() - startDate.getTimezoneOffset() * 60000);
+      const utcStartDate = new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000));
       task.start_date = utcStartDate.toISOString().slice(0, 19);
       task.start_date_plan = task.start_date;
 
-      const endDate = new Date(utcStartDate.getTime() + 24 * 60 * 60 * 1000);
+      const endDate = new Date(utcStartDate.getTime() + (24 * 60 * 60 * 1000));
       task.end_date = endDate.toISOString().slice(0, 19);
       task.end_date_plan = task.end_date;
 
@@ -189,7 +187,7 @@ export class TaskPage extends PageBase {
           .then((_) => {
             this.submitAttempt = false;
             const deleteLink = dp._router.link.delete;
-            deleteLink.call(dp._router.link, Number(id));
+            deleteLink.call(dp._router.link, Number(id)); 
           })
           .catch((er) => {
             this.submitAttempt = false;
@@ -210,7 +208,7 @@ export class TaskPage extends PageBase {
 
     this.loadGantt();
   }
-
+   
   async openModalForNewTask(task) {
     const modal = await this.modalController.create({
       component: TaskModalPage,
@@ -269,7 +267,7 @@ export class TaskPage extends PageBase {
       });
       gantt.clearAll();
       gantt.parse({ data, links });
-      gantt.eachTask((task) => {
+      gantt.eachTask((task) =>{
         task.$open = true;
       });
       gantt.render();
