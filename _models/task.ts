@@ -2,6 +2,8 @@ export class Task {
   id!: number;
   text!: string;
   start_date!: string;
+  end_date!: string;
+  type!: string;
   duration!: number;
   progress!: number;
   parent!: number;

@@ -1,0 +1,13 @@
+<ion-header>
+  <app-toolbar
+    pageTitle="{{'Help' | translate}}"
+    [pageConfig]="pageConfig"
+    [selectedItems]="selectedItems"
+    [query]="query"
+    [page]="this">
+  </app-toolbar>
+</ion-header>
+
+<ion-content appScrollbarTheme class="scrollx">
+  <div #gantt_here class="gantt-chart"></div>
+</ion-content>
