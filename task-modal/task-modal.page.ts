@@ -147,9 +147,8 @@ export class TaskModalPage extends PageBase {
     },
   };
   async loadedData(event) {
-
     this.item.StartDatePlan = lib.dateFormat(this.item.StartDatePlan);
-    
+
     this.item.StartDate = lib.dateFormat(this.item.StartDate);
     if (this.item?.EndDatePlan) {
       this.item.EndDatePlan = lib.dateFormat(this.item.EndDatePlan);
@@ -202,14 +201,14 @@ export class TaskModalPage extends PageBase {
     }
   }
 
-  changeStartDate() {;
+  changeStartDate() {
     let startDate = new Date(this.formGroup.controls.StartDate.value);
     let endDate = new Date(this.formGroup.controls.EndDate.value);
     const duration = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
     this.formGroup.controls.Duration.setValue(duration);
     this.formGroup.controls.Duration.markAsDirty();
 
-    let endDateValue = new Date(startDate.getTime() + (duration * 24 * 60 * 60 * 1000));
+    let endDateValue = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
     this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDateValue));
     this.formGroup.controls.EndDate.markAsDirty();
     this.saveChange();
@@ -219,8 +218,8 @@ export class TaskModalPage extends PageBase {
     const startDate = new Date(this.formGroup.controls.StartDate.value);
     let endDate = new Date(this.formGroup.controls.EndDate.value);
     if (endDate < startDate) {
-        endDate = new Date(startDate);
-        this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDate));
+      endDate = new Date(startDate);
+      this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDate));
     }
 
     const duration = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
@@ -233,18 +232,17 @@ export class TaskModalPage extends PageBase {
   changeDuration() {
     const startDate = new Date(this.formGroup.controls.StartDate.value);
     let duration = this.formGroup.controls.Duration.value;
-    
+
     if (duration < 0) {
       duration = 0;
       this.formGroup.controls.Duration.setValue(0);
     }
-  
-    const endDateValue = new Date(startDate.getTime() + (duration * 24 * 60 * 60 * 1000));
+
+    const endDateValue = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
     this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDateValue));
     this.formGroup.controls.EndDate.markAsDirty();
     this.saveChange();
   }
-  
 
   changeStartDatePlan() {
     let startDatePlan = new Date(this.formGroup.controls.StartDatePlan.value);
@@ -253,42 +251,41 @@ export class TaskModalPage extends PageBase {
     this.formGroup.controls.DurationPlan.setValue(durationPlan);
     this.formGroup.controls.DurationPlan.markAsDirty();
 
-    let endDateValuePlan = new Date(startDatePlan.getTime() + (durationPlan * 24 * 60 * 60 * 1000));
+    let endDateValuePlan = new Date(startDatePlan.getTime() + durationPlan * 24 * 60 * 60 * 1000);
     this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDateValuePlan));
     this.formGroup.controls.EndDatePlan.markAsDirty();
     this.saveChange();
   }
-  
+
   changeEndDatePlan() {
     const startDatePlan = new Date(this.formGroup.controls.StartDatePlan.value);
     let endDatePlan = new Date(this.formGroup.controls.EndDatePlan.value);
     if (endDatePlan < startDatePlan) {
-        endDatePlan = new Date(startDatePlan);
-        this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDatePlan));
+      endDatePlan = new Date(startDatePlan);
+      this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDatePlan));
     }
-  
+
     const durationPlan = (endDatePlan.getTime() - startDatePlan.getTime()) / (1000 * 60 * 60 * 24);
-  
+
     this.formGroup.controls.DurationPlan.setValue(durationPlan);
     this.formGroup.controls.DurationPlan.markAsDirty();
     this.saveChange();
   }
-  
+
   changeDurationPlan() {
     const startDatePlan = new Date(this.formGroup.controls.StartDatePlan.value);
     let durationPlan = this.formGroup.controls.DurationPlan.value;
-    
+
     if (durationPlan < 0) {
       durationPlan = 0;
       this.formGroup.controls.DurationPlan.setValue(0);
     }
-  
-    const endDateValuePlan = new Date(startDatePlan.getTime() + (durationPlan * 24 * 60 * 60 * 1000));
+
+    const endDateValuePlan = new Date(startDatePlan.getTime() + durationPlan * 24 * 60 * 60 * 1000);
     this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDateValuePlan));
     this.formGroup.controls.EndDatePlan.markAsDirty();
     this.saveChange();
   }
-  
 
   saveTask(update = false) {
     this.item = this.formGroup.value;

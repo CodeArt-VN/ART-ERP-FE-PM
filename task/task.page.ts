@@ -64,7 +64,6 @@ export class TaskPage extends PageBase {
       });
     }
 
-
     gantt.config.resize_rows = true;
     gantt.config.min_task_grid_row_height = 45;
     gantt.config.scales = [
@@ -83,19 +82,23 @@ export class TaskPage extends PageBase {
       return '';
     };
 
-
     let firstGridColumns = {
       columns: [
-        { name: "text", label: "Task Name", tree: true, width: "*", min_width: 150, resize: true },
-        { name: "start_date", label: "Start Time", align: "center", resize: true },
-        { name: "duration", label: "Duration", align: "center", width: 70, resize: true },
-        { name: "progress", label: "Progress", width: 50, resize: true, align: "center", 
+        { name: 'text', label: 'Task Name', tree: true, width: '*', min_width: 150, resize: true },
+        { name: 'start_date', label: 'Start Time', align: 'center', resize: true },
+        { name: 'duration', label: 'Duration', align: 'center', width: 70, resize: true },
+        {
+          name: 'progress',
+          label: 'Progress',
+          width: 50,
+          resize: true,
+          align: 'center',
           template: function (task) {
-              return Math.round(task.progress * 100) + "%"
-          }
+            return Math.round(task.progress * 100) + '%';
+          },
         },
-        { name: "add", label: "", align: "center", width: 60 }
-      ]
+        { name: 'add', label: '', align: 'center', width: 40 },
+      ],
     };
     // let secondGridColumns = {
     //   columns: [
@@ -109,25 +112,25 @@ export class TaskPage extends PageBase {
     //     }
     //   ]
     // };
-  
+
     gantt.config.layout = {
-      css: "gantt_container",
+      css: 'gantt_container',
       rows: [
         {
           cols: [
-            {view: "grid", width: 320, scrollY: "scrollVer", config: firstGridColumns},
-            {resizer: true, width: 1},
-            {view: "timeline", scrollX: "scrollHor", scrollY: "scrollVer"},
-            {resizer: true, width: 1},
-           
-            {view: "scrollbar", id: "scrollVer"}
-          ]
-  
+            { view: 'grid', width: 320, scrollY: 'scrollVer', config: firstGridColumns },
+            { resizer: true, width: 1 },
+            { view: 'timeline', scrollX: 'scrollHor', scrollY: 'scrollVer' },
+            { resizer: true, width: 1 },
+            //{ view: 'grid', width: 120, scrollY: 'scrollVer', config: secondGridColumns },
+            { view: 'scrollbar', id: 'scrollVer' },
+          ],
         },
-        {view: "scrollbar", id: "scrollHor", height: 20}
-      ]
+        { view: 'scrollbar', id: 'scrollHor', height: 20 },
+      ],
     };
 
+    gantt.config.show_errors = false;
     gantt.config.row_height = 50;
     gantt.config.scale_height = 50;
     gantt.config.open_tree_initially = true;
@@ -154,11 +157,11 @@ export class TaskPage extends PageBase {
       task.durationPlan = 1;
 
       const startDate = new Date();
-      const utcStartDate = new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000));
+      const utcStartDate = new Date(startDate.getTime() - startDate.getTimezoneOffset() * 60000);
       task.start_date = utcStartDate.toISOString().slice(0, 19);
       task.start_date_plan = task.start_date;
 
-      const endDate = new Date(utcStartDate.getTime() + (24 * 60 * 60 * 1000));
+      const endDate = new Date(utcStartDate.getTime() + 24 * 60 * 60 * 1000);
       task.end_date = endDate.toISOString().slice(0, 19);
       task.end_date_plan = task.end_date;
 
@@ -187,7 +190,7 @@ export class TaskPage extends PageBase {
           .then((_) => {
             this.submitAttempt = false;
             const deleteLink = dp._router.link.delete;
-            deleteLink.call(dp._router.link, Number(id)); 
+            deleteLink.call(dp._router.link, Number(id));
           })
           .catch((er) => {
             this.submitAttempt = false;
@@ -208,7 +211,7 @@ export class TaskPage extends PageBase {
 
     this.loadGantt();
   }
-   
+
   async openModalForNewTask(task) {
     const modal = await this.modalController.create({
       component: TaskModalPage,
@@ -267,11 +270,86 @@ export class TaskPage extends PageBase {
       });
       gantt.clearAll();
       gantt.parse({ data, links });
-      gantt.eachTask((task) =>{
+      gantt.eachTask((task) => {
         task.$open = true;
       });
       gantt.render();
     });
+  }
+
+  autoCalculateLink() {
+    let currentLinks: any[] = gantt.getLinks();
+
+    let linksUpdate: any[] = [];
+    let linksDelete: any[] = [];
+
+    currentLinks
+      .map((link: any) => {
+        let sourceTask: any = gantt.getTask(link.source);
+        let targetTask: any = gantt.getTask(link.target);
+
+        let priority = this.calculatePriority(sourceTask, targetTask);
+
+        let existingLink: any = gantt.getLink(link.id);
+        if (existingLink && existingLink.type !== priority.toString()) {
+          link.type = priority.toString();
+          linksUpdate.push(link);
+        } else if (!sourceTask || !targetTask) {
+          linksDelete.push(link);
+        }
+        return null;
+      })
+      .filter((link) => link !== null);
+
+    if (this.submitAttempt == false) {
+      this.submitAttempt = true;
+      this.env
+        .showPrompt('Bạn có chắc muốn sắp xếp lại các liên kết không?', null, '')
+        .then((_) => {
+          let obj = {
+            LinksUpdate: linksUpdate,
+            LinksDelete: linksDelete.map(link => link.id),
+          };
+          this.pageProvider.commonService
+            .connect('POST', 'PM/TaskLink/AutoCalculateLink', obj)
+            .toPromise()
+            .then((data: any) => {
+              linksDelete.forEach((link) => {
+                gantt.deleteLink(link.id);
+              });
+
+              linksUpdate.forEach((link) => {
+                gantt.updateLink(link.id);
+              });
+
+              this.submitAttempt = false;
+            })
+            .catch((er) => {
+              this.submitAttempt = false;
+            });
+        })
+        .catch((er) => {
+          this.submitAttempt = false;
+        });
+    }
+  }
+
+  calculatePriority(sourceTask, targetTask) {
+    if (!sourceTask || !targetTask) return 0;
+
+    if (sourceTask.end_date < targetTask.start_date) {
+      // FS: Finish-to-Start
+      return 0;
+    } else if (sourceTask.start_date >= targetTask.start_date) {
+      // SS: Start-to-Start
+      return 1;
+    } else if (sourceTask.end_date >= targetTask.end_date) {
+      // FF: Finish-to-Finish
+      return 2;
+    } else {
+      // SF: Start-to-Finish
+      return 3;
+    }
   }
 
   updateTask(task: Task): Promise<void> {
@@ -301,6 +379,7 @@ export class TaskPage extends PageBase {
   }
 
   createLink(link: Link): Promise<Link> {
+    let idBefore = link.id;
     link.id = 0;
     return new Promise((resolve, reject) => {
       if (this.submitAttempt == false) {
@@ -308,6 +387,19 @@ export class TaskPage extends PageBase {
         this.taskLinkService
           .save(this.formatLink(link), this.pageConfig.isForceCreate)
           .then((data: any) => {
+            const newLink = {
+              id: data.Id,
+              source: link.source,
+              target: link.target,
+              type: link.type,
+            };
+            gantt.addLink(newLink);
+            const linkElement = document.querySelector(`[data-link-id="${idBefore}"]`);
+            if (linkElement) {
+              linkElement.setAttribute('data-link-id', data.Id.toString());
+            }
+            linkElement.setAttribute('link_id', data.Id.toString());
+
             this.env.showTranslateMessage('Saving completed!', 'success');
             this.submitAttempt = false;
           })
