@@ -308,20 +308,14 @@ export class TaskPage extends PageBase {
         .then((_) => {
           let obj = {
             LinksUpdate: linksUpdate,
-            LinksDelete: linksDelete.map(link => link.id),
+            LinksDelete: linksDelete.map((link) => link.id),
           };
           this.pageProvider.commonService
             .connect('POST', 'PM/TaskLink/AutoCalculateLink', obj)
             .toPromise()
             .then((data: any) => {
-              linksDelete.forEach((link) => {
-                gantt.deleteLink(link.id);
-              });
-
-              linksUpdate.forEach((link) => {
-                gantt.updateLink(link.id);
-              });
-
+              //render event
+              this.loadGantt();
               this.submitAttempt = false;
             })
             .catch((er) => {
@@ -387,18 +381,25 @@ export class TaskPage extends PageBase {
         this.taskLinkService
           .save(this.formatLink(link), this.pageConfig.isForceCreate)
           .then((data: any) => {
+            //remove element, event
+            const oldLinkElement = document.querySelector(`[data-link-id="${idBefore}"]`);
+            if (oldLinkElement) {
+              oldLinkElement.remove();
+            }
+            gantt.deleteLink(idBefore);
             const newLink = {
               id: data.Id,
               source: link.source,
               target: link.target,
               type: link.type,
             };
+            //add new
             gantt.addLink(newLink);
             const linkElement = document.querySelector(`[data-link-id="${idBefore}"]`);
             if (linkElement) {
               linkElement.setAttribute('data-link-id', data.Id.toString());
+              linkElement.setAttribute('link_id', data.Id.toString());
             }
-            linkElement.setAttribute('link_id', data.Id.toString());
 
             this.env.showTranslateMessage('Saving completed!', 'success');
             this.submitAttempt = false;
