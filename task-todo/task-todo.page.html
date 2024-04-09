@@ -1,0 +1,275 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start" class="ion-hide-sm-down_">
+      <ion-button color="dark" class="ion-hide-sm-down"> {{'Task Todo' | translate}} </ion-button>
+    </ion-buttons>
+    <ion-buttons slot="end">
+
+      <span class="split ion-hide-sm-down">|</span>
+      <ion-button (click)="toggleGroup4Column()" title="{{'List 4 column' | translate}}">
+        <ion-icon slot="icon-only" name="star-outline"></ion-icon>
+      </ion-button>
+      <ion-button (click)="refresh()" title="{{'Refresh' | translate}}">
+        <ion-icon slot="icon-only" name="reload-outline"></ion-icon>
+      </ion-button>
+      <ion-button title="{{'Expanded function' | translate}}"
+        (click)="pageConfig.isShowFeature = !pageConfig.isShowFeature;">
+        <ion-icon slot="icon-only" [name]="pageConfig.isShowFeature? 'close-outline':'list-circle-outline'"> </ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content appScrollbarTheme appPrintFix class="A4 left" [ngClass]="{withFeature: pageConfig.isShowFeature}">
+  <ion-fab *ngIf="pageConfig.isShowFeature" [ngClass]="{withSearch: pageConfig.isShowSearch}" class="feature no-print"
+    vertical="top" horizontal="start" slot="fixed">
+    <ion-list>
+      <ion-list-header lines="full">
+        <ion-label color="dark">{{'Project' | translate}}</ion-label>
+      </ion-list-header>
+    </ion-list>
+    <ion-list>
+      <ion-item [color]="i.Id == selectedShipmentID? 'primary': '' " button detail="true" lines="full" class="clickable"
+        *ngFor="let i of items" (click)="loadTaskTodo(i)">
+        <ion-label class="ion-text-wrap">
+          <ion-text>
+            <h3>{{i.Name}}</h3>
+          </ion-text>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+  </ion-fab>
+
+  <div style="overflow: auto">
+    <section class="sheet rpt" *ngIf="list4Column.length > 0">
+
+      <ion-grid>
+        <ion-row>
+          <ion-col size="6" size-sm="6" size-xl="6" *ngIf="!isCollapsed">
+            <ion-card class="box">
+              <ion-card-content>High priority - Urgent</ion-card-content>
+              <ion-card-content>
+                <div class="table-contain">
+                  <section class="table">
+                    <ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, formGroup.get('ListPriority1')['controls'])">
+                      <ng-container *ngFor="let g of  formGroup.controls.ListPriority1.controls; let idx = index;">
+                        <ng-container [formGroup]="g">
+                          <div class="row">
+                            <div class="col-id cell">
+                              {{idx+1}}
+                            </div>
+                            <div class="col-name cell" (click)="showActionModal(g)">
+                              {{g.get('Name').value}}
+                            </div>
+                            <div class="col-reorder cell">
+                              <ion-reorder slot="end"></ion-reorder>
+                            </div>
+                          </div>
+                        </ng-container>
+                      </ng-container>
+                    </ion-reorder-group>
+                  </section>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+          <ion-col size="6" *ngIf="!isCollapsed">
+            <ion-card class="box">
+              <ion-card-content>Medium priority - Not urgent</ion-card-content>
+              <ion-card-content>
+                <div class="table-contain">
+                  <section class="table">
+                    <ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, formGroup.get('ListPriority2')['controls'])">
+                      <ng-container *ngFor="let g of formGroup.controls.ListPriority2.controls; let idx = index;">
+                        <ng-container [formGroup]="g">
+                          <div class="row">
+                            <div class="col-id cell">
+                              {{idx+1}}
+                            </div>
+                            <div class="col-name cell" (click)="showActionModal(g)">
+                              {{g.get('Name').value}}
+                            </div>
+                            <div class="col-reorder cell">
+                              <ion-reorder slot="end"></ion-reorder>
+                            </div>
+                          </div>
+                        </ng-container>
+                      </ng-container>
+                    </ion-reorder-group>
+                  </section>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+        <ion-row *ngIf="!isCollapsed">
+          <ion-col size="6">
+            <ion-card class="box">
+              <ion-card-content>Low priority - Urgent</ion-card-content>
+              <ion-card-content>
+                <div class="table-contain">
+                  <section class="table">
+                    <ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, formGroup.get('ListPriority3')['controls'])">
+                      <ng-container *ngFor="let g of formGroup.controls.ListPriority3.controls; let idx = index;">
+                        <ng-container [formGroup]="g">
+                          <div class="row">
+                            <div class="col-id cell">
+                              {{idx+1}}
+                            </div>
+                            <div class="col-name cell" (click)="showActionModal(g)">
+                              {{g.get('Name').value}}
+                            </div>
+                            <div class="col-reorder cell">
+                              <ion-reorder slot="end"></ion-reorder>
+                            </div>
+                          </div>
+                        </ng-container>
+                      </ng-container>
+                    </ion-reorder-group>
+                  </section>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+          <ion-col size="6">
+            <ion-card class="box">
+              <ion-card-content>Not priority - Not urgent</ion-card-content>
+              <ion-card-content>
+                <div class="table-contain">
+                  <section class="table">
+                    <ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, formGroup.get('ListPriority4')['controls'])">
+                      <ng-container *ngFor="let g of formGroup.controls.ListPriority4.controls; let idx = index;">
+                        <ng-container [formGroup]="g">
+                          <div class="row">
+                            <div class="col-id cell">
+                              {{idx+1}}
+                            </div>
+                            <div class="col-name cell" (click)="showActionModal(g)">
+                              {{g.get('Name').value}}
+                            </div>
+                            <div class="col-reorder cell">
+                              <ion-reorder slot="end"></ion-reorder>
+                            </div>
+                          </div>
+                        </ng-container>
+                      </ng-container>
+                    </ion-reorder-group>
+                  </section>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+
+
+        <ion-row *ngIf="isCollapsed">
+          <ion-col size="12">
+            <ion-card class="box">
+              <ion-card-content>High priority - Urgent</ion-card-content>
+              <ion-card-content>
+                <div class="table-contain">
+                  <section class="table">
+                    <ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, formGroup.get('ListPriority1')['controls'])">
+                      <ng-container *ngFor="let g of formGroup.controls.ListPriority1.controls; let idx = index;">
+                        <ng-container [formGroup]="g">
+                          <div class="row">
+                            <div class="col-id cell">
+                              {{idx+1}}
+                            </div>
+                            <div class="col-name cell" (click)="showActionModal(g)">
+                              {{g.get('Name').value}}
+                            </div>
+                            <div class="col-reorder cell">
+                              <ion-reorder slot="end"></ion-reorder>
+                            </div>
+                          </div>
+                        </ng-container>
+                      </ng-container>
+                    </ion-reorder-group>
+                  </section>
+                </div>
+              </ion-card-content>
+            </ion-card>
+            <ion-card class="box">
+              <ion-card-content>Medium priority - Not urgent</ion-card-content>
+              <ion-card-content>
+                <div class="table-contain">
+                  <section class="table">
+                    <ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, formGroup.get('ListPriority2')['controls'])">
+                      <ng-container *ngFor="let g of formGroup.controls.ListPriority2.controls; let idx = index;">
+                        <ng-container [formGroup]="g">
+                          <div class="row">
+                            <div class="col-id cell">
+                              {{idx+1}}
+                            </div>
+                            <div class="col-name cell" (click)="showActionModal(g)">
+                              {{g.get('Name').value}}
+                            </div>
+                            <div class="col-reorder cell">
+                              <ion-reorder slot="end"></ion-reorder>
+                            </div>
+                          </div>
+                        </ng-container>
+                      </ng-container>
+                    </ion-reorder-group>
+                  </section>
+                </div>
+              </ion-card-content>
+            </ion-card>
+            <ion-card class="box">
+              <ion-card-content>Low priority - Urgent</ion-card-content>
+              <ion-card-content>
+                <div class="table-contain">
+                  <section class="table">
+                    <ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, formGroup.get('ListPriority3')['controls'])">
+                      <ng-container *ngFor="let g of formGroup.controls.ListPriority3.controls; let idx = index;">
+                        <ng-container [formGroup]="g">
+                          <div class="row">
+                            <div class="col-id cell">
+                              {{idx+1}}
+                            </div>
+                            <div class="col-name cell" (click)="showActionModal(g)">
+                              {{g.get('Name').value}}
+                            </div>
+                            <div class="col-reorder cell">
+                              <ion-reorder slot="end"></ion-reorder>
+                            </div>
+                          </div>
+                        </ng-container>
+                      </ng-container>
+                    </ion-reorder-group>
+                  </section>
+                </div>
+              </ion-card-content>
+            </ion-card>
+            <ion-card class="box">
+              <ion-card-content>Not priority - Not urgent</ion-card-content>
+              <ion-card-content>
+                <div class="table-contain">
+                  <section class="table">
+                    <ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, formGroup.get('ListPriority4')['controls'])">
+                      <ng-container *ngFor="let g of formGroup.controls.ListPriority4.controls; let idx = index;">
+                        <ng-container [formGroup]="g">
+                          <div class="row">
+                            <div class="col-id cell">
+                              {{idx+1}}
+                            </div>
+                            <div class="col-name cell" (click)="showActionModal(g)">
+                              {{g.get('Name').value}}
+                            </div>
+                            <div class="col-reorder cell">
+                              <ion-reorder slot="end"></ion-reorder>
+                            </div>
+                          </div>
+                        </ng-container>
+                      </ng-container>
+                    </ion-reorder-group>
+                  </section>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </section>
+  </div>
+</ion-content>
