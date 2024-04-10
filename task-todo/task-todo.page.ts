@@ -15,7 +15,20 @@ import { FormArray, FormBuilder, FormControl, Validators } from '@angular/forms'
   styleUrls: ['task-todo.page.scss'],
 })
 export class TaskTodoPage extends PageBase {
-  branchList = [];
+
+  itemsState: any = [];
+  itemsView = [];
+  isAllRowOpened = false;
+  typeList = [];
+
+  list4Column: any = [];
+  listPriorityHigh: any = [];
+  listPriorityMedium: any = [];
+  listPriorityLow: any = [];
+  listPriorityNot: any = []; //null
+
+  isCollapsed: boolean = false;
+  isDisabled = true;
 
   constructor(
     public pageProvider: PM_TaskProvider,
@@ -32,7 +45,11 @@ export class TaskTodoPage extends PageBase {
   ) {
     super();
     this.pageConfig.isShowFeature = true;
-    this.id = this.route.snapshot.paramMap.get('id');
+    this.pageConfig.isSubActive = false;
+
+    this.query.Take = 5000;
+    this.query.AllChildren = true;
+    this.query.AllParent = true;
     this.formGroup = formBuilder.group({
       IDBranch: [this.env.selectedBranch],
       IDOpportunity: [''],
@@ -70,23 +87,22 @@ export class TaskTodoPage extends PageBase {
       CreatedDate: new FormControl({ value: '', disabled: true }),
       ModifiedBy: new FormControl({ value: '', disabled: true }),
       ModifiedDate: new FormControl({ value: '', disabled: true }),
-      ListPriority1: this.formBuilder.array([]),
-      ListPriority2: this.formBuilder.array([]),
-      ListPriority3: this.formBuilder.array([]),
-      ListPriority4: this.formBuilder.array([]),
+      ListPriorityHigh: this.formBuilder.array([]),
+      ListPriorityMedium: this.formBuilder.array([]),
+      ListPriorityLow: this.formBuilder.array([]),
+      ListPriorityNot: this.formBuilder.array([]),
     });
   }
 
   loadedData(event) {
+    this.buildFlatTree(this.items, this.itemsState, this.isAllRowOpened).then((resp: any) => {
+      this.itemsState = resp;
+      this.itemsView = this.itemsState.filter((d) => d.show);
+    });
     this.items = this.items.filter((d) => d.Type === 'project');
     super.loadedData(event);
   }
 
-  list4Column: any = [];
-  listPriority1: any = [];
-  listPriority2: any = [];
-  listPriority3: any = [];
-  listPriority4: any = []; //null
   loadTaskTodo(i) {
     this.submitAttempt = true;
     let apiPath = {
@@ -111,28 +127,29 @@ export class TaskTodoPage extends PageBase {
             this.clearFg();
             this.list4Column = resp;
             this.list4Column = this.list4Column?.sort((a, b) => a.Sort - b.Sort);
-            this.listPriority1 = this.list4Column.filter((item) => item.Priority === 1);
-            this.listPriority2 = this.list4Column.filter((item) => item.Priority === 2);
-            this.listPriority3 = this.list4Column.filter((item) => item.Priority === 3);
-            this.listPriority4 = this.list4Column.filter((item) => item.Priority === null);
-            let groups1 = <FormArray>this.formGroup.controls.ListPriority1;
-            let groups2 = <FormArray>this.formGroup.controls.ListPriority2;
-            let groups3 = <FormArray>this.formGroup.controls.ListPriority3;
-            let groups4 = <FormArray>this.formGroup.controls.ListPriority4;
-            if (this.listPriority1?.length) {
-              this.listPriority1.forEach((i) => this.addField(i, groups1));
+            this.listPriorityHigh = this.list4Column.filter((item) => item.Priority === 1);
+            this.listPriorityMedium = this.list4Column.filter((item) => item.Priority === 2);
+            this.listPriorityLow = this.list4Column.filter((item) => item.Priority === 3);
+            this.listPriorityNot = this.list4Column.filter((item) => item.Priority === null);
+            let groupsHigh = <FormArray>this.formGroup.controls.ListPriorityHigh;
+            let groupsMedium = <FormArray>this.formGroup.controls.ListPriorityMedium;
+            let groupsLow = <FormArray>this.formGroup.controls.ListPriorityLow;
+            let groupsNot = <FormArray>this.formGroup.controls.ListPriorityNot;
+            if (this.listPriorityHigh?.length) {
+              this.listPriorityHigh.forEach((i) => this.addField(i, groupsHigh));
             }
-            if (this.listPriority2?.length) {
-              this.listPriority2.forEach((i) => this.addField(i, groups2));
+            if (this.listPriorityMedium?.length) {
+              this.listPriorityMedium.forEach((i) => this.addField(i, groupsMedium));
             }
-            if (this.listPriority3?.length) {
-              this.listPriority3.forEach((i) => this.addField(i, groups3));
+            if (this.listPriorityLow?.length) {
+              this.listPriorityLow.forEach((i) => this.addField(i, groupsLow));
             }
-            if (this.listPriority4?.length) {
-              this.listPriority4.forEach((i) => this.addField(i, groups4));
+            if (this.listPriorityNot?.length) {
+              this.listPriorityNot.forEach((i) => this.addField(i, groupsNot));
             }
             this.submitAttempt = false;
             if (loading) loading.dismiss();
+            this.pageConfig.isSubActive = true;
           })
           .catch((err) => {
             if (err.message != null) {
@@ -142,13 +159,18 @@ export class TaskTodoPage extends PageBase {
             }
             this.submitAttempt = false;
             if (loading) loading.dismiss();
+            this.pageConfig.isSubActive = true;
           });
       });
+      
   }
 
-  isCollapsed: boolean = false;
   toggleGroup4Column() {
     this.isCollapsed = !this.isCollapsed;
+  }
+
+  toggleReorder() {
+    this.isDisabled = !this.isDisabled;
   }
 
   doReorder(ev, groups) {
@@ -178,31 +200,28 @@ export class TaskTodoPage extends PageBase {
   }
 
   clearFg() {
-    let groups1 = <FormArray>this.formGroup.controls.ListPriority1;
-    let groups2 = <FormArray>this.formGroup.controls.ListPriority2;
-    let groups3 = <FormArray>this.formGroup.controls.ListPriority3;
-    let groups4 = <FormArray>this.formGroup.controls.ListPriority4;
-    groups1.clear();
-    groups2.clear();
-    groups3.clear();
-    groups4.clear();
+    let groupsHigh = <FormArray>this.formGroup.controls.ListPriorityHigh;
+    let groupsMedium = <FormArray>this.formGroup.controls.ListPriorityMedium;
+    let groupsLow = <FormArray>this.formGroup.controls.ListPriorityLow;
+    let groupsNot = <FormArray>this.formGroup.controls.ListPriorityNot;
+    groupsHigh.clear();
+    groupsMedium.clear();
+    groupsLow.clear();
+    groupsNot.clear();
   }
-
-  // private patchFieldsValue() {
-  //   this.pageConfig.showSpinner = true;
-  //   this.formGroup.controls.TriggerActions = new FormArray([]);
-  //   if (this.item.TriggerActions?.length) {
-  //     this.item.TriggerActions.forEach((i) => this.addField(i, ));
-  //   }
-  //   this.pageConfig.showSpinner = false;
-  // }
 
   addField(field: any, groups: any) {
     let group = this.formBuilder.group({
       Id: new FormControl({ value: field.Id, disabled: false }),
       Name: new FormControl({ value: field.Name, disabled: false }),
+      Remark: new FormControl({ value: field.Remark, disabled: false }),
       Sort: new FormControl({ value: field.Sort, disabled: false }),
     });
     groups.push(group);
+  }
+
+  toggleRow(ls, ite, toogle = false) {
+    super.toggleRow(ls, ite, toogle);
+    this.itemsView = this.itemsState.filter((d) => d.show);
   }
 }
