@@ -90,18 +90,18 @@ export class TaskPage extends PageBase {
         { name: 'start_date', label: 'Start Time', align: 'center', resize: true },
         { name: 'duration', label: 'Duration', align: 'center', width: 70, resize: true },
         {
-          name: 'owner', 
-          label: 'Owner', 
+          name: 'owner',
+          label: 'Owner',
           width: 50,
           resize: true,
           align: 'center',
           template: (task) => {
-            if(task.avatar_owner){
+            if (task.avatar_owner) {
               return `<div class="avatar" style="">
                           <img src="${task.avatar_owner}"  onError="this.src='../../assets/avartar-empty.jpg'" title="${task.full_name_owner}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
                       </div>`;
             }
-        },
+          },
         },
         { name: 'add', label: '', align: 'center', width: 40 },
       ],
@@ -252,8 +252,8 @@ export class TaskPage extends PageBase {
       let tasksData = values[0].data;
       tasksData.forEach((p) => {
         p.AvatarOwner = '';
-        if(p.CodeOwner) {
-          p.AvatarOwner = environment.staffAvatarsServer + p.CodeOwner + '.jpg';
+        if (p._Staff?.Code) {
+          p.AvatarOwner = environment.staffAvatarsServer + p._Staff.Code + '.jpg';
         }
       });
       this.items = tasksData;
@@ -270,7 +270,7 @@ export class TaskPage extends PageBase {
           parent: task.IDParent,
           open: task.IsOpen,
           avatar_owner: task.AvatarOwner,
-          full_name_owner: task.FullNameOwner ?? ''
+          full_name_owner: task._Staff?.FullName ?? '',
         };
       });
 
@@ -291,8 +291,6 @@ export class TaskPage extends PageBase {
     });
   }
 
-
-
   autoCalculateLink() {
     let currentLinks: any[] = gantt.getLinks();
 
@@ -307,10 +305,10 @@ export class TaskPage extends PageBase {
         let priority = this.calculatePriority(sourceTask, targetTask);
 
         let existingLink: any = gantt.getLink(link.id);
-        if (existingLink && existingLink.type !== priority.toString()) {
+        if (existingLink && existingLink.type !== priority.toString() && priority !== -1) {
           link.type = priority.toString();
           linksUpdate.push(link);
-        } else if (!sourceTask || !targetTask) {
+        } else if (!sourceTask || !targetTask || priority === -1) {
           linksDelete.push(link);
         }
         return null;
@@ -345,20 +343,22 @@ export class TaskPage extends PageBase {
   }
 
   calculatePriority(sourceTask, targetTask) {
-    if (!sourceTask || !targetTask) return 0;
+    if (!sourceTask || !targetTask) return -1;
 
-    if (sourceTask.end_date < targetTask.start_date) {
+    if (sourceTask.end_date <= targetTask.start_date) {
       // FS: Finish-to-Start
       return 0;
     } else if (sourceTask.start_date >= targetTask.start_date) {
       // SS: Start-to-Start
       return 1;
-    } else if (sourceTask.end_date >= targetTask.end_date) {
+    } else if (sourceTask.end_date <= targetTask.end_date) {
       // FF: Finish-to-Finish
       return 2;
-    } else {
+    } else if (sourceTask.start_date >= targetTask.end_date) {
       // SF: Start-to-Finish
       return 3;
+    } else {
+      return -1;
     }
   }
 
