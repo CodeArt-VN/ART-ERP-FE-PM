@@ -72,48 +72,40 @@ export class TaskModalPage extends PageBase {
       ModifiedDate: new FormControl({ value: '', disabled: true }),
     });
   }
-  typeDataSource = [
-    {
-      Code: 'task',
-      Name: 'Task',
-    },
-    {
-      Code: 'project',
-      Name: 'Project',
-    },
-    {
-      Code: 'milestone',
-      Name: 'Milestone',
-    },
-  ];
-  statusDataSource = [
-    {
-      Code: 'Processing',
-      Name: 'Processing',
-    },
-    {
-      Code: 'Done',
-      Name: 'Done',
-    },
-  ];
-  priorityDataSource = [
-    {
-      Code: 1,
-      Name: 'High priority  - Urgent', //Gấp - Quan trọng
-    },
-    {
-      Code: 2,
-      Name: 'Medium priority  - Not urgent', //Không gấp - Quan trọng
-    },
-    {
-      Code: 3,
-      Name: 'Low priority  - Urgent', //Gấp - Không quan trọng
-    },
-    //Not priority  - Not urgent == null
-  ];
+
+  priorityDataSource: any;
+  typeDataSource: any;
+  statusDataSource: any;
   preLoadData(event) {
     this.item = this.task;
-    super.preLoadData(event);
+    let taskPriority = this.env.getStatus('TaskPriority');
+    let taskType = this.env.getStatus('TaskType');
+    let taskStatus = this.env.getStatus('TaskStatus');
+    Promise.all([taskPriority, taskType, taskStatus]).then((values: any) => {
+      let taskPriorityData = values[0];
+      this.priorityDataSource = taskPriorityData.map((item) => {
+        switch (item.Code) {
+          case 'HighPriorityUrgent':
+            item.Code = 1;
+            break;
+          case 'MediumPriorityNotUrgent':
+            item.Code = 2;
+            break;
+          case 'LowPriorityUrgent':
+            item.Code = 3;
+            break;
+          case 'NotPriorityNotUrgent':
+            item.Code = 4;
+            break;
+          default:
+            break;
+        }
+        return item;
+      });
+      this.typeDataSource = values[1];
+      this.statusDataSource = values[2];
+      super.preLoadData(event);
+    });
   }
   _contactDataSource = {
     searchProvider: this.staffProvider,

@@ -15,7 +15,6 @@ import { FormArray, FormBuilder, FormControl, Validators } from '@angular/forms'
   styleUrls: ['task-todo.page.scss'],
 })
 export class TaskTodoPage extends PageBase {
-
   itemsState: any = [];
   itemsView = [];
   isAllRowOpened = false;
@@ -94,6 +93,38 @@ export class TaskTodoPage extends PageBase {
     });
   }
 
+  priorityHigh: any;
+  priorityMedium: any;
+  priorityLow: any;
+  priorityNot: any;
+  preLoadData(event?: any): void {
+    super.preLoadData(event);
+    let taskPriority = this.env.getStatus('TaskPriority');
+    Promise.all([taskPriority]).then((values: any) => {
+      values[0].map((item) => {
+        Promise.all([taskPriority]).then((values: any) => {
+          values[0].forEach((item) => {
+            switch (item.Code) {
+              case 'HighPriorityUrgent':
+                this.priorityHigh = item;
+                break;
+              case 'MediumPriorityNotUrgent':
+                this.priorityMedium = item;
+                break;
+              case 'LowPriorityUrgent':
+                this.priorityLow = item;
+                break;
+              case 'NotPriorityNotUrgent':
+                this.priorityNot = item;
+                break;
+              default:
+                break;
+            }
+          });
+        });
+      });
+    });
+  }
   loadedData(event) {
     this.buildFlatTree(this.items, this.itemsState, this.isAllRowOpened).then((resp: any) => {
       this.itemsState = resp;
@@ -162,7 +193,6 @@ export class TaskTodoPage extends PageBase {
             this.pageConfig.isSubActive = true;
           });
       });
-      
   }
 
   toggleGroup4Column() {
