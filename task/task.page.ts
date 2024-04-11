@@ -7,6 +7,8 @@ import { Location } from '@angular/common';
 import { gantt } from 'dhtmlx-gantt';
 import { Link, Task } from '../_models/task';
 import { TaskModalPage } from '../task-modal/task-modal.page';
+import { environment } from 'src/environments/environment';
+import { aW } from '@fullcalendar/core/internal-common';
 
 @Component({
   encapsulation: ViewEncapsulation.None,
@@ -88,14 +90,18 @@ export class TaskPage extends PageBase {
         { name: 'start_date', label: 'Start Time', align: 'center', resize: true },
         { name: 'duration', label: 'Duration', align: 'center', width: 70, resize: true },
         {
-          name: 'progress',
-          label: 'Progress',
+          name: 'owner', 
+          label: 'Owner', 
           width: 50,
           resize: true,
           align: 'center',
-          template: function (task) {
-            return Math.round(task.progress * 100) + '%';
-          },
+          template: (task) => {
+            if(task.avatar_owner){
+              return `<div class="avatar" style="">
+                          <img src="${task.avatar_owner}"  onError="this.src='../../assets/avartar-empty.jpg'" title="${task.full_name_owner}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                      </div>`;
+            }
+        },
         },
         { name: 'add', label: '', align: 'center', width: 40 },
       ],
@@ -244,6 +250,12 @@ export class TaskPage extends PageBase {
     let promiseLink = this.taskLinkService.read(queryLink, this.pageConfig.forceLoadData);
     Promise.all([promiseTask, promiseLink]).then((values: any) => {
       let tasksData = values[0].data;
+      tasksData.forEach((p) => {
+        p.AvatarOwner = '';
+        if(p.CodeOwner) {
+          p.AvatarOwner = environment.staffAvatarsServer + p.CodeOwner + '.jpg';
+        }
+      });
       this.items = tasksData;
       let linksData = values[1].data;
       let data: Task[] = tasksData.map((task: any) => {
@@ -257,6 +269,8 @@ export class TaskPage extends PageBase {
           progress: task.Progress,
           parent: task.IDParent,
           open: task.IsOpen,
+          avatar_owner: task.AvatarOwner,
+          full_name_owner: task.FullNameOwner ?? ''
         };
       });
 
@@ -276,6 +290,8 @@ export class TaskPage extends PageBase {
       gantt.render();
     });
   }
+
+
 
   autoCalculateLink() {
     let currentLinks: any[] = gantt.getLinks();
@@ -308,20 +324,14 @@ export class TaskPage extends PageBase {
         .then((_) => {
           let obj = {
             LinksUpdate: linksUpdate,
-            LinksDelete: linksDelete.map(link => link.id),
+            LinksDelete: linksDelete.map((link) => link.id),
           };
           this.pageProvider.commonService
             .connect('POST', 'PM/TaskLink/AutoCalculateLink', obj)
             .toPromise()
             .then((data: any) => {
-              linksDelete.forEach((link) => {
-                gantt.deleteLink(link.id);
-              });
-
-              linksUpdate.forEach((link) => {
-                gantt.updateLink(link.id);
-              });
-
+              //render event
+              this.loadGantt();
               this.submitAttempt = false;
             })
             .catch((er) => {
@@ -387,18 +397,25 @@ export class TaskPage extends PageBase {
         this.taskLinkService
           .save(this.formatLink(link), this.pageConfig.isForceCreate)
           .then((data: any) => {
+            //remove element, event
+            const oldLinkElement = document.querySelector(`[data-link-id="${idBefore}"]`);
+            if (oldLinkElement) {
+              oldLinkElement.remove();
+            }
+            gantt.deleteLink(idBefore);
             const newLink = {
               id: data.Id,
               source: link.source,
               target: link.target,
               type: link.type,
             };
+            //add new
             gantt.addLink(newLink);
             const linkElement = document.querySelector(`[data-link-id="${idBefore}"]`);
             if (linkElement) {
               linkElement.setAttribute('data-link-id', data.Id.toString());
+              linkElement.setAttribute('link_id', data.Id.toString());
             }
-            linkElement.setAttribute('link_id', data.Id.toString());
 
             this.env.showTranslateMessage('Saving completed!', 'success');
             this.submitAttempt = false;

@@ -32,7 +32,7 @@ export class TaskModalPage extends PageBase {
     public loadingController: LoadingController,
   ) {
     super();
-    this.pageConfig.isDetailPage = true;
+    this.pageConfig.isDetailPage = false;
     this.formGroup = formBuilder.group({
       IDBranch: [this.env.selectedBranch],
       IDOpportunity: [''],
@@ -99,16 +99,17 @@ export class TaskModalPage extends PageBase {
   priorityDataSource = [
     {
       Code: 1,
-      Name: 'High',
+      Name: 'High priority  - Urgent', //Gấp - Quan trọng
     },
     {
       Code: 2,
-      Name: 'Medium',
+      Name: 'Medium priority  - Not urgent', //Không gấp - Quan trọng
     },
     {
       Code: 3,
-      Name: 'Low',
+      Name: 'Low priority  - Urgent', //Gấp - Không quan trọng
     },
+    //Not priority  - Not urgent == null
   ];
   preLoadData(event) {
     this.item = this.task;
@@ -148,6 +149,7 @@ export class TaskModalPage extends PageBase {
   };
   async loadedData(event) {
     this.item.StartDatePlan = lib.dateFormat(this.item.StartDatePlan);
+    this.item.Deadline = lib.dateFormat(this.item?.Deadline);
 
     this.item.StartDate = lib.dateFormat(this.item.StartDate);
     if (this.item?.EndDatePlan) {

@@ -15,6 +15,8 @@ export class TaskService {
         parent: 0,
         progress: 0.6,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 1,
@@ -26,6 +28,8 @@ export class TaskService {
         parent: 0,
         progress: 0.4,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 2,
@@ -37,6 +41,8 @@ export class TaskService {
         parent: 1,
         progress: 0.5,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 3,
@@ -48,6 +54,8 @@ export class TaskService {
         parent: 1,
         progress: 0.6,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 4,
@@ -59,6 +67,8 @@ export class TaskService {
         parent: 1,
         progress: 0.5,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 5,
@@ -70,6 +80,8 @@ export class TaskService {
         parent: 2,
         progress: 0.6,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 6,
@@ -81,6 +93,8 @@ export class TaskService {
         parent: 2,
         progress: 0.6,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 7,
@@ -92,6 +106,8 @@ export class TaskService {
         parent: 3,
         progress: 0.6,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 8,
@@ -103,6 +119,8 @@ export class TaskService {
         parent: 4,
         progress: 0.5,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 9,
@@ -114,6 +132,8 @@ export class TaskService {
         parent: 4,
         progress: 0.5,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 10,
@@ -125,6 +145,8 @@ export class TaskService {
         parent: 4,
         progress: 0.5,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 12,
@@ -136,6 +158,8 @@ export class TaskService {
         parent: 11,
         progress: 1,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 13,
@@ -147,6 +171,8 @@ export class TaskService {
         parent: 11,
         progress: 0.5,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 14,
@@ -158,6 +184,8 @@ export class TaskService {
         parent: 11,
         progress: 0.8,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 15,
@@ -169,6 +197,8 @@ export class TaskService {
         parent: 11,
         progress: 0.2,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 16,
@@ -180,6 +210,8 @@ export class TaskService {
         parent: 11,
         progress: 0,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 17,
@@ -191,6 +223,8 @@ export class TaskService {
         parent: 13,
         progress: 1,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 18,
@@ -202,6 +236,8 @@ export class TaskService {
         parent: 13,
         progress: 0.8,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 19,
@@ -213,6 +249,8 @@ export class TaskService {
         parent: 13,
         progress: 0.2,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 20,
@@ -224,6 +262,8 @@ export class TaskService {
         parent: 13,
         progress: 0,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 21,
@@ -235,6 +275,8 @@ export class TaskService {
         parent: 15,
         progress: 0.5,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 22,
@@ -246,6 +288,8 @@ export class TaskService {
         parent: 15,
         progress: 0.1,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
       {
         id: 23,
@@ -257,6 +301,8 @@ export class TaskService {
         parent: 15,
         progress: 0,
         open: true,
+        avatar_owner: '',
+        full_name_owner: ''
       },
     ]);
   }

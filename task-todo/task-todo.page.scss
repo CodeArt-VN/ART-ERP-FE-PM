@@ -1,0 +1,113 @@
+.A4 .sheet {
+  width: auto;
+  height: auto;
+  min-height: auto; //295mm;
+  padding: 0;
+  margin: 0;
+}
+
+.A5.landscape .sheet {
+  width: 210mm;
+  height: auto;
+  min-height: 147mm;
+  padding: 0 10mm;
+}
+
+.table {
+  min-width: unset;
+  .cell {
+    min-height: 38px;
+  }
+
+  .col-id {
+    min-width: 0.625rem;
+    max-width: 2.625rem;
+  }
+}
+
+
+
+.table-contain {
+  overflow-x: hidden !important;
+
+  .col-name {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    align-items: flex-start;
+    justify-content: center;
+    min-width: 180px;
+    .text {
+      width: 100%;
+      min-height: 18px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+}
+
+.table-contain .table .row .cell {
+  min-height: 45px;
+}
+
+
+.coordinate-system {
+  position: absolute;
+  width: calc(100%);
+  padding: 10px;
+  height: 100%;
+  top: 0;
+  left: 0;
+  margin: 0 !important;
+
+  .child {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .axis-x {
+    position: absolute;
+    top: calc(100% - -10px);
+    left: 0;
+    transform: translateY(-50%);
+    width: calc(100%);
+    height: 2px;
+    background-color: black;
+  }
+
+  .axis-y {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 100%;
+    background-color: black;
+  }
+
+  .arrow-left {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 5px 5px 5px 0;
+    border-color: transparent black transparent transparent;
+    top: calc(50% - 5px);
+    left: -4px;
+  }
+
+  .arrow-top {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 5px 5px 5px;
+    border-color: transparent transparent black transparent;
+    top: -4px;
+    left: calc(50% - 5px);
+  }
+}

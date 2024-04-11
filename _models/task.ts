@@ -8,6 +8,8 @@ export class Task {
   progress!: number;
   parent!: number;
   open!: boolean;
+  avatar_owner!: string;
+  full_name_owner!: string;
 }
 
 export class Link {

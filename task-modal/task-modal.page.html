@@ -89,6 +89,8 @@
               [field]="{id:'Priority', label: 'Priority', type : 'ng-select', dataSource: priorityDataSource, bindValue:'Code', bindLabel:'Name', form : formGroup }"
               (change)="saveChange()">
             </app-form-control>
+            <app-form-control [field]="{id:'Deadline', type : 'date', label: 'Deadline', form : formGroup }" (change)="changeEndDate()">
+            </app-form-control>
           </ion-col>
         </ion-row>
 
