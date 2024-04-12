@@ -285,21 +285,21 @@ export class TaskPage extends PageBase {
       gantt.clearAll();
       gantt.parse({ data, links });
       gantt.templates.task_text = (start: Date, end: Date, task: any): string => {
-        let avatarHtml = '';
-        let avatarWidth = 34;
+       
         let owner = [task.full_name_owner];
+        let avatarHtml = '<div class="avatar-container"><div>';
         for (let i = 0; i < owner.length; i++) {
-          const leftPosition = i === 0 ? 5 : (25 * i);
           avatarHtml += `
-              <div style="position: absolute; top: 4px; left: ${leftPosition}px; z-index: ${owner.length - i}">
-                  <div class="avatar">
-                      <img src="${task.avatar_owner}" onError="this.src='../../assets/avartar-empty.jpg'" title="${task.full_name_owner}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
-                  </div>
-              </div>`;
-              avatarWidth += i === 0 ? 10 : 20;
+
+              <div class="avatar">
+                  <img src="${task.avatar_owner}" onError="this.src='../../assets/avartar-empty.jpg'" title="${task.full_name_owner}" alt="Avatar">
+              </div>
+            
+            `;
         }
+        avatarHtml += '</div></div>';
         const textHtml = `
-          <div class="text" style="margin-left: ${avatarWidth}px;">
+          <div class="text">
               ${task.text}
           </div>`;
 
