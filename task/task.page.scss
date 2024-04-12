@@ -734,12 +734,33 @@ div.dhx_modal_cover {
 .gantt_cell {
   .gantt_tree_content {
     .avatar {
-      width: 40px; 
-      height: 40px; 
+      width: 34px; 
+      height: 34px; 
       overflow: hidden; 
-      margin-top: 4px;
+      margin-top: 7px;
       border-radius: 50%; 
       display: inline-block;
     }
+  }
+}
+
+.gantt_task  .gantt_task_content {
+  display: flex;
+  align-items: center; 
+  .avatar {
+    width: 34px; 
+    height: 34px; 
+    min-width: 34px; 
+    min-height: 34px; 
+    overflow: hidden; 
+    border: 3px solid #ffff;
+    border-radius: 50%; 
+    display: inline-block;
+    position: absolute;
+  }
+  .text {
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    white-space: nowrap;
   }
 }
