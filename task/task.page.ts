@@ -290,11 +290,9 @@ export class TaskPage extends PageBase {
         let avatarHtml = '<div class="avatar-container">';
         for (let i = 0; i < owner.length; i++) {
           avatarHtml += `
-
               <div class="avatar">
                   <img src="${task.avatar_owner}" onError="this.src='../../assets/avartar-empty.jpg'" title="${task.full_name_owner}" alt="Avatar">
               </div>
-            
             `;
         }
         avatarHtml += '</div>';
