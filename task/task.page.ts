@@ -287,7 +287,7 @@ export class TaskPage extends PageBase {
       gantt.templates.task_text = (start: Date, end: Date, task: any): string => {
        
         let owner = [task.full_name_owner];
-        let avatarHtml = '<div class="avatar-container"><div>';
+        let avatarHtml = '<div class="avatar-container">';
         for (let i = 0; i < owner.length; i++) {
           avatarHtml += `
 
@@ -297,7 +297,7 @@ export class TaskPage extends PageBase {
             
             `;
         }
-        avatarHtml += '</div></div>';
+        avatarHtml += '</div>';
         const textHtml = `
           <div class="text">
               ${task.text}

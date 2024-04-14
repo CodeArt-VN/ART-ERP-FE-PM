@@ -735,51 +735,47 @@ div.dhx_modal_cover {
   }
 }
 
-.gantt_task .gantt_task_content {
 
+.gantt_task .gantt_task_content {
   display: flex;
   align-items: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  $avatar-size: 34px;
+  $num-avatars: 100;
 
   .avatar-container {
-    position: relative;
+
     display: flex;
+
   }
 
-  $numAvatars: 2;
-  $avatarWidthHeight: 34px;
-  $avatarLeft: 5px;
-  $avatarSpacing: 25px;
-
   .avatar {
-    width: $avatarWidthHeight;
-    height: $avatarWidthHeight;
-    min-width: $avatarWidthHeight;
-    min-height: $avatarWidthHeight;
+    width: $avatar-size;
+    height: $avatar-size;
+    min-width: $avatar-size;
+    min-height: $avatar-size;
     overflow: hidden;
     border: 3px solid #ffff;
     border-radius: 50%;
-    display: inline-block;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
 
-
-    @for $i from 1 through $numAvatars {
-      $left: $avatarLeft;
-      $zIndex: 100;
+    @for $i from 1 through $num-avatars {
+      $z-index: 100;
 
       @if $i !=1 {
-        $left: (
-          $avatarSpacing * ($i - 1)) + $avatarLeft;
-        $zIndex: 100 - $i + 1;
+        $z-index: 100 - $i + 1;
       }
 
       &:nth-child(#{$i}) {
-        left: $left;
-        z-index: $zIndex;
+        z-index: $z-index;
+
+        @if $i ==1 {
+          margin-left: 5px;
+        }
+        @else {
+          margin-left: -10px;
+        }
       }
     }
 
@@ -790,13 +786,10 @@ div.dhx_modal_cover {
     }
   }
 
-
   .text {
-    position: absolute;
-    left: calc((#{$numAvatars} - 1) * #{$avatarSpacing} + #{$avatarWidthHeight} + #{$avatarLeft}
-  );
-
-}
-
-
+    margin-left: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
