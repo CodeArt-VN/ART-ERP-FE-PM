@@ -284,6 +284,26 @@ export class TaskPage extends PageBase {
       });
       gantt.clearAll();
       gantt.parse({ data, links });
+      gantt.templates.task_text = (start: Date, end: Date, task: any): string => {
+       
+        let owner = [task.full_name_owner];
+        let avatarHtml = '<div class="avatar-container">';
+        for (let i = 0; i < owner.length; i++) {
+          avatarHtml += `
+              <div class="avatar">
+                  <img src="${task.avatar_owner}" onError="this.src='../../assets/avartar-empty.jpg'" title="${task.full_name_owner}" alt="Avatar">
+              </div>
+            `;
+        }
+        avatarHtml += '</div>';
+        const textHtml = `
+          <div class="text">
+              ${task.text}
+          </div>`;
+
+        return avatarHtml + textHtml;
+      };
+
       gantt.eachTask((task) => {
         task.$open = true;
       });

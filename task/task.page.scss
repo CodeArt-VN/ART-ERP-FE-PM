@@ -8,38 +8,29 @@
 
 .gantt_grid {
   .gantt_grid_scale {
-    .gantt_grid_head_cell {
-    }
+    .gantt_grid_head_cell {}
   }
 
   .gantt_grid_data {
     .gantt_row {
-      &.odd {
-      }
+      &.odd {}
 
-      &.gantt_row_task {
-      }
+      &.gantt_row_task {}
 
-      &.gantt_row_project {
-      }
+      &.gantt_row_project {}
 
       &.gantt_row_milestone {
         .gantt_cell {
-          .gantt_tree_content {
-          }
+          .gantt_tree_content {}
 
           &.gantt_cell_tree {
-            .gantt_tree_indent {
-            }
+            .gantt_tree_indent {}
 
-            .gantt_tree_icon.gantt_close {
-            }
+            .gantt_tree_icon.gantt_close {}
 
-            .gantt_tree_icon.gantt_open {
-            }
+            .gantt_tree_icon.gantt_open {}
 
-            .gantt_tree_content {
-            }
+            .gantt_tree_content {}
           }
         }
       }
@@ -491,7 +482,7 @@ div.dhx_modal_cover {
   background-color: rgba(0, 0, 0, 0.4);
 }
 
-.gantt_critical_link .gantt_line_wrapper > div {
+.gantt_critical_link .gantt_line_wrapper>div {
   background-color: #e63030;
 }
 
@@ -639,7 +630,7 @@ div.dhx_modal_cover {
   background-color: rgba(52, 152, 219, 0.3);
 }
 
-.gantt_layout_cell > .gantt_layout_header {
+.gantt_layout_cell>.gantt_layout_header {
   background: #33aae8;
   color: #fff;
 }
@@ -734,12 +725,69 @@ div.dhx_modal_cover {
 .gantt_cell {
   .gantt_tree_content {
     .avatar {
-      width: 40px; 
-      height: 40px; 
-      overflow: hidden; 
-      margin-top: 4px;
-      border-radius: 50%; 
+      width: 34px;
+      height: 34px;
+      overflow: hidden;
+      margin-top: 7px;
+      border-radius: 50%;
       display: inline-block;
     }
+  }
+}
+
+
+.gantt_task .gantt_task_content {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  $avatar-size: 34px;
+  $num-avatars: 100;
+
+  .avatar-container {
+    display: flex;
+  }
+
+  .avatar {
+    width: $avatar-size;
+    height: $avatar-size;
+    min-width: $avatar-size;
+    min-height: $avatar-size;
+    overflow: hidden;
+    border: 3px solid #ffff;
+    border-radius: 50%;
+
+    @for $i from 1 through $num-avatars {
+      $z-index: 100;
+
+      @if $i !=1 {
+        $z-index: 100 - $i + 1;
+      }
+
+      &:nth-child(#{$i}) {
+        z-index: $z-index;
+
+        @if $i ==1 {
+          margin-left: 5px;
+        }
+        @else {
+          margin-left: -10px;
+        }
+      }
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .text {
+    margin-left: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
