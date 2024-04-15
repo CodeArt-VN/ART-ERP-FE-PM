@@ -8,7 +8,6 @@ import { gantt } from 'dhtmlx-gantt';
 import { Link, Task } from '../_models/task';
 import { TaskModalPage } from '../task-modal/task-modal.page';
 import { environment } from 'src/environments/environment';
-import { aW } from '@fullcalendar/core/internal-common';
 
 @Component({
   encapsulation: ViewEncapsulation.None,
@@ -285,7 +284,6 @@ export class TaskPage extends PageBase {
       gantt.clearAll();
       gantt.parse({ data, links });
       gantt.templates.task_text = (start: Date, end: Date, task: any): string => {
-       
         let owner = [task.full_name_owner];
         let avatarHtml = '<div class="avatar-container">';
         for (let i = 0; i < owner.length; i++) {
@@ -313,23 +311,32 @@ export class TaskPage extends PageBase {
 
   autoCalculateLink() {
     let currentLinks: any[] = gantt.getLinks();
-
     let linksUpdate: any[] = [];
     let linksDelete: any[] = [];
+    //ST (source, target)
+    let processedSTPairs: any[] = [];
 
     currentLinks
       .map((link: any) => {
         let sourceTask: any = gantt.getTask(link.source);
         let targetTask: any = gantt.getTask(link.target);
-
         let priority = this.calculatePriority(sourceTask, targetTask);
-
         let existingLink: any = gantt.getLink(link.id);
-        if (existingLink && existingLink.type !== priority.toString() && priority !== -1) {
-          link.type = priority.toString();
-          linksUpdate.push(link);
-        } else if (!sourceTask || !targetTask || priority === -1) {
+        let currentSTPair = [sourceTask?.id, targetTask?.id];
+        if (!sourceTask || !targetTask) {
           linksDelete.push(link);
+        } else {
+          if (this.checkExistLink(currentSTPair, processedSTPairs)) {
+            linksDelete.push(link);
+          } else {
+            if (existingLink && existingLink.type !== priority.toString() && priority !== -1) {
+              link.type = priority.toString();
+              linksUpdate.push(link);
+            } else if (priority === -1) {
+              linksDelete.push(link);
+            }
+          }
+          processedSTPairs.push(currentSTPair);
         }
         return null;
       })
@@ -362,24 +369,35 @@ export class TaskPage extends PageBase {
     }
   }
 
-  calculatePriority(sourceTask, targetTask) {
+  private checkExistLink(currentSTPair: any[], processedSTPairs: any[]): boolean {
+    return processedSTPairs.some(
+      (d) =>
+        (d[0] === currentSTPair[0] && d[1] === currentSTPair[1]) ||
+        (d[0] === currentSTPair[1] && d[1] === currentSTPair[0]),
+    );
+  }
+
+  private calculatePriority(sourceTask, targetTask) {
     if (!sourceTask || !targetTask) return -1;
 
     if (sourceTask.end_date <= targetTask.start_date) {
       // FS: Finish-to-Start
       return 0;
-    } else if (sourceTask.start_date >= targetTask.start_date) {
+    }
+    if (sourceTask.start_date >= targetTask.start_date) {
       // SS: Start-to-Start
       return 1;
-    } else if (sourceTask.end_date <= targetTask.end_date) {
+    }
+    if (sourceTask.end_date <= targetTask.end_date) {
       // FF: Finish-to-Finish
       return 2;
-    } else if (sourceTask.start_date >= targetTask.end_date) {
+    }
+    if (sourceTask.start_date >= targetTask.end_date) {
       // SF: Start-to-Finish
       return 3;
-    } else {
-      return -1;
     }
+
+    return -1;
   }
 
   updateTask(task: Task): Promise<void> {
@@ -417,11 +435,7 @@ export class TaskPage extends PageBase {
         this.taskLinkService
           .save(this.formatLink(link), this.pageConfig.isForceCreate)
           .then((data: any) => {
-            //remove element, event
-            const oldLinkElement = document.querySelector(`[data-link-id="${idBefore}"]`);
-            if (oldLinkElement) {
-              oldLinkElement.remove();
-            }
+            //delete library link create
             gantt.deleteLink(idBefore);
             const newLink = {
               id: data.Id,
@@ -431,12 +445,6 @@ export class TaskPage extends PageBase {
             };
             //add new
             gantt.addLink(newLink);
-            const linkElement = document.querySelector(`[data-link-id="${idBefore}"]`);
-            if (linkElement) {
-              linkElement.setAttribute('data-link-id', data.Id.toString());
-              linkElement.setAttribute('link_id', data.Id.toString());
-            }
-
             this.env.showTranslateMessage('Saving completed!', 'success');
             this.submitAttempt = false;
           })
@@ -477,10 +485,7 @@ export class TaskPage extends PageBase {
           .delete(this.formatLink(link))
           .then(() => {
             this.env.showTranslateMessage('Deleted!', 'success');
-            const linkElement = document.querySelector(`div[data-link-id="${id}"]`);
-            if (linkElement) {
-              linkElement.parentNode.removeChild(linkElement);
-            }
+            gantt.deleteLink(id);
             this.submitAttempt = false;
           })
           .catch((err) => {
