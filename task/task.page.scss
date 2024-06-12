@@ -4,6 +4,36 @@
   position: relative;
   width: 100%;
   height: 100%;
+
+  .avatar-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    padding: 2px;
+    padding-right: 14px;
+    width: fit-content;
+    
+    .avatar {
+        width: 26px;
+        height: 26px;
+        display: inline-block;
+        margin-right: -11px;
+        background: rgba(255, 255, 255, 0.2);
+        box-shadow: -2px 2px 6px 0px rgba(0, 0, 0, 0.1);
+        -webkit-backdrop-filter: blur(5px);
+        border-radius: 50px;
+  
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+    }
+  }
+  
 }
 
 .gantt_grid {
@@ -87,9 +117,11 @@
 }
 
 .gantt_task_line {
-  background-color: var(--ion-color-medium);
-  border: 1px solid var(--ion-color-medium);
-
+  background-color: rgba(var(--ion-color-medium-rgb), 0.5);
+  border: 1px solid rgba(var(--ion-color-medium-rgb), 0.5);
+  backdrop-filter: blur(5px);
+  border-radius: 50px;
+  
   &.gantt_selected {
     border: 1px solid var(--ion-color-medium);
   }
@@ -722,18 +754,7 @@ div.dhx_modal_cover {
   color: #fff;
 }
 
-.gantt_cell {
-  .gantt_tree_content {
-    .avatar {
-      width: 34px;
-      height: 34px;
-      overflow: hidden;
-      margin-top: 7px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-  }
-}
+
 
 
 .gantt_task .gantt_task_content {
@@ -745,47 +766,10 @@ div.dhx_modal_cover {
   $avatar-size: 34px;
   $num-avatars: 100;
 
-  .avatar-container {
-    display: flex;
-  }
-
-  .avatar {
-    width: $avatar-size;
-    height: $avatar-size;
-    min-width: $avatar-size;
-    min-height: $avatar-size;
-    overflow: hidden;
-    border: 3px solid #ffff;
-    border-radius: 50%;
-
-    @for $i from 1 through $num-avatars {
-      $z-index: 100;
-
-      @if $i !=1 {
-        $z-index: 100 - $i + 1;
-      }
-
-      &:nth-child(#{$i}) {
-        z-index: $z-index;
-
-        @if $i ==1 {
-          margin-left: 5px;
-        }
-        @else {
-          margin-left: -10px;
-        }
-      }
-    }
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-  }
+  
 
   .text {
-    margin-left: 10px;
+    margin-left: 2px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

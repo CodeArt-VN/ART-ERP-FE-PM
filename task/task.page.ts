@@ -96,8 +96,10 @@ export class TaskPage extends PageBase {
           align: 'center',
           template: (task) => {
             if (task.avatar_owner) {
-              return `<div class="avatar" style="">
-                          <img src="${task.avatar_owner}"  onError="this.src='../../assets/avartar-empty.jpg'" title="${task.full_name_owner}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+              return `<div class="avatar-container">
+                      <div class="avatar" style="">
+                          <img src="${task.avatar_owner}"  onError="this.src='../../assets/avartar-empty.jpg'" title="${task.full_name_owner}" >
+                      </div>
                       </div>`;
             }
           },
@@ -136,8 +138,8 @@ export class TaskPage extends PageBase {
     };
 
     gantt.config.show_errors = false;
-    gantt.config.row_height = 50;
-    gantt.config.scale_height = 50;
+    //gantt.config.row_height = 0;
+    //gantt.config.scale_height = 50;
     gantt.config.open_tree_initially = true;
 
     gantt.templates.rightside_text = function (start, end, task) {
