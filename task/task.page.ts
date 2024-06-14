@@ -17,6 +17,8 @@ import { environment } from 'src/environments/environment';
 })
 export class TaskPage extends PageBase {
   @ViewChild('gantt_here', { static: true }) ganttContainer!: ElementRef;
+  linksData: any;
+  listParent: any[];
   constructor(
     public pageProvider: PM_TaskProvider,
     public taskLinkService: PM_TaskLinkProvider,
@@ -35,35 +37,11 @@ export class TaskPage extends PageBase {
   }
 
   preLoadData(event?: any): void {
-    super.loadedData(event);
+    super.preLoadData(event);
+    this.initGantt();
   }
 
-  ionViewDidEnter() {
-    super.ionViewDidEnter();
-
-    var holidays = [
-      new Date(2024, 0, 1),
-      new Date(2024, 0, 21),
-      new Date(2024, 3, 16),
-      new Date(2024, 3, 30), //CN
-      new Date(2024, 4, 1),
-      new Date(2024, 4, 2), //Nghỉ bù
-      new Date(2024, 4, 12),
-      new Date(2024, 4, 27),
-      new Date(2024, 5, 16),
-      new Date(2024, 6, 4),
-      new Date(2024, 8, 2),
-      new Date(2024, 9, 14),
-      new Date(2024, 10, 28),
-      new Date(2024, 11, 25),
-    ];
-
-    for (var i = 0; i < holidays.length; i++) {
-      gantt.setWorkTime({
-        date: holidays[i],
-        hours: false,
-      });
-    }
+  initGantt() {
 
     gantt.config.resize_rows = true;
     gantt.config.min_task_grid_row_height = 45;
@@ -162,7 +140,6 @@ export class TaskPage extends PageBase {
     gantt.attachEvent('onTaskCreated', (task: any) => {
       task.id = 0;
       task.durationPlan = 1;
-
       const startDate = new Date();
       const utcStartDate = new Date(startDate.getTime() - startDate.getTimezoneOffset() * 60000);
       task.start_date = utcStartDate.toISOString().slice(0, 19);
@@ -172,13 +149,13 @@ export class TaskPage extends PageBase {
       task.end_date = endDate.toISOString().slice(0, 19);
       task.end_date_plan = task.end_date;
 
-      this.openModalForNewTask(this.formatTask(task));
+      this.openModalForNewTask(this.formatTask(task), this.listParent);
     });
 
     //update task
     gantt.attachEvent('onTaskDblClick', (id, e) => {
       let task = this.items.find((d) => d.Id == id);
-      this.openModalForNewTask(task);
+      this.openModalForNewTask(task, this.listParent);
     });
 
     //delete link
@@ -215,100 +192,170 @@ export class TaskPage extends PageBase {
         delete: (id: any) => this.deleteLink(id),
       },
     });
-
-    this.loadGantt();
   }
 
-  async openModalForNewTask(task) {
+  loadData(event = null) {
+    this.parseSort();
+
+    if (this.pageProvider && !this.pageConfig.isEndOfData) {
+      if (event == 'search') {
+        this.pageProvider.read(this.query, this.pageConfig.forceLoadData).then((result: any) => {
+          if (result.data.length == 0) {
+            this.pageConfig.isEndOfData = true;
+          }
+          this.items = result.data;
+          this.loadedData(null);
+        });
+      } else {
+        let queryTask: any = {
+          Keyword: '',
+          Take: 100,
+          Skip: this.items.length,
+          AllChildren: true,
+          AllParent: true,
+          IDBranch: this.env.selectedBranch,
+        };
+
+        let queryLink: any = {
+          Keyword: '',
+          Take: 100,
+          Skip: 0,
+        };
+        let promiseTask = this.pageProvider.read(queryTask, this.pageConfig.forceLoadData);
+        let promiseLink = this.taskLinkService.read(queryLink, this.pageConfig.forceLoadData);
+        Promise.all([promiseTask, promiseLink])
+          .then((result: any) => {
+            let tasks = result[0].data;
+            if (tasks.length == 0) {
+              this.pageConfig.isEndOfData = true;
+            }
+            if (tasks.length > 0) {
+              let firstRow = tasks[0];
+
+              //Fix dupplicate rows
+              if (this.items.findIndex((d) => d.Id == firstRow.Id) == -1) {
+                this.items = [...this.items, ...tasks];
+              }
+            }
+
+            this.items.forEach((p) => {
+              p.AvatarOwner = '';
+              if (p._Staff?.Code) {
+                p.AvatarOwner = environment.staffAvatarsServer + p._Staff.Code + '.jpg';
+              }
+            });
+            let listParent: any[] = this.items.map((task: any) => {
+              return {
+                Id: task.Id,
+                Name: task.Name,
+              };
+            });
+            this.listParent = listParent;
+            this.linksData = result[1].data;
+            this.loadedData(event);
+          })
+          .catch((err) => {
+            if (err.message != null) {
+              this.env.showMessage(err.message, 'danger');
+            } else {
+              this.env.showTranslateMessage('Cannot extract data', 'danger');
+            }
+
+            this.loadedData(event);
+          });
+      }
+    } else {
+      this.loadedData(event);
+    }
+  }
+
+  async openModalForNewTask(task, listParent) {
     const modal = await this.modalController.create({
       component: TaskModalPage,
       componentProps: {
         task: task,
+        listParent: listParent,
       },
       cssClass: 'modal90',
     });
 
     await modal.present();
     const {} = await modal.onWillDismiss();
+    this.loadedData();
+  }
+
+  add() {
+    const task: any = {};
+    task.id = 0;
+    task.text = 'New task';
+    task.duration = 1;
+    task.durationPlan = 1;
+    const startDate = new Date();
+    const utcStartDate = new Date(startDate.getTime() - startDate.getTimezoneOffset() * 60000);
+    task.start_date = utcStartDate.toISOString().slice(0, 19);
+    task.start_date_plan = task.start_date;
+    const endDate = new Date(utcStartDate.getTime() + 24 * 60 * 60 * 1000);
+    task.end_date = endDate.toISOString().slice(0, 19);
+    task.end_date_plan = task.end_date;
+    this.openModalForNewTask(this.formatTask(task), this.listParent);
+  }
+
+  loadedData(event = null, ignoredFromGroup = false) {
+    this.pageConfig.showSpinner = false;
+    event?.target?.complete();
     this.loadGantt();
   }
 
   loadGantt() {
-    let queryTask: any = {
-      Keyword: '',
-      Take: 100,
-      Skip: 0,
-      AllChildren: true,
-      AllParent: true,
-    };
-
-    let queryLink: any = {
-      Keyword: '',
-      Take: 100,
-      Skip: 0,
-    };
-    let promiseTask = this.pageProvider.read(queryTask, this.pageConfig.forceLoadData);
-    let promiseLink = this.taskLinkService.read(queryLink, this.pageConfig.forceLoadData);
-    Promise.all([promiseTask, promiseLink]).then((values: any) => {
-      let tasksData = values[0].data;
-      tasksData.forEach((p) => {
-        p.AvatarOwner = '';
-        if (p._Staff?.Code) {
-          p.AvatarOwner = environment.staffAvatarsServer + p._Staff.Code + '.jpg';
-        }
-      });
-      this.items = tasksData;
-      let linksData = values[1].data;
-      let data: Task[] = tasksData.map((task: any) => {
-        return {
-          id: task.Id,
-          text: task.Name,
-          start_date: task.StartDate.substring(0, 10),
-          end_date: task.EndDate?.substring(0, 10),
-          type: task.Type,
-          duration: task.Duration,
-          progress: task.Progress,
-          parent: task.IDParent,
-          open: task.IsOpen,
-          avatar_owner: task.AvatarOwner,
-          full_name_owner: task._Staff?.FullName ?? '',
-        };
-      });
-
-      let links: Link[] = linksData.map((link: any) => {
-        return {
-          id: link.Id,
-          source: link.Source,
-          target: link.Target,
-          type: link.Type,
-        };
-      });
-      gantt.clearAll();
-      gantt.parse({ data, links });
-      gantt.templates.task_text = (start: Date, end: Date, task: any): string => {
-        let owner = [task.full_name_owner];
-        let avatarHtml = '<div class="avatar-container">';
-        for (let i = 0; i < owner.length; i++) {
-          avatarHtml += `
-              <div class="avatar">
-                  <img src="${task.avatar_owner}" onError="this.src='../../assets/avartar-empty.jpg'" title="${task.full_name_owner}" alt="Avatar">
-              </div>
-            `;
-        }
-        avatarHtml += '</div>';
-        const textHtml = `
-          <div class="text">
-              ${task.text}
-          </div>`;
-
-        return avatarHtml + textHtml;
+    let data: Task[] = this.items.map((task: any) => {
+      return {
+        id: task.Id,
+        text: task.Name,
+        start_date: task.StartDate.substring(0, 10),
+        end_date: task.EndDate?.substring(0, 10),
+        type: task.Type,
+        duration: task.Duration,
+        progress: task.Progress,
+        parent: task.IDParent,
+        open: task.IsOpen,
+        avatar_owner: task.AvatarOwner,
+        full_name_owner: task._Staff?.FullName ?? '',
       };
-
-      gantt.eachTask((task) => {
-        task.$open = true;
-      });
-      gantt.render();
     });
+
+    let links: Link[] = this.linksData.map((link: any) => {
+      return {
+        id: link.Id,
+        source: link.Source,
+        target: link.Target,
+        type: link.Type,
+      };
+    });
+    gantt.clearAll();
+    gantt.parse({ data, links });
+    gantt.templates.task_text = (start: Date, end: Date, task: any): string => {
+      let owner = [task.full_name_owner];
+      let avatarHtml = '<div class="avatar-container">';
+      for (let i = 0; i < owner.length; i++) {
+        avatarHtml += `
+            <div class="avatar">
+                <img src="${task.avatar_owner}" onError="this.src='../../assets/avartar-empty.jpg'" title="${task.full_name_owner}" alt="Avatar">
+            </div>
+          `;
+      }
+      avatarHtml += '</div>';
+      const textHtml = `
+        <div class="text">
+            ${task.text}
+        </div>`;
+
+      return avatarHtml + textHtml;
+    };
+
+    gantt.eachTask((task) => {
+      task.$open = true;
+    });
+    gantt.render();
   }
 
   autoCalculateLink() {
@@ -358,7 +405,7 @@ export class TaskPage extends PageBase {
             .toPromise()
             .then((data: any) => {
               //render event
-              this.loadGantt();
+              this.loadData();
               this.submitAttempt = false;
             })
             .catch((er) => {
@@ -535,7 +582,7 @@ export class TaskPage extends PageBase {
       StartDate: e.start_date,
       Duration: e.duration,
       Progress: e.progress ?? null,
-      IDParent: e.parent,
+      IDParent: parseInt(e?.parent),
       IsOpen: e.open ? (e.open !== '' ? e.open : null) : null,
     };
     return task;

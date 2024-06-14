@@ -16,7 +16,8 @@ import { lib } from 'src/app/services/static/global-functions';
 })
 export class TaskModalPage extends PageBase {
   task: any;
-
+  listParent: any;
+  parentDataSource: any [];
   constructor(
     public pageProvider: PM_TaskProvider,
     public taskLinkService: PM_TaskLinkProvider,
@@ -78,32 +79,35 @@ export class TaskModalPage extends PageBase {
   statusDataSource: any;
   preLoadData(event) {
     this.item = this.task;
-    let taskPriority = this.env.getStatus('TaskPriority');
-    let taskType = this.env.getStatus('TaskType');
+    this.parentDataSource = this.listParent.filter(d => d.Id != this.item.Id);
+    let taskPriority = this.env.getType('TaskPriority');
+    let taskType = this.env.getType('TaskType');
     let taskStatus = this.env.getStatus('TaskStatus');
     Promise.all([taskPriority, taskType, taskStatus]).then((values: any) => {
       let taskPriorityData = values[0];
       this.priorityDataSource = taskPriorityData.map((item) => {
-        switch (item.Code) {
-          case 'HighPriorityUrgent':
-            item.Code = 1;
-            break;
-          case 'MediumPriorityNotUrgent':
-            item.Code = 2;
-            break;
-          case 'LowPriorityUrgent':
-            item.Code = 3;
-            break;
-          case 'NotPriorityNotUrgent':
-            item.Code = 4;
-            break;
-          default:
-            break;
-        }
+        item.Code = parseInt(item.Code);
         return item;
       });
-      this.typeDataSource = values[1];
-      this.statusDataSource = values[2];
+      let typeData = values[1];
+      this.typeDataSource = typeData.map((item) => {
+        item.Code = item.Code.toLowerCase();
+        return item;
+      });
+      
+      //this.statusDataSource = values[2];
+      this.statusDataSource = [{
+        Code:'InProgress',
+        Name:'InProgress'
+      },
+      {
+        Code:'Done',
+        Name:'Done'
+      },
+      {
+        Code: 'Testing',
+        Name:'Testing'
+      }]
       super.preLoadData(event);
     });
   }
