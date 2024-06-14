@@ -40,6 +40,12 @@ export class TaskPage extends PageBase {
     super.preLoadData(event);
     this.initGantt();
   }
+  ionViewDidEnter() {
+    super.ionViewDidEnter();
+    //Resize grid when parent dom resize
+    var gantt_here = document.getElementById('gantt_here');
+    new ResizeObserver(() => gantt.setSizes()).observe(gantt_here);
+  }
 
   initGantt() {
 
