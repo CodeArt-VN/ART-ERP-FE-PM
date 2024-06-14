@@ -135,6 +135,8 @@ export class TaskPage extends PageBase {
 
     gantt.config.grid_resize = true;
     gantt.init(this.ganttContainer.nativeElement);
+    
+    gantt.detachAllEvents();
 
     //create task
     gantt.attachEvent('onTaskCreated', (task: any) => {
