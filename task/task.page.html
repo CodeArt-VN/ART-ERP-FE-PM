@@ -1,19 +1,44 @@
 <ion-header>
-  <app-toolbar
-    pageTitle="{{'Help' | translate}}"
-    [pageConfig]="pageConfig"
-    [selectedItems]="selectedItems"
-    [query]="query"
-    [page]="this">
-    <ion-button (click)="autoCalculateLink()"  title="{{ 'Auto Calculate Link' | translate }}" class="ion-hide-sm-down" *ngIf="pageConfig.canEdit">
-      <ion-icon
-        slot="icon-only"
-        name="aperture-outline"
-      ></ion-icon>
-    </ion-button>
-  </app-toolbar>
+  <ion-toolbar>
+    <ng-select
+      class="c-input no-check-dirty"
+      (change)="selectTask();"
+      appendTo=""
+      [(ngModel)]="selectedTask"
+      labelForId="Id"
+      [items]="taskList"
+      bindLabel="Name"
+      bindValue=""
+      placeholder="{{'Select unit' | translate}}"
+    >
+      <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
+        <div *ngIf="i">
+          <div>
+            <span *ngFor="let l of i.levels">&nbsp;&nbsp;&nbsp;</span>
+            <span [ngOptionHighlight]="search">{{i.Name}}</span>
+          </div>
+        </div>
+      </ng-template>
+    </ng-select>
+  </ion-toolbar>
 </ion-header>
 
 <ion-content appScrollbarTheme class="scrollx">
-  <div #gantt_here id="gantt_here" class="gantt-chart"></div>
+  <div class="row-full shadow full-screen">
+    <ion-toolbar color="primary">
+      <ion-segment scrollable="true" (ionChange)="segmentChanged($event)" [value]="segmentView">
+        <ng-container *ngFor="let v of listSegmentView">
+          <ion-segment-button [value]="v.Code">
+            <ion-label>{{ v.Name | translate }}</ion-label>
+          </ion-segment-button>
+        </ng-container>
+      </ion-segment>
+    </ion-toolbar>
+    <div *ngIf="segmentView == 'board'">
+      <app-board></app-board>
+    </div>
+    <div style="height: 100%" *ngIf="segmentView == 'gantt'">
+      <app-gantt></app-gantt>
+    </div>
+  </div>
 </ion-content>
