@@ -64,14 +64,21 @@ export class BoardComponent extends PageBase {
   }
 
 
-
-  getTask(statusCode: string, priorityCode: string) {
-      return this.tasks.filter(task => task.Status == statusCode && task.Priority.toString() == priorityCode);
+  
+  getTask(statusCode: string = null, priorityCode: string = null) {
+    
+      if(statusCode == null && priorityCode == null) return this.tasks;
+      return this.tasks.filter(task =>
+        {
+          const status = statusCode == null || task.Status == statusCode;
+          const priority = priorityCode == null || task.Priority.toString() == priorityCode;
+          return status && priority;
+        });
   }
  
 
   tasks = [
-    { Id: 1, Name: 'coding5 Get to work', Status: 'coding', Priority: 5 },
+    { Id: 1, Name: 'todo5 Get to work', Status: 'todo', Priority: 5 },
     { Id: 2, Name: 'todo5 Pick up groceries', Status: 'todo', Priority: 5 },
     { Id: 3, Name: 'todo5 Go home', Status: 'todo', Priority: 5},
     { Id: 4, Name: 'coding5 Fall asleep', Status: 'coding', Priority: 5 },
@@ -83,26 +90,33 @@ export class BoardComponent extends PageBase {
   ];
 
 
-  
-  drop(event: CdkDragDrop<string[]>) {
-    console.log(event);
+
+  drop(event: CdkDragDrop<any[]>, statusCode: string = null, priorityCode: string = null) {
     if (event.previousContainer === event.container) {
-      moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+      moveItemInArray(
+        event.container.data,
+        event.previousIndex,
+        event.currentIndex
+      );
     } else {
       transferArrayItem(
         event.previousContainer.data,
         event.container.data,
         event.previousIndex,
-        event.currentIndex,
+        event.currentIndex
       );
+      const movedTask = event.container.data[event.currentIndex];
+
+      if (statusCode) {
+        movedTask.Status = statusCode;
+      }
+      if (priorityCode) {
+        movedTask.Priority = parseInt(priorityCode);
+      }
     }
   }
-
-  todo = ['Get to work', 'Pick up groceries', 'Go home', 'Fall asleep'];
-
-  done = ['Get up', 'Brush teeth', 'Take a shower', 'Check e-mail', 'Walk dog'];
   preLoadData(event?: any): void {
-    super.preLoadData(event);;
+    super.preLoadData(event);
   }
   isGroupByPopoverOpen = false;
   @ViewChild('groupByPopover') groupByPopover;
@@ -110,5 +124,10 @@ export class BoardComponent extends PageBase {
     this.groupByPopover.event = e;
     this.isGroupByPopoverOpen = true;
   }
-  
+
+
+
+  async saveChange() {
+    return super.saveChange2();
+  }
 }

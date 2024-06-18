@@ -33,71 +33,38 @@
   </ion-popover>
 </ng-container>
 
-<ng-container>
-  <div cdkDropListGroup>
-    <div class="example-container">
-      <h2>To do</h2>
-
-      <div cdkDropList [cdkDropListData]="todo" class="example-list" (cdkDropListDropped)="drop($event)">
-        @for (item of todo; track item) {
-        <div class="example-box" cdkDrag>{{ item }}</div>
-        }
-      </div>
-    </div>
-
-    <div class="example-container">
-      <h2>Done</h2>
-
-      <div cdkDropList [cdkDropListData]="done" class="example-list" (cdkDropListDropped)="drop($event)">
-        @for (item of done; track item) {
-        <div class="example-box" cdkDrag>{{ item }}</div>
-        }
-      </div>
+<ng-container cdkDropListGroup>
+  <div class="grid-container">
+    <div class="status-header-row">
+      <div class="empty-header"></div>
+      <ng-container *ngFor="let status of groupBy.level1.list">
+        <div class="status-header">{{ status.Name }}</div>
+      </ng-container>
     </div>
   </div>
-</ng-container>
 
-<!-- <div class="grid-container">
-  <div class="status-header">
-    <ng-container *ngFor="let status of groupBy.level1.list">
-      <div>{{ status.Name }}</div>
-    </ng-container>
-  </div>
-</div>
-<ng-container *ngFor="let priority of groupBy.level2.list">
-  <div class="priority-header">{{ priority.Name }}</div>
-  <div class="task-container">
-    <ng-container *ngFor="let status of groupBy.level1.list">
-      <div cdkDropListGroup class="task-group">
-        <div cdkDropList [cdkDropListData]="getTask(status.Code, priority.Code)" (cdkDropListDropped)="drop($event)">
-          @for (task of getTask(status.Code, priority.Code); track task) {
-          <div class="task-box" cdkDrag>{{ task.Name }}</div>
-          }
+  <ng-container *ngFor="let priority of groupBy.level2.list; let i = index">
+    <div class="priority-row">
+      <div class="priority-header">{{ priority.Name }}</div>
+
+      <ng-container *ngFor="let status of groupBy.level1.list; let j = index">
+        <div>
+          <div class="task-container">
+           
+
+            <div
+              cdkDropList
+              [cdkDropListData]="getTask(status.Code, priority.Code)"
+              class="task-list"
+              (cdkDropListDropped)="drop($event, status.Code, priority.Code)"
+            >
+              <div class="task-box" *ngFor="let task of getTask(status.Code, priority.Code)" cdkDrag>
+                {{ task.Name }}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </ng-container>
-  </div>
-</ng-container> -->
-
-
-<div class="grid-container">
-  <div class="priority-header">
-    <ng-container *ngFor="let priority of groupBy.level2.list">
-      <div>{{ priority.Name }}</div>
-    </ng-container>
-  </div>
-</div>
-<ng-container *ngFor="let status of groupBy.level1.list">
-  <div class="status-header">{{ status.Name }}</div>
-  <div class="task-container">
-    <ng-container *ngFor="let priority of groupBy.level2.list">
-      <div cdkDropListGroup class="task-group">
-       
-        <div class="task-list" cdkDropList [cdkDropListData]="getTask(status.Code, priority.Code)" (cdkDropListDropped)="drop($event)">
-          <div *ngFor="let task of getTask(status.Code, priority.Code)" cdkDrag  class="task-box"> {{ task.Name }}</div>
-        </div>
-      </div>
-    </ng-container>
-  </div>
+      </ng-container>
+    </div>
+  </ng-container>
 </ng-container>
-
