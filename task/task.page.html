@@ -1,14 +1,14 @@
 <ion-header>
-  <ion-toolbar>
-    <ng-select
-      class="c-input no-check-dirty"
+  <app-toolbar [page]="this">
+    <ng-select startTitle
+      class="selected-task"
       (change)="selectTask();"
-      appendTo=""
+      appendTo="#ng-select-holder"
       [(ngModel)]="selectedTask"
       labelForId="Id"
       [items]="taskList"
       bindLabel="Name"
-      bindValue=""
+      bindValue="Id"
       placeholder="{{'Select unit' | translate}}"
     >
       <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
@@ -20,8 +20,15 @@
         </div>
       </ng-template>
     </ng-select>
-  </ion-toolbar>
+    <ion-button (click)="autoCalculateLink()"  title="{{ 'Auto Calculate Link' | translate }}" class="ion-hide-sm-down" *ngIf="segmentView == 'gantt'">
+      <ion-icon
+        slot="icon-only"
+        name="aperture-outline"
+      ></ion-icon>
+    </ion-button>
+  </app-toolbar>
 </ion-header>
+
 
 <ion-content appScrollbarTheme class="scrollx">
   <div class="row-full shadow full-screen">
@@ -38,7 +45,7 @@
       <app-board></app-board>
     </div>
     <div style="height: 100%" *ngIf="segmentView == 'gantt'">
-      <app-gantt></app-gantt>
+      <app-gantt [items]="this.items" [linksData]="this.linksData" [listParent]="this.listParent" (loadDataGantt)="selectTask()"></app-gantt>
     </div>
   </div>
 </ion-content>
