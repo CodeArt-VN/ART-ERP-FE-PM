@@ -1,0 +1,70 @@
+<ng-container>
+  <ion-item>
+    <ion-label>Group by:</ion-label>
+    <div class="link-container">
+      <a (click)="presentGroupByPopover($event)">Status</a>
+      <a (click)="presentGroupByPopover($event)">Priority</a>
+    </div>
+  </ion-item>
+
+  <ion-popover
+    size="auto"
+    #groupByPopover
+    [isOpen]="isGroupByPopoverOpen"
+    (didDismiss)="isGroupByPopoverOpen = false"
+    [dismissOnSelect]="true"
+    [backdropDismiss]="true"
+  >
+    <ng-template>
+      <ion-content scroll-y="false">
+        <ion-list lines="none">
+          <ion-item
+            title="{{ 'Group by' | translate }}"
+            [button]="true"
+            [detail]="false"
+            (click)="isGroupByPopoverOpen = false"
+          >
+            <ion-icon slot="start" name="add-outline"></ion-icon>
+            <ion-label> {{ 'Add subgroup' | translate }}</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-popover>
+</ng-container>
+
+<ng-container cdkDropListGroup>
+  <div class="grid-container">
+    <div class="status-header-row">
+      <div class="empty-header"></div>
+      <ng-container *ngFor="let status of groupBy.level1.list">
+        <div class="status-header">{{ status.Name }}</div>
+      </ng-container>
+    </div>
+  </div>
+
+  <ng-container *ngFor="let priority of groupBy.level2.list; let i = index">
+    <div class="priority-row">
+      <div class="priority-header">{{ priority.Name }}</div>
+
+      <ng-container *ngFor="let status of groupBy.level1.list; let j = index">
+        <div>
+          <div class="task-container">
+           
+
+            <div
+              cdkDropList
+              [cdkDropListData]="getTask(status.Code, priority.Code)"
+              class="task-list"
+              (cdkDropListDropped)="drop($event, status.Code, priority.Code)"
+            >
+              <div class="task-box" *ngFor="let task of getTask(status.Code, priority.Code)" cdkDrag>
+                {{ task.Name }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </ng-container>
+</ng-container>
