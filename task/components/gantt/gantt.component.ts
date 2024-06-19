@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, ViewEncapsulation } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild, ViewEncapsulation } from '@angular/core';
 import { NavController, ModalController, AlertController, LoadingController, PopoverController } from '@ionic/angular';
 import { EnvService } from 'src/app/services/core/env.service';
 import { PageBase } from 'src/app/page-base';
@@ -16,10 +16,14 @@ import { TaskModalPage } from '../../../task-modal/task-modal.page';
   templateUrl: 'gantt.component.html',
   styleUrls: ['gantt.component.scss'],
 })
-export class GanttComponent extends PageBase {
+export class GanttComponent implements OnInit {
   @ViewChild('gantt_here', { static: true }) ganttContainer!: ElementRef;
-  linksData: any;
-  listParent: any[];
+  @Input() items: any;
+  @Input() linksData: Link[] = [];
+  @Input() listParent: any[] = [];
+  submitAttempt = false;
+
+
   constructor(
     public pageProvider: PM_TaskProvider,
     public taskLinkService: PM_TaskLinkProvider,
@@ -32,17 +36,18 @@ export class GanttComponent extends PageBase {
     public navCtrl: NavController,
     public location: Location,
   ) {
-    super();
-    this.query.AllChildren = true;
-    this.query.AllParent = true;
+  
+  }
+  @Output() loadDataGantt = new EventEmitter();
+  
+  ngOnInit(): void {
+   
   }
 
-  preLoadData(event?: any): void {
-    super.preLoadData(event);
+  ngOnChanges() {
     this.initGantt();
   }
   ionViewDidEnter() {
-    super.ionViewDidEnter();
     //Resize grid when parent dom resize
     var gantt_here = document.getElementById('gantt_here');
     new ResizeObserver(() => gantt.setSizes()).observe(gantt_here);
@@ -201,81 +206,7 @@ export class GanttComponent extends PageBase {
         delete: (id: any) => this.deleteLink(id),
       },
     });
-  }
-
-  loadData(event = null) {
-    this.parseSort();
-
-    if (this.pageProvider && !this.pageConfig.isEndOfData) {
-      if (event == 'search') {
-        this.pageProvider.read(this.query, this.pageConfig.forceLoadData).then((result: any) => {
-          if (result.data.length == 0) {
-            this.pageConfig.isEndOfData = true;
-          }
-          this.items = result.data;
-          this.loadedData(null);
-        });
-      } else {
-        let queryTask: any = {
-          Keyword: '',
-          Take: 100,
-          Skip: this.items.length,
-          AllChildren: true,
-          AllParent: true,
-          IDBranch: this.env.selectedBranch,
-        };
-
-        let queryLink: any = {
-          Keyword: '',
-          Take: 100,
-          Skip: 0,
-        };
-        let promiseTask = this.pageProvider.read(queryTask, this.pageConfig.forceLoadData);
-        let promiseLink = this.taskLinkService.read(queryLink, this.pageConfig.forceLoadData);
-        Promise.all([promiseTask, promiseLink])
-          .then((result: any) => {
-            let tasks = result[0].data;
-            if (tasks.length == 0) {
-              this.pageConfig.isEndOfData = true;
-            }
-            if (tasks.length > 0) {
-              let firstRow = tasks[0];
-
-              //Fix dupplicate rows
-              if (this.items.findIndex((d) => d.Id == firstRow.Id) == -1) {
-                this.items = [...this.items, ...tasks];
-              }
-            }
-
-            this.items.forEach((p) => {
-              p.AvatarOwner = '';
-              if (p._Staff?.Code) {
-                p.AvatarOwner = environment.staffAvatarsServer + p._Staff.Code + '.jpg';
-              }
-            });
-            let listParent: any[] = this.items.map((task: any) => {
-              return {
-                Id: task.Id,
-                Name: task.Name,
-              };
-            });
-            this.listParent = listParent;
-            this.linksData = result[1].data;
-            this.loadedData(event);
-          })
-          .catch((err) => {
-            if (err.message != null) {
-              this.env.showMessage(err.message, 'danger');
-            } else {
-              this.env.showTranslateMessage('Cannot extract data', 'danger');
-            }
-
-            this.loadedData(event);
-          });
-      }
-    } else {
-      this.loadedData(event);
-    }
+    this.loadGantt();
   }
 
   async openModalForNewTask(task, listParent) {
@@ -290,29 +221,7 @@ export class GanttComponent extends PageBase {
 
     await modal.present();
     const {} = await modal.onWillDismiss();
-    this.loadedData();
-  }
-
-  add() {
-    const task: any = {};
-    task.id = 0;
-    task.text = 'New task';
-    task.duration = 1;
-    task.durationPlan = 1;
-    const startDate = new Date();
-    const utcStartDate = new Date(startDate.getTime() - startDate.getTimezoneOffset() * 60000);
-    task.start_date = utcStartDate.toISOString().slice(0, 19);
-    task.start_date_plan = task.start_date;
-    const endDate = new Date(utcStartDate.getTime() + 24 * 60 * 60 * 1000);
-    task.end_date = endDate.toISOString().slice(0, 19);
-    task.end_date_plan = task.end_date;
-    this.openModalForNewTask(this.formatTask(task), this.listParent);
-  }
-
-  loadedData(event = null, ignoredFromGroup = false) {
-    this.pageConfig.showSpinner = false;
-    event?.target?.complete();
-    this.loadGantt();
+    this.loadDataGantt.emit();
   }
 
   loadGantt() {
@@ -341,6 +250,9 @@ export class GanttComponent extends PageBase {
       };
     });
     gantt.clearAll();
+    if (data.length === 0) {
+      return;
+  }
     gantt.parse({ data, links });
     gantt.templates.task_text = (start: Date, end: Date, task: any): string => {
       let owner = [task.full_name_owner];
@@ -414,7 +326,7 @@ export class GanttComponent extends PageBase {
             .toPromise()
             .then((data: any) => {
               //render event
-              this.loadData();
+              this.loadDataGantt.emit();
               this.submitAttempt = false;
             })
             .catch((er) => {
@@ -469,7 +381,7 @@ export class GanttComponent extends PageBase {
       if (this.submitAttempt == false) {
         this.submitAttempt = true;
         this.pageProvider
-          .save(_task, this.pageConfig.isForceCreate)
+          .save(_task)
           .then((savedItem: any) => {
             this.env.showTranslateMessage('Saving completed!', 'success');
             resolve(savedItem.Id);
@@ -491,7 +403,7 @@ export class GanttComponent extends PageBase {
       if (this.submitAttempt == false) {
         this.submitAttempt = true;
         this.taskLinkService
-          .save(this.formatLink(link), this.pageConfig.isForceCreate)
+          .save(this.formatLink(link))
           .then((data: any) => {
             //delete library link create
             gantt.deleteLink(idBefore);
@@ -520,7 +432,7 @@ export class GanttComponent extends PageBase {
       if (this.submitAttempt == false) {
         this.submitAttempt = true;
         this.taskLinkService
-          .save(this.formatLink(link), this.pageConfig.isForceCreate)
+          .save(this.formatLink(link))
           .then((data: any) => {
             this.env.showTranslateMessage('Saving completed!', 'success');
             this.submitAttempt = false;
