@@ -54,7 +54,13 @@ export class GanttComponent implements OnInit {
   }
 
   initGantt() {
-
+    gantt.plugins({
+			drag_timeline: true
+		});
+    gantt.config.drag_timeline = {
+			ignore:".gantt_task_line, .gantt_task_link",
+			useKey: false
+		};
     gantt.config.resize_rows = true;
     gantt.config.min_task_grid_row_height = 45;
     gantt.config.scales = [
@@ -75,9 +81,9 @@ export class GanttComponent implements OnInit {
 
     let firstGridColumns = {
       columns: [
-        { name: 'text', label: 'Task Name', tree: true, width: '*', min_width: 150, resize: true },
-        { name: 'start_date', label: 'Start Time', align: 'center', resize: true },
-        { name: 'duration', label: 'Duration', align: 'center', width: 70, resize: true },
+        { name: 'text', label: 'Name', tree: true, width: '*', min_width: 150, resize: true },
+        // { name: 'start_date', label: 'Start Time', align: 'center', resize: true },
+        // { name: 'duration', label: 'Duration', align: 'center', width: 70, resize: true },
         {
           name: 'owner',
           label: 'Owner',
@@ -97,18 +103,18 @@ export class GanttComponent implements OnInit {
         { name: 'add', label: '', align: 'center', width: 40 },
       ],
     };
-    // let secondGridColumns = {
-    //   columns: [
-    //     {
-    //       name: "status", label: "Status", width: 60, resize: true, align: "center", template: (task) => {
-    //         var progress = task.progress || 0;
-    //         var status = progress === 1 ? "Done" : "Processing";
-    //         var color = progress === 1 ? "green" : "orange";
-    //         return "<div style='color: " + color + "'>" + status + "</div>";
-    //       }
-    //     }
-    //   ]
-    // };
+    let secondGridColumns = {
+      columns: [
+        {
+          name: "status", label: "Status", width: 60, resize: true, align: "center", template: (task) => {
+            var progress = task.progress || 0;
+            var status = progress === 1 ? "Done" : "Processing";
+            var color = progress === 1 ? "green" : "orange";
+            return "<div style='color: " + color + "'>" + status + "</div>";
+          }
+        }
+      ]
+    };
 
     gantt.config.layout = {
       css: 'gantt_container',
@@ -241,7 +247,7 @@ export class GanttComponent implements OnInit {
       };
     });
 
-    let links: Link[] = this.linksData.map((link: any) => {
+    let links: Link[] = this.linksData?.map((link: any) => {
       return {
         id: link.Id,
         source: link.Source,

@@ -27,20 +27,22 @@
       ></ion-icon>
     </ion-button>
   </app-toolbar>
+  <ion-toolbar>
+    <ion-segment scrollable="true" (ionChange)="segmentChanged($event)" [value]="segmentView">
+      <ng-container *ngFor="let v of listSegmentView">
+        <ion-segment-button [value]="v.Code">
+          <ion-label>{{ v.Name | translate }}</ion-label>
+        </ion-segment-button>
+      </ng-container>
+    </ion-segment>
+  </ion-toolbar>
+
 </ion-header>
 
 
 <ion-content appScrollbarTheme class="scrollx">
   <div class="row-full shadow full-screen">
-    <ion-toolbar color="primary">
-      <ion-segment scrollable="true" (ionChange)="segmentChanged($event)" [value]="segmentView">
-        <ng-container *ngFor="let v of listSegmentView">
-          <ion-segment-button [value]="v.Code">
-            <ion-label>{{ v.Name | translate }}</ion-label>
-          </ion-segment-button>
-        </ng-container>
-      </ion-segment>
-    </ion-toolbar>
+    
     <div *ngIf="segmentView == 'board'">
       <app-board></app-board>
     </div>

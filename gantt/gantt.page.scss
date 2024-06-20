@@ -60,7 +60,7 @@
 }
 
 .gantt_container {
-  background-color: var(--ion-color-tertiary-tint);
+  background-color: var(--table-row-background);
   background-color: transparent;
 }
 
@@ -68,11 +68,11 @@
 .gantt_task_row {
   border-bottom: 1px solid var(--menu-right-border-color);
   background-color: transparent;
-  background-color: var(--ion-color-tertiary-tint);
+  background-color: var(--table-row-background);
 
   &.odd {
     background-color: transparent;
-    background-color: var(--ion-color-tertiary-tint);
+    background-color: var(--table-row-background);
   }
 }
 

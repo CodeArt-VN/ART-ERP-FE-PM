@@ -13,17 +13,17 @@
     padding: 2px;
     padding-right: 14px;
     width: fit-content;
-    
+
     .avatar {
-        width: 26px;
-        height: 26px;
-        display: inline-block;
-        margin-right: -11px;
-        background: rgba(255, 255, 255, 0.2);
-        box-shadow: -2px 2px 6px 0px rgba(0, 0, 0, 0.1);
-        -webkit-backdrop-filter: blur(5px);
-        border-radius: 50px;
-  
+      width: 26px;
+      height: 26px;
+      display: inline-block;
+      margin-right: -11px;
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: -2px 2px 6px 0px rgba(0, 0, 0, 0.1);
+      -webkit-backdrop-filter: blur(5px);
+      border-radius: 50px;
+
       img {
         width: 100%;
         height: 100%;
@@ -33,34 +33,45 @@
       }
     }
   }
-  
+
 }
 
 .gantt_grid {
   .gantt_grid_scale {
-    .gantt_grid_head_cell {}
+    .gantt_grid_head_cell {
+      text-align: left;
+      padding-left:8px
+    }
   }
 
   .gantt_grid_data {
     .gantt_row {
-      &.odd {}
+      &.odd {
+      }
 
-      &.gantt_row_task {}
+      &.gantt_row_task {
+      }
 
-      &.gantt_row_project {}
+      &.gantt_row_project {
+      }
 
       &.gantt_row_milestone {
         .gantt_cell {
-          .gantt_tree_content {}
+          .gantt_tree_content {
+          }
 
           &.gantt_cell_tree {
-            .gantt_tree_indent {}
+            .gantt_tree_indent {
+            }
 
-            .gantt_tree_icon.gantt_close {}
+            .gantt_tree_icon.gantt_close {
+            }
 
-            .gantt_tree_icon.gantt_open {}
+            .gantt_tree_icon.gantt_open {
+            }
 
-            .gantt_tree_content {}
+            .gantt_tree_content {
+            }
           }
         }
       }
@@ -81,7 +92,7 @@
 }
 
 .gantt_container {
-  background-color: var(--ion-color-tertiary-tint);
+  background-color: var(--table-row-background);
   background-color: transparent;
 }
 
@@ -89,11 +100,11 @@
 .gantt_task_row {
   border-bottom: 1px solid var(--menu-right-border-color);
   background-color: transparent;
-  background-color: var(--ion-color-tertiary-tint);
+  background-color: var(--table-row-background);
 
   &.odd {
     background-color: transparent;
-    background-color: var(--ion-color-tertiary-tint);
+    background-color: var(--table-row-background);
   }
 }
 
@@ -109,26 +120,26 @@
 
 .gantt_grid_data .gantt_row.odd:hover,
 .gantt_grid_data .gantt_row:hover {
-  background-color: rgba(var(--ion-color-light-rgb, 0, 0, 0), 0.5);
+  background-color: var(--table-row-hover-background);
 }
 
 .gantt_task_progress {
   background: var(--ion-color-success);
+      border: solid 1px var(--ion-color-success);
+    box-sizing: content-box;
 }
 
 .gantt_task_line {
   background-color: rgba(var(--ion-color-medium-rgb), 0.5);
-  border: 1px solid rgba(var(--ion-color-medium-rgb), 0.5);
-  backdrop-filter: blur(5px);
   border-radius: 50px;
-  
+  border: none;
   &.gantt_selected {
-    border: 1px solid var(--ion-color-medium);
+    border: 1px solid var(--ion-color-primary);
   }
 }
 
 .gantt_task_cell.week_end {
-  background-color: rgba(var(--ion-color-light-rgb, 0, 0, 0), 0.5);
+  background-color: rgba(var(--ion-color-light-rgb, 0, 0, 0), 0.2);
 }
 
 .gridHoverStyle,
@@ -156,12 +167,19 @@
 }
 
 .gantt_task_line.gantt_project {
-  background-color: #65c16f;
-  border: 1px solid #3c9445;
+  // background-color: rgba(var(--ion-color-success-rgb, 0, 0, 0), 0.2);
+  // border: 1px solid rgba(var(--ion-color-success-rgb, 0, 0, 0), 0.5);
+  background-color: #a6de96;
+  border: none;
+  height: 8px !important;
+  margin-top: 11px;
+  
+  .gantt_task_content{display: none}
 }
 
 .gantt_task_line.gantt_project .gantt_task_progress {
-  background-color: #46ad51;
+  // background-color: rgba(var(--ion-color-success-rgb, 0, 0, 0), 1);
+  background-color: #6bc950;
 }
 
 .buttonBg {
@@ -480,7 +498,8 @@ div.dhx_modal_cover {
 }
 
 .gantt_task_line.gantt_project.gantt_selected {
-  box-shadow: 0 0 5px #46ad51;
+  // box-shadow: 0 0 5px #46ad51;
+  box-shadow: none;
 }
 
 .gantt_task_line.gantt_milestone {
@@ -514,7 +533,7 @@ div.dhx_modal_cover {
   background-color: rgba(0, 0, 0, 0.4);
 }
 
-.gantt_critical_link .gantt_line_wrapper>div {
+.gantt_critical_link .gantt_line_wrapper > div {
   background-color: #e63030;
 }
 
@@ -662,7 +681,7 @@ div.dhx_modal_cover {
   background-color: rgba(52, 152, 219, 0.3);
 }
 
-.gantt_layout_cell>.gantt_layout_header {
+.gantt_layout_cell > .gantt_layout_header {
   background: #33aae8;
   color: #fff;
 }
@@ -766,7 +785,7 @@ div.dhx_modal_cover {
   $avatar-size: 34px;
   $num-avatars: 100;
 
-  
+
 
   .text {
     margin-left: 2px;

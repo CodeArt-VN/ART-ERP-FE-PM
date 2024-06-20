@@ -62,7 +62,7 @@ export class TaskPage extends PageBase {
     super.refresh(event);
     this.selectedTask = null;
 }
-  segmentView = 'board';
+  segmentView = 'gantt';
   segmentChanged(ev: any) {
     this.segmentView = ev.detail.value;
   }
