@@ -1,14 +1,13 @@
-import { filter } from 'rxjs';
 import { Component, ViewEncapsulation } from '@angular/core';
 import { NavController, ModalController, AlertController, LoadingController, PopoverController } from '@ionic/angular';
 import { EnvService } from 'src/app/services/core/env.service';
 import { PageBase } from 'src/app/page-base';
 import { BRA_BranchProvider, PM_TaskLinkProvider, PM_TaskProvider } from 'src/app/services/static/services.service';
 import { Location } from '@angular/common';
-import { ApiSetting } from 'src/app/services/static/api-setting';
 import { TaskModalPage } from '../task-modal/task-modal.page';
 
 import { environment } from 'src/environments/environment';
+import { lib } from 'src/app/services/static/global-functions';
 
 @Component({
   encapsulation: ViewEncapsulation.None,
@@ -72,13 +71,6 @@ export class TaskPage extends PageBase {
       let idTask = this.selectedTask;
 
       this.submitAttempt = true;
-      let apiPath = {
-        method: 'GET',
-        url: function () {
-          return ApiSetting.apiDomain('PM/Task/getAllTaskInProject/' + idTask);
-        },
-      };
-
       this.loadingController
         .create({
           cssClass: 'my-custom-class',
@@ -88,9 +80,11 @@ export class TaskPage extends PageBase {
           loading.present();
 
           this.pageProvider.commonService
-            .connect(apiPath.method, apiPath.url(), null)
+            .connect('GET', 'PM/Task/getAllTaskInProject/' + idTask, null)
             .toPromise()
             .then((resp: any) => {
+              let selected = resp.find((d) => d.Id == idTask);
+              if (selected) selected.IDParent = null;
               this.items = resp;
               let tasks = resp;
               if (tasks.length == 0) {
@@ -209,7 +203,6 @@ export class TaskPage extends PageBase {
     }
   }
 
-
   loadData(event = null) {
     this.parseSort();
 
@@ -226,7 +219,7 @@ export class TaskPage extends PageBase {
         let queryTask: any = {
           Keyword: '',
           Take: 100,
-          Skip: this.items.length,
+          Skip: 0,
           AllChildren: true,
           AllParent: true,
           IDBranch: this.env.selectedBranch,
@@ -253,7 +246,11 @@ export class TaskPage extends PageBase {
                 this.items = [...this.items, ...tasks];
               }
             }
-            this.taskList = [...this.items.filter((d) => d.Type != 'task' && d.Type != 'milestone')];
+
+            let taskTree = [...this.items.filter((d) => d.Type != 'task' && d.Type != 'milestone')];
+            lib.buildFlatTree(taskTree, this.taskList).then((result: any) => {
+              this.taskList = result;
+            });
             this.items.forEach((p) => {
               p.AvatarOwner = '';
               if (p._Staff?.Code) {
@@ -314,5 +311,9 @@ export class TaskPage extends PageBase {
     await modal.present();
     const {} = await modal.onWillDismiss();
     this.loadedData();
+  }
+
+  autoCalculateLink() {
+    this.env.publishEvent({ Code: 'app:autoCalculateLink' });
   }
 }

@@ -43,7 +43,13 @@ export class GanttComponent implements OnInit {
     public env: EnvService,
     public navCtrl: NavController,
     public location: Location,
-  ) {}
+  ) {
+    this.env.getEvents().subscribe((data) => {
+      if (data.Code == 'app:autoCalculateLink') {
+        this.autoCalculateLink();
+      }
+    });
+  }
   @Output() loadDataGantt = new EventEmitter();
 
   ngOnInit(): void {}
