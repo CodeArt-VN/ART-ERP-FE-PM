@@ -99,11 +99,12 @@
 .gantt_row,
 .gantt_task_row {
   border-bottom: 1px solid var(--menu-right-border-color);
-  background-color: transparent;
+  //border-bottom: none;
+  //background-color: transparent;
   background-color: var(--table-row-background);
 
   &.odd {
-    background-color: transparent;
+    //background-color: transparent;
     background-color: var(--table-row-background);
   }
 }
@@ -167,20 +168,43 @@
 }
 
 .gantt_task_line.gantt_project {
-  // background-color: rgba(var(--ion-color-success-rgb, 0, 0, 0), 0.2);
-  // border: 1px solid rgba(var(--ion-color-success-rgb, 0, 0, 0), 0.5);
   background-color: #a6de96;
   border: none;
   height: 8px !important;
   margin-top: 11px;
+
+  .gantt_task_progress {
+    background-color: #6bc950;
+  }
+  .gantt_task_content{
+    display: none;
+  }
+
+  &.Folder{
+    background-color: rgba(var(--ion-color-medium-rgb, 0, 0, 0), 0.1);
+    .gantt_task_progress {
+      background-color: rgba(var(--ion-color-medium-rgb, 0, 0, 0), 0.2);
+      border-color: rgba(var(--ion-color-medium-rgb, 0, 0, 0), 0.2);
+    }
+  }
+  // &.List{
+  //   background-color: rgba(var(--ion-color-dark-rgb, 0, 0, 0), 0.1);
+  //   .gantt_task_progress {
+  //     background-color: rgba(var(--ion-color-dark-rgb, 0, 0, 0), 0.2);
+  //     border-color: rgba(var(--ion-color-dark-rgb, 0, 0, 0), 0.2);
+  //   }
+  // }
+  // &.Backlog{
+  //   background-color: rgba(var(--ion-color-pink-rgb, 0, 0, 0), 0.2);
+  //   .gantt_task_progress {
+  //     background-color: var(--ion-color-pink);
+  //     border-color: var(--ion-color-pink);
+  //   }
+  // }
   
-  .gantt_task_content{display: none}
 }
 
-.gantt_task_line.gantt_project .gantt_task_progress {
-  // background-color: rgba(var(--ion-color-success-rgb, 0, 0, 0), 1);
-  background-color: #6bc950;
-}
+
 
 .buttonBg {
   background: #fff;

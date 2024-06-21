@@ -89,11 +89,7 @@ export class TaskModalPage extends PageBase {
         item.Code = parseInt(item.Code);
         return item;
       });
-      let typeData = values[1];
-      this.typeDataSource = typeData.map((item) => {
-        item.Code = item.Code.toLowerCase();
-        return item;
-      });
+      this.typeDataSource = values[1];
       
       //this.statusDataSource = values[2];
       this.statusDataSource = [{

@@ -1,4 +1,13 @@
-import { Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild, ViewEncapsulation } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+  ViewChild,
+  ViewEncapsulation,
+} from '@angular/core';
 import { NavController, ModalController, AlertController, LoadingController, PopoverController } from '@ionic/angular';
 import { EnvService } from 'src/app/services/core/env.service';
 import { PageBase } from 'src/app/page-base';
@@ -23,7 +32,6 @@ export class GanttComponent implements OnInit {
   @Input() listParent: any[] = [];
   submitAttempt = false;
 
-
   constructor(
     public pageProvider: PM_TaskProvider,
     public taskLinkService: PM_TaskLinkProvider,
@@ -35,14 +43,10 @@ export class GanttComponent implements OnInit {
     public env: EnvService,
     public navCtrl: NavController,
     public location: Location,
-  ) {
-  
-  }
+  ) {}
   @Output() loadDataGantt = new EventEmitter();
-  
-  ngOnInit(): void {
-   
-  }
+
+  ngOnInit(): void {}
 
   ngOnChanges() {
     this.initGantt();
@@ -55,12 +59,12 @@ export class GanttComponent implements OnInit {
 
   initGantt() {
     gantt.plugins({
-			drag_timeline: true
-		});
+      drag_timeline: true,
+    });
     gantt.config.drag_timeline = {
-			ignore:".gantt_task_line, .gantt_task_link",
-			useKey: false
-		};
+      ignore: '.gantt_task_line, .gantt_task_link',
+      useKey: false,
+    };
     gantt.config.resize_rows = true;
     gantt.config.min_task_grid_row_height = 45;
     gantt.config.scales = [
@@ -72,6 +76,10 @@ export class GanttComponent implements OnInit {
       ignore: '.gantt_task_line, .gantt_task_link',
       useKey: false,
     };
+    gantt.templates.task_class = function (start, end, task) {
+      return task._task?.Type + ' ' + (end < new Date() ? 'overdue' : '');
+    };
+
     gantt.config.date_format = '%Y-%m-%d %H:%i';
     gantt.config.work_time = true;
     gantt.templates.timeline_cell_class = function (task, date) {
@@ -106,14 +114,19 @@ export class GanttComponent implements OnInit {
     let secondGridColumns = {
       columns: [
         {
-          name: "status", label: "Status", width: 60, resize: true, align: "center", template: (task) => {
+          name: 'status',
+          label: 'Status',
+          width: 60,
+          resize: true,
+          align: 'center',
+          template: (task) => {
             var progress = task.progress || 0;
-            var status = progress === 1 ? "Done" : "Processing";
-            var color = progress === 1 ? "green" : "orange";
-            return "<div style='color: " + color + "'>" + status + "</div>";
-          }
-        }
-      ]
+            var status = progress === 1 ? 'Done' : 'Processing';
+            var color = progress === 1 ? 'green' : 'orange';
+            return "<div style='color: " + color + "'>" + status + '</div>';
+          },
+        },
+      ],
     };
 
     gantt.config.layout = {
@@ -153,7 +166,7 @@ export class GanttComponent implements OnInit {
 
     gantt.config.grid_resize = true;
     gantt.init(this.ganttContainer.nativeElement);
-    
+
     gantt.detachAllEvents();
 
     //create task
@@ -237,13 +250,19 @@ export class GanttComponent implements OnInit {
         text: task.Name,
         start_date: task.StartDate.substring(0, 10),
         end_date: task.EndDate?.substring(0, 10),
-        type: task.Type,
+        type:
+          task.Type === 'Task' || task.Type === 'Todo'
+            ? gantt.config.types.task
+            : task.Type === 'Milestone'
+              ? gantt.config.types.milestone
+              : gantt.config.types.project,
         duration: task.Duration,
         progress: task.Progress,
         parent: task.IDParent,
         open: task.IsOpen,
         avatar_owner: task.AvatarOwner,
         full_name_owner: task._Staff?.FullName ?? '',
+        _task: task,
       };
     });
 
@@ -258,7 +277,7 @@ export class GanttComponent implements OnInit {
     gantt.clearAll();
     if (data.length === 0) {
       return;
-  }
+    }
     gantt.parse({ data, links });
     gantt.templates.task_text = (start: Date, end: Date, task: any): string => {
       let owner = [task.full_name_owner];
