@@ -10,6 +10,7 @@
       bindLabel="Name"
       bindValue="Id"
       placeholder="{{'Select unit' | translate}}"
+      [clearable]="false"
     >
       <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
         <div *ngIf="i">
