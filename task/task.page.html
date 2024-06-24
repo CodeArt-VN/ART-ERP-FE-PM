@@ -2,7 +2,7 @@
   <app-toolbar [page]="this">
     <ng-select startTitle
       class="selected-task"
-      (change)="selectTask();"
+      (change)="selectTask($event);"
       appendTo="#ng-select-holder"
       [(ngModel)]="selectedTask"
       labelForId="Id"

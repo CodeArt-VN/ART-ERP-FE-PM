@@ -2,7 +2,12 @@ import { Component, ViewEncapsulation } from '@angular/core';
 import { NavController, ModalController, AlertController, LoadingController, PopoverController } from '@ionic/angular';
 import { EnvService } from 'src/app/services/core/env.service';
 import { PageBase } from 'src/app/page-base';
-import { BRA_BranchProvider, PM_TaskLinkProvider, PM_TaskProvider } from 'src/app/services/static/services.service';
+import {
+  BRA_BranchProvider,
+  PM_SpaceProvider,
+  PM_TaskLinkProvider,
+  PM_TaskProvider,
+} from 'src/app/services/static/services.service';
 import { Location } from '@angular/common';
 import { TaskModalPage } from '../task-modal/task-modal.page';
 
@@ -18,8 +23,10 @@ import { lib } from 'src/app/services/static/global-functions';
 export class TaskPage extends PageBase {
   listParent;
   linksData;
+  spaceList;
   constructor(
     public pageProvider: PM_TaskProvider,
+    public spaceProvider: PM_SpaceProvider,
     public taskLinkService: PM_TaskLinkProvider,
     public branchProvider: BRA_BranchProvider,
     public modalController: ModalController,
@@ -54,22 +61,24 @@ export class TaskPage extends PageBase {
   preLoadData(event?: any): void {
     this.pageConfig.pageTitle = '';
     this.query.IDBranch = this.env.selectedBranch;
+    this.spaceProvider.read().then((rs: any) => {
+      this.spaceList = rs.data;
+    });
     super.preLoadData(event);
     this.selectedTask = null;
   }
   refresh(event = null) {
     super.refresh(event);
     this.selectedTask = null;
-}
+  }
   segmentView = 'gantt';
   segmentChanged(ev: any) {
     this.segmentView = ev.detail.value;
   }
 
-  selectTask() {
+  selectTask(event) {
     if (this.selectedTask) {
       let idTask = this.selectedTask;
-
       this.submitAttempt = true;
       this.loadingController
         .create({
@@ -78,21 +87,24 @@ export class TaskPage extends PageBase {
         })
         .then((loading) => {
           loading.present();
+          let query = lib.cloneObject(this.query);
+          query.IDTask = idTask;
+          if (!event.Type) {
+            query.IDSpace = event.IDSpace;
+          }
 
-          this.pageProvider.commonService
-            .connect('GET', 'PM/Task/getAllTaskInProject/' + idTask, null)
-            .toPromise()
+          this.pageProvider
+            .read(query, this.pageConfig.forceLoadData)
             .then((resp: any) => {
-              let selected = resp.find((d) => d.Id == idTask);
+              let selected = resp.data.find((d) => d.Id == idTask);
               if (selected) selected.IDParent = null;
-              this.items = resp;
-              let tasks = resp;
+              this.items = resp.data;
+              let tasks = resp.data;
               if (tasks.length == 0) {
                 this.pageConfig.isEndOfData = true;
               }
               if (tasks.length > 0) {
                 let firstRow = tasks[0];
-
                 //Fix dupplicate rows
                 if (this.items.findIndex((d) => d.Id == firstRow.Id) == -1) {
                   this.items = [...this.items, ...tasks];
@@ -223,6 +235,7 @@ export class TaskPage extends PageBase {
           AllChildren: true,
           AllParent: true,
           IDBranch: this.env.selectedBranch,
+          RemoveTaskType: ['Task', 'Milestone', 'Todo'],
         };
 
         let queryLink: any = {
@@ -247,7 +260,27 @@ export class TaskPage extends PageBase {
               }
             }
 
-            let taskTree = [...this.items.filter((d) => d.Type != 'task' && d.Type != 'milestone')];
+            //let taskTree = [...this.items.filter((d) => d.Type != 'task' && d.Type != 'milestone')];
+
+            let taskTree = [...this.items];
+
+            this.spaceList.forEach((s) => {
+              let taskTreeFilter = taskTree.filter((f) => (f.IDParent == null || f.IDParent == 0) && f.IDSpace == s.Id);
+              if (taskTreeFilter.length > 0) {
+                let idParent = lib.generateUID();
+                taskTreeFilter.forEach((i) => {
+                  i.IDParent = idParent;
+                });
+
+                let task = {
+                  Id: idParent,
+                  Name: s.Name,
+                  IdParent: null,
+                  IDSpace: s.Id,
+                };
+                taskTree.push(task);
+              }
+            });
             lib.buildFlatTree(taskTree, this.taskList).then((result: any) => {
               this.taskList = result;
             });
