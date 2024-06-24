@@ -10,12 +10,9 @@ import {
 } from '@angular/core';
 import { NavController, ModalController, AlertController, LoadingController, PopoverController } from '@ionic/angular';
 import { EnvService } from 'src/app/services/core/env.service';
-import { PageBase } from 'src/app/page-base';
 import { BRA_BranchProvider, PM_TaskLinkProvider, PM_TaskProvider } from 'src/app/services/static/services.service';
 import { Location } from '@angular/common';
 import { gantt } from 'dhtmlx-gantt';
-
-import { environment } from 'src/environments/environment';
 import { Link, Task } from '../../../_models/task';
 import { TaskModalPage } from '../../../task-modal/task-modal.page';
 
@@ -177,7 +174,9 @@ export class GanttComponent implements OnInit {
 
     //create task
     gantt.attachEvent('onTaskCreated', (task: any) => {
+      let taskParent = this.items.find((d) => d.Id == task.parent);
       task.id = 0;
+      task.type = taskParent?.Type;
       task.durationPlan = 1;
       const startDate = new Date();
       const utcStartDate = new Date(startDate.getTime() - startDate.getTimezoneOffset() * 60000);

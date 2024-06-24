@@ -6,7 +6,7 @@ import { EnvService } from 'src/app/services/core/env.service';
 
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { HRM_StaffProvider, PM_TaskLinkProvider, PM_TaskProvider } from 'src/app/services/static/services.service';
-import { Subject, concat, of, distinctUntilChanged, tap, switchMap, catchError } from 'rxjs';
+import { Subject, concat, of, distinctUntilChanged, tap, switchMap, catchError, filter } from 'rxjs';
 import { lib } from 'src/app/services/static/global-functions';
 
 @Component({
@@ -17,7 +17,7 @@ import { lib } from 'src/app/services/static/global-functions';
 export class TaskModalPage extends PageBase {
   task: any;
   listParent: any;
-  parentDataSource: any [];
+  parentDataSource: any[];
   constructor(
     public pageProvider: PM_TaskProvider,
     public taskLinkService: PM_TaskLinkProvider,
@@ -77,9 +77,10 @@ export class TaskModalPage extends PageBase {
   priorityDataSource: any;
   typeDataSource: any;
   statusDataSource: any;
+  storedType:any;
+  storedParent: any;
   preLoadData(event) {
     this.item = this.task;
-    this.parentDataSource = this.listParent.filter(d => d.Id != this.item.Id);
     let taskPriority = this.env.getType('TaskPriority');
     let taskType = this.env.getType('TaskType');
     let taskStatus = this.env.getStatus('TaskStatus');
@@ -89,21 +90,25 @@ export class TaskModalPage extends PageBase {
         item.Code = parseInt(item.Code);
         return item;
       });
-      this.typeDataSource = values[1];
-      
+      this.storedType = [...values[1]];
+      this.storedParent = [...this.listParent];
+      this.checkParentAndType(this.item?.Type, values[1], this.listParent, this.item?.Id, false);
+
       //this.statusDataSource = values[2];
-      this.statusDataSource = [{
-        Code:'InProgress',
-        Name:'InProgress'
-      },
-      {
-        Code:'Done',
-        Name:'Done'
-      },
-      {
-        Code: 'Testing',
-        Name:'Testing'
-      }]
+      this.statusDataSource = [
+        {
+          Code: 'InProgress',
+          Name: 'InProgress',
+        },
+        {
+          Code: 'Done',
+          Name: 'Done',
+        },
+        {
+          Code: 'Testing',
+          Name: 'Testing',
+        },
+      ];
       super.preLoadData(event);
     });
   }
@@ -193,6 +198,249 @@ export class TaskModalPage extends PageBase {
         }
       }
     }
+  }
+
+  checkParentAndType(type, valuesType , listParent, id, filterType = false) {
+    let typeArray = valuesType;
+    let parentArray = listParent;
+    switch (type) {
+      case 'Folder':
+        if (!id) {
+          if (filterType) {
+            parentArray = listParent.filter(d => d.Id != this.item.Id && d.Type == 'Folder');
+          }
+          break;
+        } else {
+          parentArray = listParent.filter(d => d.Id != this.item.Id && d.Type == 'Folder');
+          let idParent = listParent.find(d => d.Id == id).IDParent;
+          if(idParent) {
+            let parentItem  = listParent.find(d => d.Id == idParent);
+            switch (parentItem.Type) {
+              case 'Folder':
+                  typeArray = valuesType.filter(d => d.Code == 'Folder');
+                  break;
+            }
+          }else {
+            typeArray = valuesType;
+          }
+          break;
+        }
+      case 'List':
+        if (!id) {
+          if (filterType) {
+            parentArray = listParent.filter(d => d.Type == 'List' || d.Type == 'Folder');
+          } else {
+            typeArray = valuesType.filter(d => d.Code != 'Folder');
+          }
+          break;
+        } else {
+          parentArray = listParent.filter(d => d.Id != this.item.Id && (d.Type == 'List' || d.Type == 'Folder'));
+          let idParent = listParent.find(d => d.Id == id).IDParent;
+          if(idParent) {
+            let parentItem  = listParent.find(d => d.Id == idParent);
+            switch (parentItem.Type) {
+              case 'List':
+                  typeArray = valuesType.filter(d => d.Code == 'List');
+                  break;
+              case 'Folder':
+                  typeArray = valuesType.filter(d => d.Code == 'Folder' || d.Code == 'List');
+                  break;
+            }
+          }else {
+            typeArray = valuesType;
+          }
+          break;
+        }
+
+      case 'Backlog':
+        if (!id) {
+          if (filterType) {
+            parentArray = listParent.filter(d => d.Type == 'Folder' || d.Type == 'List' || d.Type == 'Backlog');
+          } else {
+            typeArray = valuesType.filter(d => d.Code != 'Folder' && d.Code != 'List');
+          }
+          break;
+        } else {
+          parentArray = listParent.filter(d => d.Id != this.item.Id && (d.Type == 'Folder' || d.Type == 'List' || d.Type == 'Project'));
+          let idParent = listParent.find(d => d.Id == id).IDParent;
+          if(idParent) {
+            let parentItem  = listParent.find(d => d.Id == idParent);
+            switch (parentItem.Type) {
+              case 'Backlog':
+                  typeArray = valuesType.filter(d => d.Code == 'Backlog');
+                  break;
+              case 'List':
+                  typeArray = valuesType.filter(d => d.Code == 'List' || d.Code == 'Backlog');
+                  break;
+              case 'Folder':
+                  typeArray = valuesType.filter(d => d.Code == 'Folder' || d.Code == 'List' || d.Code == 'Backlog');
+                  break;
+            }
+          }else {
+            typeArray = valuesType;
+          }
+          break;
+        }
+
+      case 'Project':
+        if (!id) {
+          if (filterType) {
+            parentArray = listParent.filter(d => d.Type == 'Folder' || d.Type == 'List' || d.Type == 'Project');
+          } else {
+            typeArray = valuesType.filter(d => d.Code != 'Folder' && d.Code != 'List');
+          }
+          break;
+        } else {
+          parentArray = listParent.filter(d => d.Id != this.item.Id && (d.Type == 'Folder' || d.Type == 'List' || d.Type == 'Backlog'));
+          let idParent = listParent.find(d => d.Id == id).IDParent;
+          if(idParent) {
+            let parentItem  = listParent.find(d => d.Id == idParent);
+            switch (parentItem.Type) {
+              case 'Project':
+                  typeArray = valuesType.filter(d => d.Code == 'Project');
+                  break;
+              case 'Backlog':
+                  typeArray = valuesType.filter(d => d.Code == 'Backlog' || d.Code == 'Project');
+                  break;
+              case 'List':
+                  typeArray = valuesType.filter(d => d.Code == 'List' || d.Code == 'Backlog' || d.Code == 'Project');
+                  break;
+              case 'Folder':
+                  typeArray = valuesType.filter(d => d.Code == 'Folder' || d.Code == 'List' || d.Code == 'Backlog');
+                  break;
+            }
+          }else {
+            typeArray = valuesType;
+          }
+          break;
+        }
+
+      case 'Task':
+        if (!id) {
+          if (filterType) {
+            parentArray = listParent.filter(d => d.Type != 'Milestone' || d.Type != 'Todo');
+          } else {
+            typeArray = valuesType.filter((d) => d.Code == 'Task' || d.Code == 'Todo' || d.Code == 'Milestone');
+          }
+          break;
+        } else {
+          parentArray = listParent.filter(d => d.Id != this.item.Id && (d.Type != 'Milestone' || d.Type != 'Todo'));
+          let idParent = listParent.find(d => d.Id == id).IDParent;
+          if(idParent) {
+            let parentItem  = listParent.find(d => d.Id == idParent);
+            switch (parentItem.Type) {
+              case 'Task':
+                  typeArray = valuesType.filter(d => d.Code == 'Task');
+                  break;
+              case 'Project':
+                  typeArray = valuesType.filter(d => d.Code == 'Project' || d.Code == 'Task');
+                  break;
+              case 'Backlog':
+                  typeArray = valuesType.filter(d => d.Code == 'Backlog' || d.Code == 'Project' || d.Code == 'Task');
+                  break;
+              case 'List':
+                  typeArray = valuesType.filter(d => d.Code == 'List' || d.Code == 'Backlog' || d.Code == 'Project' || d.Code == 'Task');
+                  break;
+              case 'Folder':
+                  typeArray = valuesType.filter(d => d.Code == 'Folder' || d.Code == 'List' || d.Code == 'Backlog' || d.Code == 'Task');
+                  break;
+            }
+          }else {
+            typeArray = valuesType;
+          }
+          break;
+        }
+
+      case 'Todo':
+        if (!id) {
+          if (filterType) {
+            parentArray = listParent.filter(d => d.Type != 'Milestone');
+          } else {
+            typeArray = valuesType.filter(d => d.Code == 'Todo');
+          }
+          break;
+        } else {
+          parentArray = listParent.filter((d) => d.Id != this.item.Id && d.Type != 'Milestone');
+          let idParent = listParent.find(d => d.Id == id).IDParent;
+          if(idParent) {
+            let parentItem  = listParent.find(d => d.Id == idParent);
+            switch (parentItem.Type) {
+              case 'Todo':
+                  typeArray = valuesType.filter(d => d.Code == 'Todo');
+                  break;
+              case 'Project':
+                  typeArray = valuesType.filter(d => d.Code == 'Project' || d.Code == 'Todo');
+                  break;
+              case 'Backlog':
+                  typeArray = valuesType.filter(d => d.Code == 'Backlog' || d.Code == 'Project' || d.Code == 'Todo');
+                  break;
+              case 'List':
+                  typeArray = valuesType.filter(d => d.Code == 'List' || d.Code == 'Backlog' || d.Code == 'Project' || d.Code == 'Todo');
+                  break;
+              case 'Folder':
+                  typeArray = valuesType.filter(d => d.Code == 'Folder' || d.Code == 'List' || d.Code == 'Backlog' || d.Code == 'Todo');
+                  break;
+            }
+          }else {
+            typeArray = valuesType;
+          }
+          break;
+        }
+
+      case 'Milestone':
+        if (!id) {
+          if (filterType) {
+            parentArray = listParent.filter(d => d.Type != 'Todo');
+          } else {
+            typeArray = valuesType.filter((d) => d.Code == 'Milestone');
+          }
+          break;
+        } else {
+          parentArray = listParent.filter((d) => d.Id != this.item.Id && d.Type != 'Todo');
+          let idParent = listParent.find(d => d.Id == id).IDParent;
+          if(idParent) {
+            let parentItem  = listParent.find(d => d.Id == idParent);
+            switch (parentItem.Type) {
+              case 'Todo':
+                  typeArray = valuesType.filter(d => d.Code == 'Milestone');
+                  break;
+              case 'Project':
+                  typeArray = valuesType.filter(d => d.Code == 'Project' || d.Code == 'Milestone');
+                  break;
+              case 'Backlog':
+                  typeArray = valuesType.filter(d => d.Code == 'Backlog' || d.Code == 'Project' || d.Code == 'Milestone');
+                  break;
+              case 'List':
+                  typeArray = valuesType.filter(d => d.Code == 'List' || d.Code == 'Backlog' || d.Code == 'Project' || d.Code == 'Milestone');
+                  break;
+              case 'Folder':
+                  typeArray = valuesType.filter(d => d.Code == 'Folder' || d.Code == 'List' || d.Code == 'Backlog' || d.Code == 'Milestone');
+                  break;
+            }
+          }else {
+            typeArray = valuesType;
+          }
+          break;
+        }
+
+      default:
+        break;
+    }
+
+    this.typeDataSource = typeArray;
+    this.parentDataSource = parentArray;
+  }
+
+  changeParent() {
+    let parent = this.parentDataSource.find((d) => d.Id == this.formGroup.controls.IDParent.value);
+    let type = parent?.Type;
+    this.checkParentAndType(type, this.storedType, this.storedParent, this.formGroup.controls.Id.value, false);
+    this.saveChange();
+  }
+
+  changeType() {
+    this.checkParentAndType(this.formGroup.controls.Type.value, this.storedType, this.storedParent, this.formGroup.controls.Id.value, true);
+    this.saveChange();
   }
 
   changeStartDate() {

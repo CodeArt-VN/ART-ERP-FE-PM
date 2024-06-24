@@ -1,5 +1,5 @@
-<ion-header class="padding-header">
-  <ion-toolbar>
+<ion-header>
+  <ion-toolbar class="no-padding">
     <ion-buttons slot="start" class="ion-hide-sm-down_">
       <ion-button color="dark" class="ion-hide-sm-down"> {{'Task' | translate}} </ion-button>
     </ion-buttons>
@@ -74,11 +74,11 @@
           <ion-col size="12" size-sm="6" size-xl="4">
             <app-form-control
             [field]="{id:'IDParent', label: 'Parent', type : 'ng-select', dataSource: parentDataSource, clearable: true, bindValue:'Id', bindLabel:'Name', form : formGroup }"
-            (change)="saveChange()">
+            (change)="changeParent()">
             </app-form-control>
             <app-form-control
 									[field]="{id:'Type', label: 'Type', type : 'ng-select', dataSource: typeDataSource, bindValue:'Code', bindLabel:'Name', form : formGroup }"
-									(change)="saveChange()">
+									(change)="changeType()">
 						</app-form-control>
             <app-form-control
               [field]="{id:'Status', label: 'Status', type : 'ng-select', dataSource: statusDataSource, bindValue:'Code', bindLabel:'Name', form : formGroup }"
