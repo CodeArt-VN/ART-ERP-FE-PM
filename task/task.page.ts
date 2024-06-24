@@ -57,14 +57,17 @@ export class TaskPage extends PageBase {
   ];
   taskList;
   selectedTask;
-
+  taskTypeList;
   preLoadData(event?: any): void {
     this.pageConfig.pageTitle = '';
     this.query.IDBranch = this.env.selectedBranch;
     this.spaceProvider.read().then((rs: any) => {
       this.spaceList = rs.data;
     });
-    super.preLoadData(event);
+    this.env.getType('TaskType').then((value: any) =>{
+      this.taskTypeList = value;
+      super.preLoadData(event);
+    });
     this.selectedTask = null;
   }
   refresh(event = null) {
@@ -79,6 +82,13 @@ export class TaskPage extends PageBase {
   selectTask(event) {
     if (this.selectedTask) {
       let idTask = this.selectedTask;
+      let query: any = {
+        Id : this.selectedTask,
+        AllChildren: true,
+        AllParent: true,
+        Type_in: JSON.stringify(this.taskTypeList.map(e => e.Code).filter(d => d != 'Task' && d != 'Todo' && d != 'Milestone'))
+      };
+      if(!event.Type) query.IDSpace = event.IDSpace;
       this.submitAttempt = true;
       this.loadingController
         .create({
@@ -87,12 +97,6 @@ export class TaskPage extends PageBase {
         })
         .then((loading) => {
           loading.present();
-          let query = lib.cloneObject(this.query);
-          query.IDTask = idTask;
-          if (!event.Type) {
-            query.IDSpace = event.IDSpace;
-          }
-
           this.pageProvider
             .read(query, this.pageConfig.forceLoadData)
             .then((resp: any) => {
@@ -117,13 +121,7 @@ export class TaskPage extends PageBase {
                   p.AvatarOwner = environment.staffAvatarsServer + p._Staff.Code + '.jpg';
                 }
               });
-              let listParent: any[] = this.items.map((task: any) => {
-                return {
-                  Id: task.Id,
-                  Name: task.Name,
-                };
-              });
-              this.listParent = listParent;
+              this.listParent = this.items;
               this.loadedData();
               this.submitAttempt = false;
               if (loading) loading.dismiss();
@@ -135,78 +133,6 @@ export class TaskPage extends PageBase {
               } else {
                 this.env.showTranslateMessage('Cannot loading data', 'danger');
               }
-              this.submitAttempt = false;
-              if (loading) loading.dismiss();
-              this.pageConfig.isSubActive = true;
-            });
-        });
-    } else {
-      this.loadingController
-        .create({
-          cssClass: 'my-custom-class',
-          message: 'Đang tải dữ liệu...',
-        })
-        .then((loading) => {
-          loading.present();
-          let queryTask: any = {
-            Keyword: '',
-            Take: 100,
-            Skip: 0,
-            AllChildren: true,
-            AllParent: true,
-            IDBranch: this.env.selectedBranch,
-          };
-
-          let queryLink: any = {
-            Keyword: '',
-            Take: 100,
-            Skip: 0,
-          };
-          let promiseTask = this.pageProvider.read(queryTask, this.pageConfig.forceLoadData);
-          let promiseLink = this.taskLinkService.read(queryLink, this.pageConfig.forceLoadData);
-          Promise.all([promiseTask, promiseLink])
-            .then((result: any) => {
-              this.items = [];
-              let tasks = result[0].data;
-              if (tasks.length == 0) {
-                this.pageConfig.isEndOfData = true;
-              }
-              if (tasks.length > 0) {
-                let firstRow = tasks[0];
-
-                //Fix dupplicate rows
-                if (this.items.findIndex((d) => d.Id == firstRow.Id) == -1) {
-                  this.items = [...this.items, ...tasks];
-                }
-              }
-
-              this.items.forEach((p) => {
-                p.AvatarOwner = '';
-                if (p._Staff?.Code) {
-                  p.AvatarOwner = environment.staffAvatarsServer + p._Staff.Code + '.jpg';
-                }
-              });
-              let listParent: any[] = this.items.map((task: any) => {
-                return {
-                  Id: task.Id,
-                  Name: task.Name,
-                };
-              });
-              this.listParent = listParent;
-              this.linksData = result[1].data;
-              this.loadedData();
-              this.submitAttempt = false;
-              if (loading) loading.dismiss();
-              this.pageConfig.isSubActive = true;
-            })
-            .catch((err) => {
-              if (err.message != null) {
-                this.env.showMessage(err.message, 'danger');
-              } else {
-                this.env.showTranslateMessage('Cannot extract data', 'danger');
-              }
-
-              this.loadedData();
               this.submitAttempt = false;
               if (loading) loading.dismiss();
               this.pageConfig.isSubActive = true;
@@ -234,8 +160,7 @@ export class TaskPage extends PageBase {
           Skip: 0,
           AllChildren: true,
           AllParent: true,
-          IDBranch: this.env.selectedBranch,
-          RemoveTaskType: ['Task', 'Milestone', 'Todo'],
+          Type_in: JSON.stringify(this.taskTypeList.map(e => e.Code).filter(d => d != 'Task' && d != 'Todo' && d != 'Milestone'))
         };
 
         let queryLink: any = {
@@ -259,8 +184,6 @@ export class TaskPage extends PageBase {
                 this.items = [...this.items, ...tasks];
               }
             }
-
-            //let taskTree = [...this.items.filter((d) => d.Type != 'task' && d.Type != 'milestone')];
 
             let taskTree = [...this.items];
 
@@ -290,13 +213,7 @@ export class TaskPage extends PageBase {
                 p.AvatarOwner = environment.staffAvatarsServer + p._Staff.Code + '.jpg';
               }
             });
-            let listParent: any[] = this.items.map((task: any) => {
-              return {
-                Id: task.Id,
-                Name: task.Name,
-              };
-            });
-            this.listParent = listParent;
+            this.listParent = this.items;
             this.linksData = result[1].data;
             this.loadedData(event);
           })
@@ -335,8 +252,8 @@ export class TaskPage extends PageBase {
     const modal = await this.modalController.create({
       component: TaskModalPage,
       componentProps: {
-        task: task,
-        listParent: listParent,
+        item: task,
+        listParent: listParent
       },
       cssClass: 'modal90',
     });

@@ -1,5 +1,5 @@
-<ion-header class="padding-header">
-  <ion-toolbar>
+<ion-header>
+  <ion-toolbar class="no-padding">
     <ion-buttons slot="start" class="ion-hide-sm-down_">
       <ion-button color="dark" class="ion-hide-sm-down"> {{'Task' | translate}} </ion-button>
     </ion-buttons>
@@ -57,15 +57,15 @@
             <app-form-control [field]="{id:'Name', label: 'Name', type : 'text', form : formGroup }" (change)="saveChange()">
               <small label *ngIf="item?.Id">Id: {{item.Id}}</small>
             </app-form-control>
-            <app-form-control [field]="{id:'StartDatePlan', type : 'date', label: 'Start date plan', form : formGroup }" (change)="changeStartDatePlan()">
+            <app-form-control [field]="{id:'StartDatePlan', type : 'datetime-local', label: 'Start date plan', form : formGroup }" (change)="changeStartDatePlan()">
             </app-form-control>
-            <app-form-control [field]="{id:'EndDatePlan', type : 'date', label: 'End date plan', form : formGroup }" (change)="changeEndDatePlan()">
+            <app-form-control [field]="{id:'EndDatePlan', type : 'datetime-local', label: 'End date plan', form : formGroup }" (change)="changeEndDatePlan()">
             </app-form-control>
             <app-form-control [field]="{id:'DurationPlan', type : 'number', label: 'Duration plan', form : formGroup }" (change)="changeDurationPlan()">
             </app-form-control>
-            <app-form-control [field]="{id:'StartDate', type : 'date', label: 'Start date', form : formGroup }" (change)="changeStartDate()">
+            <app-form-control [field]="{id:'StartDate', type : 'datetime-local', label: 'Start date', form : formGroup }" (change)="changeStartDate()">
             </app-form-control>
-            <app-form-control [field]="{id:'EndDate', type : 'date', label: 'End date', form : formGroup }" (change)="changeEndDate()">
+            <app-form-control [field]="{id:'EndDate', type : 'datetime-local', label: 'End date', form : formGroup }" (change)="changeEndDate()">
             </app-form-control>
             <app-form-control [field]="{id:'Duration', type : 'number', label: 'Duration', form : formGroup }" (change)="changeDuration()">
             </app-form-control>
@@ -74,11 +74,11 @@
           <ion-col size="12" size-sm="6" size-xl="4">
             <app-form-control
             [field]="{id:'IDParent', label: 'Parent', type : 'ng-select', dataSource: parentDataSource, clearable: true, bindValue:'Id', bindLabel:'Name', form : formGroup }"
-            (change)="saveChange()">
+            (change)="changeParent()">
             </app-form-control>
             <app-form-control
 									[field]="{id:'Type', label: 'Type', type : 'ng-select', dataSource: typeDataSource, bindValue:'Code', bindLabel:'Name', form : formGroup }"
-									(change)="saveChange()">
+									(change)="changeType()">
 						</app-form-control>
             <app-form-control
               [field]="{id:'Status', label: 'Status', type : 'ng-select', dataSource: statusDataSource, bindValue:'Code', bindLabel:'Name', form : formGroup }"
@@ -90,7 +90,7 @@
               [field]="{id:'Priority', label: 'Priority', type : 'ng-select', dataSource: priorityDataSource, bindValue:'Code', bindLabel:'Name', form : formGroup }"
               (change)="saveChange()">
             </app-form-control>
-            <app-form-control [field]="{id:'Deadline', type : 'date', label: 'Deadline', form : formGroup }" (change)="changeEndDate()">
+            <app-form-control [field]="{id:'Deadline', type : 'datetime-local', label: 'Deadline', form : formGroup }" (change)="changeEndDate()">
             </app-form-control>
           </ion-col>
         </ion-row>
