@@ -1,18 +1,11 @@
-import { Component, ElementRef, ViewChild, ViewEncapsulation } from '@angular/core';
-import { NavController, ModalController, AlertController, LoadingController, PopoverController } from '@ionic/angular';
-import { EnvService } from 'src/app/services/core/env.service';
+import { Component, ViewEncapsulation } from '@angular/core';
+import { AlertController, LoadingController, ModalController, NavController, PopoverController } from '@ionic/angular';
 import { PageBase } from 'src/app/page-base';
+import { EnvService } from 'src/app/services/core/env.service';
 import {
   BRA_BranchProvider,
-  PM_SpaceProvider,
-  PM_TaskLinkProvider,
-  PM_TaskProvider,
+  PM_SpaceProvider
 } from 'src/app/services/static/services.service';
-import { Location } from '@angular/common';
-import { gantt } from 'dhtmlx-gantt';
-import { Link, Task } from '../_models/task';
-import { TaskModalPage } from '../task-modal/task-modal.page';
-import { environment } from 'src/environments/environment';
 
 @Component({
   encapsulation: ViewEncapsulation.None,

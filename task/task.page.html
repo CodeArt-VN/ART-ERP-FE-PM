@@ -1,54 +1,114 @@
 <ion-header>
-  <app-toolbar [page]="this">
-    <ng-select startTitle
+  <app-toolbar [page]="this" [ShowAdd]="space.Id">
+    <ng-select style="min-width: 260px;"
+      startTitle
       class="selected-task"
-      (change)="selectTask($event);"
+      (change)="selectSpaceTask($event);"
       appendTo="#ng-select-holder"
-      [(ngModel)]="selectedTask"
-      labelForId="Id"
-      [items]="taskList"
+      [(ngModel)]="selectedSpaceTask"
+      [items]="spaceTreeList"
       bindLabel="Name"
-      bindValue="Id"
-      placeholder="{{'Select unit' | translate}}"
+      placeholder="{{'Select space...' | translate}}"
       [clearable]="false"
     >
+      <ng-template ng-label-tmp let-i="item">
+        <ion-icon class="min-btn" [color]="i._Type?.Color || ''" [name]="i._Type?.Icon || 'sub'"></ion-icon
+        ><span>&nbsp;{{i.Name}}</span>
+      </ng-template>
       <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
-        <div *ngIf="i">
-          <div>
-            <span *ngFor="let l of i.levels">&nbsp;&nbsp;&nbsp;</span>
-            <span [ngOptionHighlight]="search">{{i.Name}}</span>
-          </div>
-        </div>
+        <ng-container *ngFor="let w of i?.levels; let k = index;"
+          ><span class="spacing" *ngIf="k>0"></span
+        ></ng-container>
+        <ion-icon class="min-btn" [color]="i._Type?.Color || ''" [name]="i._Type?.Icon || 'sub'"></ion-icon
+        ><span [ngOptionHighlight]="search">&nbsp;{{i.Name}}</span>
       </ng-template>
     </ng-select>
-    <ion-button (click)="autoCalculateLink()"  title="{{ 'Auto Calculate Link' | translate }}" class="ion-hide-sm-down" *ngIf="segmentView == 'gantt'">
-      <ion-icon
-        slot="icon-only"
-        name="aperture-outline"
-      ></ion-icon>
+
+    <ion-button
+      (click)="autoCalculateLink()"
+      title="{{ 'Auto calculate link' | translate }}"
+      class="ion-hide-sm-down"
+      *ngIf="view.activeView == 'Gantt'"
+    >
+      <ion-icon slot="icon-only" name="aperture-outline"></ion-icon>
     </ion-button>
   </app-toolbar>
-  <ion-toolbar>
-    <ion-segment scrollable="true" (ionChange)="segmentChanged($event)" [value]="segmentView">
-      <ng-container *ngFor="let v of listSegmentView">
+  <ion-toolbar *ngIf="view.viewList.length">
+    <ion-segment scrollable="true" (ionChange)="segmentChanged($event)" [value]="view.activeView">
+      <ng-container *ngFor="let v of view.viewList">
         <ion-segment-button [value]="v.Code">
           <ion-label>{{ v.Name | translate }}</ion-label>
         </ion-segment-button>
       </ng-container>
+      <ion-segment-button value="addView" layout="icon-start">
+        <ion-label>{{'View' | translate}}</ion-label>
+        <ion-icon name="add"></ion-icon>
+      </ion-segment-button>
     </ion-segment>
-  </ion-toolbar>
 
+    <ion-buttons slot="end">
+      <ion-button fill="outline" size="small" class="small-btn" (click)="toggleFeature()">
+        <ion-icon slot="start" name="cog-outline"></ion-icon>
+        {{'Customize' | translate}}
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
 </ion-header>
 
-
-<ion-content appScrollbarTheme class="scrollx">
-  <div class="row-full shadow full-screen">
-    
-    <div *ngIf="segmentView == 'board'">
+<ion-content appScrollbarTheme>
+  {{view.activeView}}
+  <app-page-message
+    message="{{'No data to show...' | translate}}"
+    subMessage="{{'Please select space to begin' | translate}}"
+    [itemsLength]="items.length"
+    [showSpinner]="pageConfig.showSpinner"
+  >
+    <hr />
+    <div class="c-control" style="min-width: 260px;">
+      <ng-select
+        class="c-input no-check-dirty"
+        (change)="selectSpaceTask($event);"
+        appendTo="#ng-select-holder"
+        [(ngModel)]="selectedSpaceTask"
+        [items]="spaceTreeList"
+        bindLabel="Name"
+        placeholder="{{'Select space...' | translate}}"
+        [clearable]="false"
+      >
+        <ng-template ng-label-tmp let-i="item">
+          <ion-icon class="min-btn" [color]="i._Type?.Color || ''" [name]="i._Type?.Icon || 'sub'"></ion-icon
+          ><span>&nbsp;{{i.Name}}</span>
+        </ng-template>
+        <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
+          <ng-container *ngFor="let w of i?.levels; let k = index;"
+            ><span class="spacing" *ngIf="k>0"></span
+          ></ng-container>
+          <ion-icon class="min-btn" [color]="i._Type?.Color || ''" [name]="i._Type?.Icon || 'sub'"></ion-icon
+          ><span [ngOptionHighlight]="search">&nbsp;{{i.Name}}</span>
+        </ng-template>
+      </ng-select>
+    </div>
+  </app-page-message>
+  <ion-fab
+    *ngIf="pageConfig.isShowFeature && view.activeView"
+    class="feature"
+    vertical="top"
+    [ngClass]="{'ion-hide-md-down': !pageConfig.isSubActive}"
+    horizontal="end"
+    slot="fixed"
+  >
+  ss
+</ion-fab>
+  <div class="row-full shadow full-screen" *ngIf="items.length && pageConfig.showSpinner==false">
+    <div *ngIf="view.activeView == 'Board'">
       <app-board></app-board>
     </div>
-    <div style="height: 100%" *ngIf="segmentView == 'gantt'">
-      <app-gantt [items]="this.items" [linksData]="this.linksData" [listParent]="this.listParent" (loadDataGantt)="selectTask()"></app-gantt>
-    </div>
+
+    <app-gantt
+      *ngIf="view.activeView == 'Gantt'"
+      [items]="items"
+      [linksData]="linksData"
+      (openTask)="onGanttOpenTask($event)"
+    ></app-gantt>
   </div>
 </ion-content>

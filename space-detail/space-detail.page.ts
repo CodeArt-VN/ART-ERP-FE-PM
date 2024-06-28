@@ -49,8 +49,8 @@ export class SpaceDetailPage extends PageBase {
       Enable: false,
     },
     {
-      Code: 'Gannt',
-      Name: 'Gannt',
+      Code: 'Gantt',
+      Name: 'Gantt',
       Icon: 'filter-outline',
       Enable: false,
     },

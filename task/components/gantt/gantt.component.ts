@@ -1,3 +1,4 @@
+import { Location } from '@angular/common';
 import {
   Component,
   ElementRef,
@@ -8,16 +9,14 @@ import {
   ViewChild,
   ViewEncapsulation,
 } from '@angular/core';
-import { NavController, ModalController, AlertController, LoadingController, PopoverController } from '@ionic/angular';
-import { EnvService } from 'src/app/services/core/env.service';
-import { PageBase } from 'src/app/page-base';
-import { BRA_BranchProvider, PM_TaskLinkProvider, PM_TaskProvider } from 'src/app/services/static/services.service';
-import { Location } from '@angular/common';
-import { gantt } from 'dhtmlx-gantt';
+import { AlertController, LoadingController, ModalController, NavController, PopoverController } from '@ionic/angular';
 
-import { environment } from 'src/environments/environment';
+import { EnvService } from 'src/app/services/core/env.service';
+import { BRA_BranchProvider, PM_TaskLinkProvider, PM_TaskProvider } from 'src/app/services/static/services.service';
 import { Link, Task } from '../../../_models/task';
-import { TaskModalPage } from '../../../task-modal/task-modal.page';
+import { DynamicScriptLoaderService } from 'src/app/services/custom.service';
+
+declare var gantt: any;
 
 @Component({
   encapsulation: ViewEncapsulation.None,
@@ -27,6 +26,10 @@ import { TaskModalPage } from '../../../task-modal/task-modal.page';
 })
 export class GanttComponent implements OnInit {
   @ViewChild('gantt_here', { static: true }) ganttContainer!: ElementRef;
+  ganttEvents = [];
+
+  isGanttLoaded = false;
+
   @Input() items: any;
   @Input() linksData: Link[] = [];
   @Input() listParent: any[] = [];
@@ -43,6 +46,7 @@ export class GanttComponent implements OnInit {
     public env: EnvService,
     public navCtrl: NavController,
     public location: Location,
+    public dynamicScriptLoaderService: DynamicScriptLoaderService,
   ) {
     this.env.getEvents().subscribe((data) => {
       if (data.Code == 'app:autoCalculateLink') {
@@ -54,82 +58,162 @@ export class GanttComponent implements OnInit {
 
   ngOnInit(): void {}
 
-  ngOnChanges() {
-    this.initGantt();
+  ngOnDestroy() {
+    this.clearGanttEvents();
   }
+
+  ngAfterViewInit() {
+    this.loadGanttLibrary();
+  }
+
+  ngOnChanges() {
+    if (this.isGanttLoaded) this.loadGantt();
+  }
+
   ionViewDidEnter() {
     //Resize grid when parent dom resize
     var gantt_here = document.getElementById('gantt_here');
     new ResizeObserver(() => gantt.setSizes()).observe(gantt_here);
   }
 
+  todayMarker = null;
+
+  loadGanttLibrary() {
+    //https://demo.inholdings.vn/lib/dhtmlxgantt-v8.0.9p.js
+    //https://demo.inholdings.vn/lib/dhtmlxgantt-v8.0.9p.css
+
+    if (typeof gantt !== 'undefined') this.initGantt();
+    else
+      this.dynamicScriptLoaderService
+        .loadResources([
+          { url: 'https://demo.inholdings.vn/lib/dhtmlxgantt-v8.0.9p.css', type: 'css' },
+          { url: 'https://demo.inholdings.vn/lib/dhtmlxgantt-v8.0.9p.js', type: 'js' },
+        ])
+        .then(() => this.initGantt())
+        .catch((error) => console.error('Error loading gantt script', error));
+  }
+
   initGantt() {
+    var zoomConfig = {
+      levels: [
+        {
+          name: 'hour',
+          scale_height: 50,
+          min_column_width: 25,
+          scales: [
+            { unit: 'day', format: '%d' },
+            { unit: 'hour', format: '%H' },
+          ],
+        },
+        {
+          name: 'day',
+          scale_height: 27,
+          min_column_width: 25,
+          scales: [{ unit: 'day', step: 1, format: '%d %M' }],
+        },
+        {
+          name: 'week',
+          scale_height: 50,
+          min_column_width: 50,
+          scales: [
+            {
+              unit: 'week',
+              step: 1,
+              format: function (date) {
+                var dateToStr = gantt.date.date_to_str('%d %M');
+                var endDate = gantt.date.add(date, -6, 'day');
+                var weekNum = gantt.date.date_to_str('%W')(date);
+                return '#' + weekNum + ', ' + dateToStr(date) + ' - ' + dateToStr(endDate);
+              },
+            },
+            { unit: 'day', step: 1, format: '%j %D' },
+          ],
+        },
+        {
+          name: 'month',
+          scale_height: 50,
+          min_column_width: 120,
+          scales: [
+            { unit: 'month', format: '%F, %Y' },
+            { unit: 'week', format: 'Week #%W' },
+          ],
+        },
+        {
+          name: 'quarter',
+          height: 50,
+          min_column_width: 90,
+          scales: [
+            {
+              unit: 'quarter',
+              step: 1,
+              format: function (date) {
+                var dateToStr = gantt.date.date_to_str('%M');
+                var endDate = gantt.date.add(gantt.date.add(date, 3, 'month'), -1, 'day');
+                return dateToStr(date) + ' - ' + dateToStr(endDate);
+              },
+            },
+            { unit: 'month', step: 1, format: '%M' },
+          ],
+        },
+        {
+          name: 'year',
+          scale_height: 27,
+          min_column_width: 30,
+          scales: [{ unit: 'year', step: 1, format: '%Y' }],
+        },
+      ],
+      useKey: 'ctrlKey',
+      trigger: 'wheel',
+      element: function () {
+        return gantt.$root.querySelector('.gantt_task');
+      },
+    };
+
+    gantt.ext.zoom.init(zoomConfig);
+    gantt.ext.zoom.setLevel('week');
+
     gantt.plugins({
+      marker: true,
       drag_timeline: true,
+      auto_scheduling: true,
+      grouping: true,
     });
-    gantt.config.drag_timeline = {
-      ignore: '.gantt_task_line, .gantt_task_link',
-      useKey: false,
-    };
-    gantt.config.resize_rows = true;
-    gantt.config.min_task_grid_row_height = 45;
-    gantt.config.scales = [
-      { unit: 'month', step: 1, format: '%F, %Y' },
-      { unit: 'day', step: 1, format: '%D %j/%n' }, //https://docs.dhtmlx.com/gantt/desktop__date_format.html
-    ];
 
-    gantt.config.drag_timeline = {
-      ignore: '.gantt_task_line, .gantt_task_link',
-      useKey: false,
-    };
-    gantt.templates.task_class = function (start, end, task) {
-      return task._task?.Type + ' ' + (end < new Date() ? 'overdue' : '');
-    };
-
-    gantt.config.date_format = '%Y-%m-%d %H:%i';
-    gantt.config.work_time = true;
-    gantt.templates.timeline_cell_class = function (task, date) {
-      if (!gantt.isWorkTime(date)) return 'week_end';
-      return '';
-    };
-
-    let firstGridColumns = {
+    let gridConfig = {
       columns: [
-        { name: 'text', label: 'Name', tree: true, width: '*', min_width: 150, resize: true },
+        { name: 'text', label: 'Name', tree: true, width: '*', resize: true },
+
+        {
+          name: "buttons",
+          align: 'center',
+          label: '<div class="gantt_grid_head_cell gantt_grid_head_add" onclick="gantt.createTask()"></div>',
+          width: 40,
+          template: (task)=> {
+            let projectTypes = ['Project', 'Folder', 'List', 'Backlog'];
+            if (projectTypes.includes(task._task?.Type)) return '<div role="button" aria-label="New task" class="gantt_add"></div>';
+            return `<ion-icon class="clickable" name="play-circle-outline" onclick="gantt.callEvent('onTaskDblClick', [${task.id},0])"></ion-icon>`
+          }
+        },
+
         // { name: 'start_date', label: 'Start Time', align: 'center', resize: true },
         // { name: 'duration', label: 'Duration', align: 'center', width: 70, resize: true },
-        {
-          name: 'owner',
-          label: 'Owner',
-          width: 50,
-          resize: true,
-          align: 'center',
-          template: (task) => {
-            if (task.avatar_owner) {
-              return `<div class="avatar-container">
-                      <div class="avatar" style="">
-                          <img src="${task.avatar_owner}"  onError="this.src='../../assets/avartar-empty.jpg'" title="${task.full_name_owner}" >
-                      </div>
-                      </div>`;
-            }
-          },
-        },
-        { name: 'add', label: '', align: 'center', width: 40 },
       ],
     };
+
     let secondGridColumns = {
       columns: [
         {
-          name: 'status',
-          label: 'Status',
-          width: 60,
+          label: 'Members',
+          width: 120,
           resize: true,
-          align: 'center',
           template: (task) => {
-            var progress = task.progress || 0;
-            var status = progress === 1 ? 'Done' : 'Processing';
-            var color = progress === 1 ? 'green' : 'orange';
-            return "<div style='color: " + color + "'>" + status + '</div>';
+            let avatars = '';
+            for (let i = 0; i < task._task._members?.length; i++) {
+              const member = task._task._members[i];
+              avatars += `<div class="avatar ${task._task._members?.length > 1 && member._mainOwner ? 'main' : ''}"><img src="${member._avatar}" onError="this.src='../../assets/avartar-empty.jpg'" title="${member.FullName}"></div>`;
+            }
+            let avatarHtml = `<div class="avatar-container">${avatars}</div>`;
+            return avatars ? avatarHtml : '';
           },
         },
       ],
@@ -140,87 +224,71 @@ export class GanttComponent implements OnInit {
       rows: [
         {
           cols: [
-            { view: 'grid', width: 320, scrollY: 'scrollVer', config: firstGridColumns },
+            { view: 'grid', id: 'grid', scrollX: 'scrollHor', scrollY: 'scrollVer', config: gridConfig },
             { resizer: true, width: 1 },
-            { view: 'timeline', scrollX: 'scrollHor', scrollY: 'scrollVer' },
+            { view: 'timeline', id: 'timeline', scrollX: 'scrollHor', scrollY: 'scrollVer' },
             { resizer: true, width: 1 },
-            //{ view: 'grid', width: 120, scrollY: 'scrollVer', config: secondGridColumns },
-            { view: 'scrollbar', id: 'scrollVer' },
+            { view: 'grid', width: 120, bind: 'task', scrollY: 'scrollVer', config: secondGridColumns },
+            { view: 'scrollbar', scroll: 'y', id: 'scrollVer' },
           ],
         },
-        { view: 'scrollbar', id: 'scrollHor', height: 20 },
+        { view: 'scrollbar', scroll: 'x', id: 'scrollHor', height: 20 },
       ],
     };
+    gantt.config.date_format = '%Y-%m-%d %H:%i';
+    gantt.config.work_time = true;
+    gantt.config.auto_scheduling = true;
+    gantt.config.auto_scheduling_use_progress = true; //When the config is enabled, completed tasks will be excluded from the critical path and auto scheduling
 
-    gantt.config.show_errors = false;
-    //gantt.config.row_height = 0;
-    //gantt.config.scale_height = 50;
-    gantt.config.open_tree_initially = true;
+    gantt.config.drag_timeline = {
+      ignore: '.gantt_task_line, .gantt_task_link',
+      useKey: false,
+    };
 
-    gantt.templates.rightside_text = function (start, end, task) {
-      if (task.type == gantt.config.types.milestone) {
-        return task.text;
+    gantt.templates.timeline_cell_class = function (task, date) {
+      if (!gantt.isWorkTime(date)) return 'week_end';
+      return '';
+    };
+    gantt.templates.grid_row_class = function (start, end, task) {
+      if (task.$level > 1) {
+        return 'lll';
       }
       return '';
     };
+    gantt.templates.task_class = function (start, end, task) {
+      return task._task?.Type + ' ' + (end < new Date() ? 'overdue' : '');
+    };
 
-    gantt.config.lightbox.sections = [
-      { name: 'description', height: 70, map_to: 'text', type: 'textarea', focus: true },
-      { name: 'type', type: 'typeselect', map_to: 'type' },
-      { name: 'time', type: 'duration', map_to: 'auto' },
-    ];
+    gantt.templates.grid_file = gantt.templates.grid_folder = function (item) {
+      //let openClass = item.$open ? 'gantt_line_open' : 'gantt_line_closed';
+      let color = item._task._Type?.Color || 'dark';
+      let icon = item._task._Type?.Icon || 'sub';
+      return `<div class="gantt_tree_icon flex-center"><ion-icon class="min-btn" color="${color}" name="${icon}"></ion-icon></div>`;
+    };
 
-    gantt.config.grid_resize = true;
+    gantt.templates.task_text = (start: Date, end: Date, task: any): string => {
+      let projectTypes = ['Project', 'Folder', 'List', 'Backlog'];
+      if (projectTypes.includes(task._task?.Type)) return '';
+
+      let avatars = '';
+      for (let i = 0; i < task._task._members?.length; i++) {
+        const member = task._task._members[i];
+        avatars += `<div class="avatar ${task._task._members?.length > 1 && member._mainOwner ? 'main' : ''}"><img src="${member._avatar}" onError="this.src='../../assets/avartar-empty.jpg'" title="${member.FullName}${member._mainOwner ? ' - main owner' : ''}"></div>`;
+      }
+      let avatarHtml = `<div class="avatar-container">${avatars} </div>`;
+      const textHtml = `<div class="text">${task.text}</div>`;
+      return (avatars ? avatarHtml : '') + textHtml;
+    };
+
+    gantt.templates.rightside_text = function (start, end, task) {
+      if (task.type == gantt.config.types.milestone) return task.text;
+      return '';
+    };
+
     gantt.init(this.ganttContainer.nativeElement);
 
-    gantt.detachAllEvents();
-
-    //create task
-    gantt.attachEvent('onTaskCreated', (task: any) => {
-      task.id = 0;
-      task.durationPlan = 1;
-      const startDate = new Date();
-      const utcStartDate = new Date(startDate.getTime() - startDate.getTimezoneOffset() * 60000);
-      task.start_date = utcStartDate.toISOString().slice(0, 19);
-      task.start_date_plan = task.start_date;
-
-      const endDate = new Date(utcStartDate.getTime() + 24 * 60 * 60 * 1000);
-      task.end_date = endDate.toISOString().slice(0, 19);
-      task.end_date_plan = task.end_date;
-
-      this.openModalForNewTask(this.formatTask(task), this.listParent);
-    });
-
-    //update task
-    gantt.attachEvent('onTaskDblClick', (id, e) => {
-      let task = this.items.find((d) => d.Id == id);
-      this.openModalForNewTask(task, this.listParent);
-    });
-
-    //delete link
-    gantt.attachEvent('onLinkDblClick', (id, e) => {
-      const link = gantt.getLink(id);
-      const src = gantt.getTask(link.source);
-      const trg = gantt.getTask(link.target);
-      if (this.submitAttempt == false) {
-        this.submitAttempt = true;
-        this.env
-          .showPrompt(
-            'Bạn có chắc muốn xóa liên kết ' + '<b>' + src.text + '-' + trg.text + '</b>' + ' không?',
-            null,
-            '',
-          )
-          .then((_) => {
-            this.submitAttempt = false;
-            const deleteLink = dp._router.link.delete;
-            deleteLink.call(dp._router.link, Number(id));
-          })
-          .catch((er) => {
-            this.submitAttempt = false;
-          });
-      }
-    });
-
+    //Gantt events
+    this.clearGanttEvents();
     const dp = gantt.createDataProcessor({
       task: {
         update: (data: Task) => this.updateTask(data),
@@ -231,22 +299,75 @@ export class GanttComponent implements OnInit {
         delete: (id: any) => this.deleteLink(id),
       },
     });
+
+    //create task
+    this.ganttEvents.push(
+      gantt.attachEvent('onTaskCreated', (e: any) => {
+        this.onOpenTask({ Id: 0, IDParent: parseInt(e?.parent) });
+      }),
+    );
+
+    //update task
+    this.ganttEvents.push(
+      gantt.attachEvent('onTaskDblClick', (id, e) => {
+        let task = this.items.find((d) => d.Id == id);
+        this.onOpenTask({ Id: task.Id, IDParent: task.IDParent });
+      }),
+    );
+    this.ganttEvents.push(
+      gantt.attachEvent('onTaskDblClick1', (id, e) => {
+        let task = this.items.find((d) => d.Id == id);
+        this.onOpenTask({ Id: task.Id, IDParent: task.IDParent });
+      }),
+    );
+
+    //delete link
+    this.ganttEvents.push(
+      gantt.attachEvent('onLinkDblClick', (id, e) => {
+        const link = gantt.getLink(id);
+        const src = gantt.getTask(link.source);
+        const trg = gantt.getTask(link.target);
+        if (this.submitAttempt == false) {
+          this.submitAttempt = true;
+          this.env
+            .showPrompt(
+              'Bạn có chắc muốn xóa liên kết ' + '<b>' + src.text + '-' + trg.text + '</b>' + ' không?',
+              null,
+              '',
+            )
+            .then((_) => {
+              this.submitAttempt = false;
+              const deleteLink = dp._router.link.delete;
+              deleteLink.call(dp._router.link, Number(id));
+            })
+            .catch((er) => {
+              this.submitAttempt = false;
+            });
+        }
+      }),
+    );
+
     this.loadGantt();
+    this.isGanttLoaded = true;
   }
 
-  async openModalForNewTask(task, listParent) {
-    const modal = await this.modalController.create({
-      component: TaskModalPage,
-      componentProps: {
-        task: task,
-        listParent: listParent,
-      },
-      cssClass: 'modal90',
-    });
+  clearGanttEvents() {
+    while (this.ganttEvents.length) gantt.detachEvent(this.ganttEvents.pop());
+  }
 
-    await modal.present();
-    const {} = await modal.onWillDismiss();
-    this.loadDataGantt.emit();
+  showGroups(listname) {
+    //view-source:https://docs.dhtmlx.com/gantt/samples/02_extensions/08_tasks_grouping.html
+    if (listname) {
+      gantt.groupBy({
+        groups: gantt.serverList(listname),
+        relation_property: listname,
+        group_id: 'key',
+        group_text: 'label',
+      });
+      gantt.sort('start_date');
+    } else {
+      gantt.groupBy(false);
+    }
   }
 
   loadGantt() {
@@ -264,7 +385,7 @@ export class GanttComponent implements OnInit {
               : gantt.config.types.project,
         duration: task.Duration,
         progress: task.Progress,
-        parent: task.IDParent,
+        parent: task._isRoot ? null : task.IDParent,
         open: task.IsOpen,
         avatar_owner: task.AvatarOwner,
         full_name_owner: task._Staff?.FullName ?? '',
@@ -280,34 +401,32 @@ export class GanttComponent implements OnInit {
         type: link.Type,
       };
     });
-    gantt.clearAll();
+
     if (data.length === 0) {
       return;
     }
-    gantt.parse({ data, links });
-    gantt.templates.task_text = (start: Date, end: Date, task: any): string => {
-      let owner = [task.full_name_owner];
-      let avatarHtml = '<div class="avatar-container">';
-      for (let i = 0; i < owner.length; i++) {
-        avatarHtml += `
-            <div class="avatar">
-                <img src="${task.avatar_owner}" onError="this.src='../../assets/avartar-empty.jpg'" title="${task.full_name_owner}" alt="Avatar">
-            </div>
-          `;
-      }
-      avatarHtml += '</div>';
-      const textHtml = `
-        <div class="text">
-            ${task.text}
-        </div>`;
 
-      return avatarHtml + textHtml;
-    };
+    gantt.clearAll();
+    this.todayMarker = gantt.addMarker({
+      start_date: new Date(),
+      css: 'today',
+      text: 'Today',
+    });
+
+    gantt.parse({ data, links });
 
     gantt.eachTask((task) => {
       task.$open = true;
     });
-    gantt.render();
+
+    gantt.refreshData();
+
+    //gantt.render();
+  }
+
+  @Output() openTask = new EventEmitter();
+  onOpenTask(task) {
+    this.openTask.emit(task);
   }
 
   autoCalculateLink() {
@@ -496,48 +615,6 @@ export class GanttComponent implements OnInit {
           });
       }
     });
-  }
-
-  formatTask(e) {
-    const task = {
-      IDBranch: this.env.selectedBranch,
-      IDOpportunity: null,
-      IDLead: null,
-      IDProject: null,
-      IDOwner: null,
-      Code: '',
-      Type: e?.type,
-      Status: '',
-      Remark: '',
-      Sort: null,
-      EndDate: e.end_date ?? null,
-      PredictedClosingDate: null,
-      ExpectedRevenue: 0,
-      BudgetedCost: 0,
-      ActualCost: 0,
-      ActualRevenue: 0,
-      StartDatePlan: e.start_date_plan ?? null,
-      EndDatePlan: e.end_date_plan ?? null,
-      DurationPlan: e.durationPlan ?? null,
-      Deadline: null,
-      Priority: null,
-      IsUnscheduled: null,
-      IsSplited: null,
-      IsDisabled: null,
-      IsDeleted: null,
-      CreatedBy: '',
-      ModifiedBy: '',
-      CreatedDate: '',
-      ModifiedDate: '',
-      Id: e.id,
-      Name: e.text,
-      StartDate: e.start_date,
-      Duration: e.duration,
-      Progress: e.progress ?? null,
-      IDParent: parseInt(e?.parent),
-      IsOpen: e.open ? (e.open !== '' ? e.open : null) : null,
-    };
-    return task;
   }
 
   formatLink(e) {

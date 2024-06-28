@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef } from '@angular/core';
+import { Component, ChangeDetectorRef, Type } from '@angular/core';
 import { NavController, ModalController, NavParams, LoadingController, AlertController } from '@ionic/angular';
 import { PageBase } from 'src/app/page-base';
 import { ActivatedRoute } from '@angular/router';
@@ -8,6 +8,7 @@ import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { HRM_StaffProvider, PM_TaskLinkProvider, PM_TaskProvider } from 'src/app/services/static/services.service';
 import { Subject, concat, of, distinctUntilChanged, tap, switchMap, catchError, filter } from 'rxjs';
 import { lib } from 'src/app/services/static/global-functions';
+import { PM_Space, PM_Task } from 'src/app/models/model-list-interface';
 
 @Component({
   selector: 'app-task-modal',
@@ -15,10 +16,18 @@ import { lib } from 'src/app/services/static/global-functions';
   styleUrls: ['./task-modal.page.scss'],
 })
 export class TaskModalPage extends PageBase {
-  parentType: string;
-  task: any;
-  listParent: any;
-  parentDataSource: any[];
+  parentTask = null;
+  space = null;
+  typeList = [];
+
+  formDataSources: any = {
+    Type: null,
+    Status: null,
+    IDParent: null,
+    Priority: null,
+    IDSpace: null,
+  };
+
   constructor(
     public pageProvider: PM_TaskProvider,
     public taskLinkService: PM_TaskLinkProvider,
@@ -34,17 +43,18 @@ export class TaskModalPage extends PageBase {
     public loadingController: LoadingController,
   ) {
     super();
-    this.pageConfig.isDetailPage = false;
+    this.pageConfig.isDetailPage = true;
     this.formGroup = formBuilder.group({
       IDBranch: [this.env.selectedBranch],
       IDOpportunity: [''],
       IDLead: [''],
       IDProject: [''],
-      IDOwner: [''],
+      IDSpace: [''],
+      IDOwner: [null],
       IDParent: [''],
       Id: new FormControl({ value: '', disabled: true }),
       Code: [''],
-      Name: [''],
+      Name: ['', Validators.required],
       Type: ['', Validators.required],
       Status: ['', Validators.required],
       Remark: [''],
@@ -57,7 +67,7 @@ export class TaskModalPage extends PageBase {
       BudgetedCost: [''],
       ActualCost: [''],
       ActualRevenue: [''],
-      StartDatePlan: ['', Validators.required],
+      StartDatePlan: [''],
       EndDatePlan: [''],
       DurationPlan: [''],
       Deadline: [''],
@@ -75,234 +85,134 @@ export class TaskModalPage extends PageBase {
     });
   }
 
-  priorityDataSource: any;
-  typeDataSource: any;
-  statusDataSource: any;
-
   preLoadData(event) {
-    this.item = this.task;
-    this.items = this.listParent;
-    let taskPriority = this.env.getType('TaskPriority');
-    let taskType = this.env.getType('TaskType');
-    let taskStatus = this.env.getStatus('TaskStatus');
-    Promise.all([taskPriority, taskType, taskStatus]).then((values: any) => {
-      let taskPriorityData = values[0];
-      this.priorityDataSource = taskPriorityData.map((item) => {
-        item.Code = parseInt(item.Code);
-        return item;
-      });
-      this.getTypeByParentTaskType(this.item?.Type, values[1], this.items, this.item?.Id, false);
+    Promise.all([this.env.getType('TaskPriority'), this.env.getType('TaskType')]).then((values: any) => {
+      this.formDataSources.Priority = values[0];
+      this.typeList = values[1];
+      this.formDataSources.Status = this.space.statusList;
 
-      //this.statusDataSource = values[2];
-      this.statusDataSource = [
-        {
-          Code: 'InProgress',
-          Name: 'InProgress',
-        },
-        {
-          Code: 'Done',
-          Name: 'Done',
-        },
-        {
-          Code: 'Testing',
-          Name: 'Testing',
-        },
-      ];
+      this.formDataSources.Priority.forEach((i) => {
+        i.Code = parseInt(i.Code);
+      });
+      this.getTypeDataSourceByParentTaskType();
+
       this.loadedData(event);
     });
-  }
-  _contactDataSource = {
-    searchProvider: this.staffProvider,
-    loading: false,
-    input$: new Subject<string>(),
-    selected: [],
-    items$: null,
-    id: this.id,
-    initSearch() {
-      this.loading = false;
-      this.items$ = concat(
-        of(this.selected),
-        this.input$.pipe(
-          distinctUntilChanged(),
-          tap(() => (this.loading = true)),
-          switchMap((term) =>
-            this.searchProvider
-              .search({
-                SkipMCP: term ? false : true,
-                SortBy: ['Id_desc'],
-                Take: 20,
-                Skip: 0,
-                Term: term ? term : 'BP:' + this.item?.IDOwner,
-              })
-              .pipe(
-                catchError(() => of([])), // empty list on error
-                tap(() => (this.loading = false)),
-              ),
-          ),
-        ),
-      );
-    },
-  };
-  loadedData(event) {
-    if (this.item?.Id) {
-      this.addField(this.item);
-    } else {
-      this.addField(this.item, true);
-    }
-    if (this.item?.IDOwner) {
-      this.staffProvider.getAnItem(this.item.IDOwner).then((data: any) => {
-        if (data != null) {
-          this._contactDataSource.selected.push(data);
-        }
+
+    this.formDataSources.IDSpace = [this.space];
+
+    this.formDataSources.IDOwner = this.buildSelectDataSource((term) => {
+      return this.staffProvider.search({ Take: 20, Skip: 0, Term: term });
+    });
+
+    this.formDataSources.IDParent = this.buildSelectDataSource((term) => {
+      return this.pageProvider.search({
+        Take: 20,
+        Skip: 0,
+        Keyword: term,
+        IDSpace: this.space?.Id,
+        Type_in: JSON.stringify(this.getParentTaskTypeByTaskType(this.item?.Type)),
+        AllParent: true,
       });
-    }
-    this._contactDataSource.initSearch();
+    }, true);
+
+    this.formDataSources.IDOwner.initSearch();
+    this.formDataSources.IDParent.initSearch();
+
+    if (this.parentTask) this.formDataSources.IDParent.selected.push(this.parentTask);
+    if (this.item._Staff) this.formDataSources.IDOwner.selected.push(this.item._Staff);
   }
 
-  addField(item: any, markAsDirty = false) {
-    this.formGroup?.patchValue(item);
-    if (markAsDirty) {
+  loadedData(event) {
+    super.loadedData(event);
+    if (!this.item.Id) {
       this.formGroup.controls.IDBranch.markAsDirty();
-      this.formGroup.controls.IDParent.markAsDirty();
+
+      this.formGroup.controls.Type.setValue(this.formDataSources.Type[1].Code);
       this.formGroup.controls.Type.markAsDirty();
-      this.formGroup.controls.StartDatePlan.markAsDirty();
-      this.formGroup.controls.EndDatePlan.markAsDirty();
+
+      this.formGroup.controls.StartDate.setValue(
+        lib.dateFormat(new Date(), 'yyyy-mm-ddThh:MM:ss').slice(0, 19).slice(0, 13) + ':00:00',
+      );
       this.formGroup.controls.StartDate.markAsDirty();
-      this.formGroup.controls.EndDate.markAsDirty();
-      this.formGroup.controls.Name.markAsDirty();
-      this.formGroup.controls.Duration.markAsDirty();
-      this.formGroup.controls.DurationPlan.markAsDirty();
+
+      if (this.parentTask) {
+        this.formGroup.controls.IDParent.setValue(this.parentTask.Id);
+        this.formGroup.controls.IDParent.markAsDirty();
+      }
+
+      this.formGroup.controls.StartDatePlan.setValue(
+        lib.dateFormat(new Date(), 'yyyy-mm-ddThh:MM:ss').slice(0, 19).slice(0, 13) + ':00:00',
+      );
+      this.formGroup.controls.StartDatePlan.markAsDirty();
+
+      this.formGroup.controls.IDSpace.setValue(this.space.Id);
+      this.formGroup.controls.IDParent.markAsDirty();
     }
   }
 
-  getTypeByParentTaskType(type, valuesType, listParent, id, filterType = false) {
-    let queryParentArray = [];
-    let queryNotInTypeArray = [];
-    let queryTypeArray = [];
-    if (type) queryParentArray = [type];
+  getTypeDataSourceByParentTaskType() {
+    let parentType = this.parentTask?.Type;
+    let notAllowTypes = [];
 
-    let typeArray = valuesType;
-    let parentArray = listParent;
-
-    let idParent = listParent.find((d) => d.Id == id)?.IDParent;
-    let parentType = listParent.find((d) => d.Id == idParent)?.Type;
-    if (parentType) {
-      queryTypeArray = [parentType, type];
-    } else {
-      typeArray = valuesType;
-    }
-    switch (type) {
+    //Set not allow types for 'Project', 'Folder', 'List', 'Backlog', 'Task', 'Todo', 'Milestone' parent types
+    switch (parentType) {
       case 'List':
-        queryParentArray.push('Folder');
-        queryNotInTypeArray.push('Folder');
+        notAllowTypes = ['Folder'];
         break;
-
       case 'Backlog':
-        queryParentArray.push('Folder', 'List');
-        queryNotInTypeArray.push('Folder', 'List');
-        if (parentType == 'Folder') {
-          queryTypeArray.push('List');
-        }
+        notAllowTypes = ['Folder', 'List'];
         break;
-
-      case 'Project':
-        queryParentArray.push('Folder', 'List', 'Backlog');
-        queryNotInTypeArray.push('Folder', 'List', 'Backlog');
-        switch (parentType) {
-          case 'List':
-            queryTypeArray.push('Backlog');
-            break;
-          case 'Folder':
-            queryTypeArray.push('List', 'Backlog');
-            break;
-        }
-
       case 'Task':
-        queryParentArray.push('Folder', 'List', 'Backlog', 'Project');
-        queryNotInTypeArray.push('Folder', 'List', 'Backlog', 'Project');
-        switch (parentType) {
-          case 'Backlog':
-            queryTypeArray.push('Project');
-            break;
-          case 'List':
-            queryTypeArray.push('Backlog', 'Project');
-            break;
-          case 'Folder':
-            queryTypeArray.push('List', 'Backlog', 'Project');
-            break;
-        }
+        notAllowTypes = ['Folder', 'List', 'Backlog', 'Project'];
         break;
-
       case 'Todo':
-        queryParentArray.push('Folder', 'List', 'Backlog', 'Project', 'Task');
-        queryNotInTypeArray.push('Folder', 'List', 'Backlog', 'Project', 'Task', 'Milestone');
-        switch (parentType) {
-          case 'Project':
-            queryTypeArray.push('Task');
-            break;
-          case 'Backlog':
-            queryTypeArray.push('Project', 'Task');
-            break;
-          case 'List':
-            queryTypeArray.push('Backlog', 'Project', 'Task');
-            break;
-          case 'Folder':
-            queryTypeArray.push('List', 'Backlog', 'Project', 'Task');
-            break;
-        }
+        notAllowTypes = ['Folder', 'List', 'Backlog', 'Project', 'Task', 'Todo', 'Milestone'];
         break;
-
       case 'Milestone':
-        queryParentArray.push('Folder', 'List', 'Backlog', 'Project', 'Task');
-        queryNotInTypeArray.push('Folder', 'List', 'Backlog', 'Project', 'Task', 'Todo');
-        switch (parentType) {
-          case 'Project':
-            queryTypeArray.push('Task');
-            break;
-          case 'Backlog':
-            queryTypeArray.push('Project', 'Task');
-            break;
-          case 'List':
-            queryTypeArray.push('Backlog', 'Project', 'Task');
-            break;
-          case 'Folder':
-            queryTypeArray.push('List', 'Backlog', 'Project', 'Task');
-            break;
-        }
-        break;
-      default:
+        notAllowTypes = ['Folder', 'List', 'Backlog', 'Project', 'Task', 'Todo', 'Milestone'];
         break;
     }
-    if (!id) {
-      if (filterType) {
-        parentArray = listParent.filter((d) => queryParentArray.includes(d.Type));
-      } else {
-        typeArray = valuesType.filter((d) => !queryNotInTypeArray.includes(d.Code));
-      }
-    } else {
-      parentArray = listParent.filter((d) => d.Id != this.item.Id && queryParentArray.includes(d.Type));
-      typeArray = valuesType.filter((d) => !queryNotInTypeArray.includes(d.Code));
-      //if(parentType) typeArray = valuesType.filter((d) => queryTypeArray.includes(d.Code));
+
+    this.formDataSources.Type = this.typeList.filter((d) => !notAllowTypes.includes(d.Code));
+  }
+
+  getParentTaskTypeByTaskType(Type) {
+    let parentTypes = ['Folder', 'Project', 'List', 'Backlog', 'Task'];
+
+    switch (Type) {
+      case 'Project':
+        parentTypes = ['Folder', 'Project'];
+        break;
+      case 'Folder':
+        parentTypes = ['Folder', 'Project'];
+        break;
+      case 'List':
+        parentTypes = ['Folder', 'Project'];
+        break;
+      case 'Backlog':
+        parentTypes = ['Folder', 'Project', 'List'];
+        break;
+      case 'Task':
+        parentTypes = ['Folder', 'Project', 'List', 'Backlog'];
+        break;
+      case 'Todo':
+        parentTypes = ['Folder', 'Project', 'List', 'Backlog', 'Task'];
+        break;
+      case 'Milestone':
+        parentTypes = ['Folder', 'Project', 'List', 'Backlog', 'Task'];
+        break;
     }
-    this.typeDataSource = typeArray;
-    this.parentDataSource = parentArray;
+    return parentTypes;
   }
 
   changeParent() {
-    let parent = this.parentDataSource.find((d) => d.Id == this.formGroup.controls.IDParent.value);
-    let type = parent?.Type;
-    //this.getTypeByParentTaskType(type, this.storedType, this.items, this.formGroup.controls.Id.value, false);
+    //Check valid parent task type
     this.saveChange();
   }
 
   changeType() {
-    // this.getTypeByParentTaskType(
-    //   this.formGroup.controls.Type.value,
-    //   this.storedType,
-    //   this.items,
-    //   this.formGroup.controls.Id.value,
-    //   true,
-    // );
+    //Check valid task type
     this.saveChange();
   }
 
