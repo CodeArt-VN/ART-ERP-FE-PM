@@ -15,6 +15,7 @@ import { EnvService } from 'src/app/services/core/env.service';
 import { BRA_BranchProvider, PM_TaskLinkProvider, PM_TaskProvider } from 'src/app/services/static/services.service';
 import { Link, Task } from '../../../_models/task';
 import { DynamicScriptLoaderService } from 'src/app/services/custom.service';
+import { thirdPartyLibs } from 'src/app/services/static/thirdPartyLibs';
 
 declare var gantt: any;
 
@@ -79,16 +80,11 @@ export class GanttComponent implements OnInit {
   todayMarker = null;
 
   loadGanttLibrary() {
-    //https://demo.inholdings.vn/lib/dhtmlxgantt-v8.0.9p.js
-    //https://demo.inholdings.vn/lib/dhtmlxgantt-v8.0.9p.css
 
     if (typeof gantt !== 'undefined') this.initGantt();
     else
       this.dynamicScriptLoaderService
-        .loadResources([
-          { url: 'https://demo.inholdings.vn/lib/dhtmlxgantt-v8.0.9p.css', type: 'css' },
-          { url: 'https://demo.inholdings.vn/lib/dhtmlxgantt-v8.0.9p.js', type: 'js' },
-        ])
+        .loadResources(thirdPartyLibs.gantt.source)
         .then(() => this.initGantt())
         .catch((error) => console.error('Error loading gantt script', error));
   }
