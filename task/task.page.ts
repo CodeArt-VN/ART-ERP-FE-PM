@@ -7,6 +7,8 @@ import {
   PM_SpaceStatusProvider,
   PM_TaskLinkProvider,
   PM_TaskProvider,
+  PM_ViewProvider,
+  SYS_SchemaProvider,
 } from 'src/app/services/static/services.service';
 import { Location } from '@angular/common';
 import { TaskModalPage } from '../task-modal/task-modal.page';
@@ -14,6 +16,7 @@ import { TaskModalPage } from '../task-modal/task-modal.page';
 import { environment } from 'src/environments/environment';
 import { lib } from 'src/app/services/static/global-functions';
 import { ActivatedRoute, Router } from '@angular/router';
+import { FormBuilder, Validators } from '@angular/forms';
 
 @Component({
   encapsulation: ViewEncapsulation.None,
@@ -61,7 +64,7 @@ Segment change:
 */
 
   // URL params
-  space = { Id: null, Name: '', statusList: [], activeSapce: null, spaceList: [] };
+  space = { Id: null, Name: '', statusList: [], activeSpace: null, spaceList: [] };
   view = { activeView: '', viewList: [] };
 
   typeList = [];
@@ -73,11 +76,41 @@ Segment change:
 
   taskList;
 
+  groupValue = [
+    {
+      Name: 'Shown',
+    },
+    {
+      Name: 'Popular',
+    },
+    {
+      Name: 'Hidden',
+    },
+  ];
+  viewTypeDataSource = [
+    {
+      Code: 'List',
+      Name: 'List',
+    },
+    {
+      Code: 'Board',
+      Name: 'Board',
+    },
+    {
+      Code: 'Gantt',
+      Name: 'Gantt',
+    },
+  ];
+  itemsView = [];
+  statusGroupBy = [];
+
   constructor(
     public pageProvider: PM_TaskProvider,
     public spaceProvider: PM_SpaceProvider,
     public spaceStatusProvider: PM_SpaceStatusProvider,
+    public viewProvider: PM_ViewProvider,
     public taskLinkService: PM_TaskLinkProvider,
+    public schemaService: SYS_SchemaProvider,
     public navCtrl: NavController,
     public route: ActivatedRoute,
     public modalController: ModalController,
@@ -87,6 +120,7 @@ Segment change:
     public env: EnvService,
     public location: Location,
     router: Router,
+    public formBuilder: FormBuilder,
   ) {
     super();
 
@@ -99,7 +133,7 @@ Segment change:
       this.id = param.get('id') != 'null' ? parseInt(param.get('id')) : null;
       this.space.Id = param.get('space') != 'null' ? parseInt(param.get('space')) : null;
       this.view.activeView = param.get('view') != 'null' ? param.get('view') : null;
-      if (this.space.activeSapce) this.refresh();
+      if (this.space.activeSpace) this.refresh();
     });
   }
 
@@ -122,36 +156,50 @@ Segment change:
         this.typeList.map((e) => e.Code).filter((d) => d != 'Task' && d != 'Todo' && d != 'Milestone'),
       );
 
-      Promise.all([this.spaceProvider.read(), this.pageProvider.read(query)]).then((values: any) => {
-        this.space.spaceList = values[0].data;
-        let taskList = values[1].data;
-
-        for (let i = 0; i < this.space.spaceList.length; i++) {
-          const space = this.space.spaceList[i];
-          let taskRoots = values[1].data.filter((d) => d.IDParent == null && d.IDSpace == space.Id);
-          let task = {
-            Id: lib.generateCode(),
-            Name: space.Name,
-            IdParent: null,
-            IDSpace: space.Id,
-            Type: 'Space',
-          };
-          taskList.push(task);
-
-          taskRoots.forEach((i) => {
-            i.IDParent = task.Id;
+      Promise.all([this.spaceProvider.read(), this.pageProvider.read(query), this.schemaService.getAnItem(34)]).then(
+        (values: any) => {
+          this.space.spaceList = values[0].data;
+          let taskList = values[1].data;
+          let viewData = values[2].Fields;
+          this.statusGroupBy = viewData;
+          let groupedData = [];
+          viewData?.forEach((item) => {
+            item.Enable = false;
+            item.Group = 'Hidden';
+            if (!groupedData[item.Group]) {
+              groupedData[item.Group] = [];
+            }
+            groupedData[item.Group].push(item);
           });
-        }
+          this.itemsView = groupedData;
 
-        lib.buildFlatTree(taskList, []).then((result: any) => {
-          this.spaceTreeList = result;
-          this.spaceTreeList.forEach((i) => {
-            i._Type = this.typeList.find((d) => d.Code == i.Type);
+          for (let i = 0; i < this.space.spaceList.length; i++) {
+            const space = this.space.spaceList[i];
+            let taskRoots = values[1].data.filter((d) => d.IDParent == null && d.IDSpace == space.Id);
+            let task = {
+              Id: lib.generateCode(),
+              Name: space.Name,
+              IdParent: null,
+              IDSpace: space.Id,
+              Type: 'Space',
+            };
+            taskList.push(task);
+
+            taskRoots.forEach((i) => {
+              i.IDParent = task.Id;
+            });
+          }
+
+          lib.buildFlatTree(taskList, []).then((result: any) => {
+            this.spaceTreeList = result;
+            this.spaceTreeList.forEach((i) => {
+              i._Type = this.typeList.find((d) => d.Code == i.Type);
+            });
           });
-        });
 
-        super.preLoadData(event);
-      });
+          super.preLoadData(event);
+        },
+      );
     });
   }
 
@@ -170,7 +218,7 @@ Segment change:
       this.loadedData(event);
     }
   }
-
+  viewConfig;
   loadedData(event?: any, ignoredFromGroup?: boolean): void {
     // - Process task list + link
     // - Set current space
@@ -178,71 +226,89 @@ Segment change:
     // - Get views/ default view from space
     // - Call Segment change to default view
 
-    this.items.forEach((i) => {
-      i._isRoot = i.IDParent == null || i.Id == this.id;
-      i._Type = this.typeList.find((d) => d.Code == i.Type);
-
-      if (i._isRoot) {
-        this.getAllChildrenHasOwner(i);
-      }
-    });
-
-    if (this.items.length) {
-      this.taskLinkService
-        .read({
-          Source: JSON.stringify(this.items.map((d) => d.Id)),
-          Target: JSON.stringify(this.items.map((d) => d.Id)),
-        })
-        .then((resp: any) => {
-          this.linksData = resp.data;
-        });
-    }
-
-    if (this.space.Id) {
-      this.space.activeSapce = this.space.spaceList.find((d) => d.Id == this.space.Id);
-      if (this.space.activeSapce) {
-        this.space.Name = this.space.activeSapce.Name;
-
-        this.view.viewList = JSON.parse(this.space.activeSapce.ViewConfig) || [];
-        let defaultView = this.view.viewList.find((d) => d.Default);
-        if (!defaultView && this.view.viewList.length) defaultView = this.view.viewList[0];
-
-        if (!this.view.activeView) {
-          if (defaultView) {
-            this.view.activeView = defaultView?.Code;
-          } else {
-            this.env.showMessage('No view found, please check space config', 'warning');
-          }
+    //loaded ViewConfig
+    Promise.all([this.viewProvider.read({IDProject: this.id})]).then(
+      (values: any) => {
+        if(values[0].data){
+          this.viewConfig = values[0].data
         }
-
-        this.spaceStatusProvider.read({ IDSpace: this.space.Id }).then((resp: any) => {
-          this.space.statusList = resp.data;
+        
+        this.items.forEach((i) => {
+          i._isRoot = i.IDParent == null || i.Id == this.id;
+          i._Type = this.typeList.find((d) => d.Code == i.Type);
+    
+          if (i._isRoot) {
+            this.getAllChildrenHasOwner(i);
+          }
         });
-      } else {
-        this.env.showMessage('Space not found!', 'warning');
+    
+        if (this.items.length) {
+          this.taskLinkService
+            .read({
+              Source: JSON.stringify(this.items.map((d) => d.Id)),
+              Target: JSON.stringify(this.items.map((d) => d.Id)),
+            })
+            .then((resp: any) => {
+              this.linksData = resp.data;
+            });
+        }
+    
+        if (this.space.Id) {
+          this.space.activeSpace = this.space.spaceList.find((d) => d.Id == this.space.Id);
+          if (this.space.activeSpace) {
+            this.space.Name = this.space.activeSpace.Name;
+    
+            this.view.viewList = JSON.parse(this.space.activeSpace.ViewConfig) || [];
+            if(this.viewConfig) {
+              let addViewConfig = this.viewConfig.map(item => ({
+                Code: item.Name,
+                Name: item.Name
+              }));
+            
+              this.view.viewList = [...this.view.viewList, ...addViewConfig];
+            }
+            let defaultView = this.view.viewList.find((d) => d.Default);
+            if (!defaultView && this.view.viewList.length) defaultView = this.view.viewList[0];
+    
+            if (!this.view.activeView) {
+              if (defaultView) {
+                this.view.activeView = defaultView?.Code;
+              } else {
+                this.env.showMessage('No view found, please check space config', 'warning');
+              }
+            }
+    
+            this.spaceStatusProvider.read({ IDSpace: this.space.Id }).then((resp: any) => {
+              this.space.statusList = resp.data;
+            });
+          } else {
+            this.env.showMessage('Space not found!', 'warning');
+          }
+        } else {
+          this.view.viewList = [];
+        }
+        let selectedSpaceTask = this.spaceTreeList.find((d) => d.Id == this.id);
+        if (!selectedSpaceTask) selectedSpaceTask = this.spaceTreeList.find((d) => d.IDSpace == this.space.Id);
+        if (selectedSpaceTask != this.selectedSpaceTask) this.selectedSpaceTask = selectedSpaceTask;
+        super.loadedData(event, ignoredFromGroup);
       }
-    } else {
-      this.view.viewList = [];
-    }
-    let selectedSpaceTask = this.spaceTreeList.find((d) => d.Id == this.id);
-    if (!selectedSpaceTask) selectedSpaceTask = this.spaceTreeList.find((d) => d.IDSpace == this.space.Id);
-    if (selectedSpaceTask != this.selectedSpaceTask) this.selectedSpaceTask = selectedSpaceTask;
-    super.loadedData(event, ignoredFromGroup);
+    );
   }
 
   getAllChildrenHasOwner(item) {
-      // Set item._members list
-      // Check if item has _Staff then pushOwner to list
-      // Recursively call this function for each children
-      item._members = [];
-      this.pushOwner(item, item._members, true);
-      
-      this.items.filter((i) => i.IDParent === item.Id).forEach((child) => {
+    // Set item._members list
+    // Check if item has _Staff then pushOwner to list
+    // Recursively call this function for each children
+    item._members = [];
+    this.pushOwner(item, item._members, true);
+
+    this.items
+      .filter((i) => i.IDParent === item.Id)
+      .forEach((child) => {
         this.getAllChildrenHasOwner(child);
         this.pushOwner(child, item._members);
       });
-      
-    }
+  }
 
   pushOwner(item, owners, mainOwner = false) {
     //check if owner not exist then push
@@ -264,16 +330,65 @@ Segment change:
     if (ev.detail.value != 'addView') {
       this.view.activeView = ev.detail.value;
       this.nav();
-    }
-    else{
+    } else {
       setTimeout(() => {
         this.view.activeView = this.view.activeView;
       }, 1);
     }
-    
+  }
+  customView;
+  addView() {
+    this.pageConfig.isShowFeature = !this.pageConfig.isShowFeature;
+
+    if (this.pageConfig.isShowFeature) {
+      if (this.itemsView['Shown']) {
+        const shownItems = this.itemsView['Shown'];
+        shownItems.forEach((i) => {
+          i.Enable = false;
+        });
+        this.itemsView['Hidden'].push(...shownItems);
+        this.itemsView['Shown'] = [];
+      }
+      const view = {
+        Id: 0,
+        _formGroup: this.formBuilder.group({
+          ViewName: ['', Validators.required],
+          ViewType: ['', Validators.required],
+        }),
+      };
+      this.customView = view;
+    }
+  }
+
+  customizeView() {
+    this.pageConfig.isShowFeature = !this.pageConfig.isShowFeature;
+
+    if (this.pageConfig.isShowFeature) {
+      let view = this.viewConfig.find(d => d.Name == this.view.activeView);
+      const customizeView = {
+        Id: view.Id,
+        _formGroup: this.formBuilder.group({
+          ViewName: [view.Name, Validators.required],
+          ViewType: [view.Type, Validators.required],
+        }),
+      };
+      if(view.ViewConfig)this.itemsView = JSON.parse(view.ViewConfig);
+      this.customView = customizeView;
+    }
   }
 
 
+  hiddenAll() {
+    if (this.itemsView['Shown']) {
+      const shownItems = this.itemsView['Shown'];
+      shownItems.forEach((i) => {
+        i.Enable = false;
+      });
+      this.itemsView['Hidden'].push(...shownItems);
+      this.itemsView['Shown'] = [];
+    }
+    this.saveView(this.customView);
+  }
 
   nav() {
     let newURL = '#/task/' + this.id + '/' + this.space.Id + '/' + this.view.activeView;
@@ -301,6 +416,67 @@ Segment change:
   onGanttOpenTask(event) {
     let parent = this.items.find((d) => d.Id == event.IDParent);
     this.openTaskModal(event.Id, parent);
+  }
+
+  viewEnable(item: any) {
+    if (item) {
+      item.Enable = !item.Enable;
+      const targetGroup = item.Enable ? 'Shown' : 'Hidden';
+
+      if (!this.itemsView[targetGroup]) {
+        this.itemsView[targetGroup] = [];
+      }
+
+      Object.keys(this.itemsView).forEach((groupName) => {
+        const group = this.itemsView[groupName];
+        const index = group.indexOf(item);
+        if (index !== -1) {
+          group.splice(index, 1);
+        }
+      });
+
+      this.itemsView[targetGroup].push(item);
+    }
+    this.saveView(this.customView)
+  }
+
+  doReorder(ev, groups, nameGroup) {
+    groups = ev.detail.complete(groups);
+    groups = groups.filter((i) => i.Group == nameGroup);
+    for (let i = 0; i < groups.length; i++) {
+      const g = groups[i];
+      g.Sort = i + 1;
+    }
+  }
+
+  onKanbanOpenTask(event) {
+    let parent = this.items.find((d) => d.Id == event.IDParent);
+    this.openTaskModalOnKanban(event, parent);
+  }
+  async openTaskModalOnKanban(task, parentTask = null) {
+    const space = this.space;
+    if (task.Id) task = this.items.find((d) => d.Id == task.Id);
+    if (!task) {
+      this.env.showMessage('Task not found!', 'warning');
+      return;
+    }
+
+    const modal = await this.modalController.create({
+      component: TaskModalPage,
+      componentProps: {
+        item: task,
+        space: space,
+        parentTask: parentTask,
+      },
+      cssClass: 'modal90',
+    });
+
+    await modal.present();
+    const { data, role } = await modal.onWillDismiss();
+    if (role == 'confirm') {
+      //Process data
+      this.setFormValues(data);
+    }
   }
 
   async openTaskModal(taskId = 0, parentTask = null) {
@@ -333,5 +509,51 @@ Segment change:
 
   autoCalculateLink() {
     this.env.publishEvent({ Code: 'app:autoCalculateLink' });
+  }
+
+
+  saveView(i) {
+    if (!i._formGroup.valid) {
+      this.env.showTranslateMessage('Please recheck information highlighted in red above', 'warning');
+    } else {
+      let submitItem: any = {
+        Id: i.Id,
+        IDProject: this.id,
+        Name: i._formGroup.value.ViewName,
+        Type: i._formGroup.value.ViewType,
+      };
+      if (i._formGroup.value.ViewType == 'Board') {
+        const viewConfig = Object.entries(this.itemsView).reduce((i, [groupName, items]) => {
+          i[groupName] = items.map((item) => ({
+            Id: item.Id,
+            Code: item.Code,
+            Name: item.Name,
+            Icon: item.Icon,
+            Color: item.Color,
+            Sort: item.Sort,
+            Enable: item.Enable,
+            Group: groupName,
+          }));
+          return i;
+        }, {} as { [key: string]: { Id: any; Code: string; Name: string; Icon: string; Color: string; Sort: string; Enable: string; Group: string }[] });
+        submitItem.ViewConfig = JSON.stringify(viewConfig);
+      }
+      if (this.submitAttempt == false) {
+        this.submitAttempt = true;
+        this.viewProvider
+          .save(submitItem)
+          .then((result : any) => {
+            this.customView.Id = result.Id;
+            this.env.showTranslateMessage('View saved', 'success');
+            this.submitAttempt = false;
+            this.loadedData();
+          })
+          .catch((err) => {
+            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.submitAttempt = false;
+          });
+          
+      }
+    }
   }
 }
