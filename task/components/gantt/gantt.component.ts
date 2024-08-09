@@ -326,8 +326,8 @@ export class GanttComponent implements OnInit {
         if (this.submitAttempt == false) {
           this.submitAttempt = true;
           this.env
-            .showPrompt(
-              'Bạn có chắc muốn xóa liên kết ' + '<b>' + src.text + '-' + trg.text + '</b>' + ' không?',
+            .showPrompt2(
+              {code:'Bạn có chắc muốn xóa liên kết <b> {{value}} - {{value1}} </b> không?',value:{value:src.text,value1:trg.text}},
               null,
               '',
             )
@@ -461,7 +461,7 @@ export class GanttComponent implements OnInit {
     if (this.submitAttempt == false) {
       this.submitAttempt = true;
       this.env
-        .showPrompt('Bạn có chắc muốn sắp xếp lại các liên kết không?', null, '')
+        .showPrompt2('Bạn có chắc muốn sắp xếp lại các liên kết không?', null, '')
         .then((_) => {
           let obj = {
             LinksUpdate: linksUpdate,
