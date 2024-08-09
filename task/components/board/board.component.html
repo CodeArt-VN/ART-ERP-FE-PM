@@ -36,15 +36,16 @@
                   [clearable]="false"
                   [virtualScroll]="true"
                   bindLabel="Name"
+                  (change)="changeSelected('Status')"
                 >
-                <ng-template ng-label-tmp let-i="item">
-                  <div *ngIf="i">
-                    <div>
-                      <ion-icon [color]="i.Color" [name]="i.Icon" slot="start"></ion-icon> &nbsp;
-                      <ion-text>{{ i.Name }}</ion-text>
+                  <ng-template ng-label-tmp let-i="item">
+                    <div *ngIf="i">
+                      <div>
+                        <ion-icon [color]="i.Color" [name]="i.Icon" slot="start"></ion-icon> &nbsp;
+                        <ion-text>{{ i.Name }}</ion-text>
+                      </div>
                     </div>
-                  </div>
-                </ng-template>
+                  </ng-template>
                   <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
                     <div *ngIf="i">
                       <div>
@@ -65,12 +66,13 @@
               <div class="c-control group-by">
                 <ng-select
                   appendTo="#ng-select-holder"
-                  [(ngModel)]="groupBy.level1.order"
+                  [(ngModel)]="statusOrder"
                   class="c-input"
-                  [items]="orderList"
+                  [items]="groupBy.level1.order"
                   [clearable]="false"
                   [virtualScroll]="true"
                   bindLabel="Name"
+                  (change)="saveGroupBy()"
                 >
                   <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
                     <div *ngIf="i">
@@ -81,7 +83,7 @@
                           name="checkmark-outline"
                           slot="end"
                           color="primary"
-                          *ngIf="groupBy.level1.order == i.Name"
+                          *ngIf="statusOrder?.Code == i.Code"
                         ></ion-icon>
                       </div>
                     </div>
@@ -102,15 +104,16 @@
                   [clearable]="false"
                   [virtualScroll]="true"
                   bindLabel="Name"
+                  (change)="changeSelected('Priority')"
                 >
-                <ng-template ng-label-tmp let-i="item">
-                  <div *ngIf="i">
-                    <div>
-                      <ion-icon [color]="i.Color" [name]="i.Icon" slot="start"></ion-icon> &nbsp;
-                      <ion-text>{{ i.Name }}</ion-text>
+                  <ng-template ng-label-tmp let-i="item">
+                    <div *ngIf="i">
+                      <div>
+                        <ion-icon [color]="i.Color" [name]="i.Icon" slot="start"></ion-icon> &nbsp;
+                        <ion-text>{{ i.Name }}</ion-text>
+                      </div>
                     </div>
-                  </div>
-                </ng-template>
+                  </ng-template>
                   <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
                     <div *ngIf="i">
                       <div>
@@ -131,12 +134,13 @@
               <div class="c-control group-by">
                 <ng-select
                   appendTo="#ng-select-holder"
-                  [(ngModel)]="groupBy.level2.order"
+                  [(ngModel)]="priorityOrder"
                   class="c-input"
-                  [items]="orderList"
+                  [items]="groupBy.level2.order"
                   [clearable]="false"
                   [virtualScroll]="true"
                   bindLabel="Name"
+                  (change)="saveGroupBy()"
                 >
                   <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
                     <div *ngIf="i">
@@ -147,7 +151,7 @@
                           name="checkmark-outline"
                           slot="end"
                           color="primary"
-                          *ngIf="groupBy.level2.order == i.Name"
+                          *ngIf="priorityOrder?.Code == i.Code"
                         ></ion-icon>
                       </div>
                     </div>

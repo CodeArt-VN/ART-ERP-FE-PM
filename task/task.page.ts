@@ -76,6 +76,14 @@ Segment change:
 
   taskList;
 
+  editView; //form customize view
+  itemsView = []; // item config in view
+  statusGroupBy = []; //dataSource status
+
+  viewConfig;
+  groupByConfig;
+  viewConfigActive = ''; // active View in config
+
   groupValue = [
     {
       Name: 'Shown',
@@ -101,8 +109,6 @@ Segment change:
       Name: 'Gantt',
     },
   ];
-  itemsView = [];
-  statusGroupBy = [];
 
   constructor(
     public pageProvider: PM_TaskProvider,
@@ -218,7 +224,7 @@ Segment change:
       this.loadedData(event);
     }
   }
-  viewConfig;
+
   loadedData(event?: any, ignoredFromGroup?: boolean): void {
     // - Process task list + link
     // - Set current space
@@ -226,73 +232,117 @@ Segment change:
     // - Get views/ default view from space
     // - Call Segment change to default view
 
-    //loaded ViewConfig
-    Promise.all([this.viewProvider.read({IDProject: this.id})]).then(
-      (values: any) => {
-        if(values[0].data){
-          this.viewConfig = values[0].data
-        }
-        
-        this.items.forEach((i) => {
-          i._isRoot = i.IDParent == null || i.Id == this.id;
-          i._Type = this.typeList.find((d) => d.Code == i.Type);
-    
-          if (i._isRoot) {
-            this.getAllChildrenHasOwner(i);
-          }
-        });
-    
-        if (this.items.length) {
-          this.taskLinkService
-            .read({
-              Source: JSON.stringify(this.items.map((d) => d.Id)),
-              Target: JSON.stringify(this.items.map((d) => d.Id)),
-            })
-            .then((resp: any) => {
-              this.linksData = resp.data;
-            });
-        }
-    
-        if (this.space.Id) {
-          this.space.activeSpace = this.space.spaceList.find((d) => d.Id == this.space.Id);
-          if (this.space.activeSpace) {
-            this.space.Name = this.space.activeSpace.Name;
-    
-            this.view.viewList = JSON.parse(this.space.activeSpace.ViewConfig) || [];
-            if(this.viewConfig) {
-              let addViewConfig = this.viewConfig.map(item => ({
-                Code: item.Name,
-                Name: item.Name
-              }));
-            
-              this.view.viewList = [...this.view.viewList, ...addViewConfig];
-            }
-            let defaultView = this.view.viewList.find((d) => d.Default);
-            if (!defaultView && this.view.viewList.length) defaultView = this.view.viewList[0];
-    
-            if (!this.view.activeView) {
-              if (defaultView) {
-                this.view.activeView = defaultView?.Code;
-              } else {
-                this.env.showMessage('No view found, please check space config', 'warning');
-              }
-            }
-    
-            this.spaceStatusProvider.read({ IDSpace: this.space.Id }).then((resp: any) => {
-              this.space.statusList = resp.data;
-            });
-          } else {
-            this.env.showMessage('Space not found!', 'warning');
-          }
-        } else {
-          this.view.viewList = [];
-        }
-        let selectedSpaceTask = this.spaceTreeList.find((d) => d.Id == this.id);
-        if (!selectedSpaceTask) selectedSpaceTask = this.spaceTreeList.find((d) => d.IDSpace == this.space.Id);
-        if (selectedSpaceTask != this.selectedSpaceTask) this.selectedSpaceTask = selectedSpaceTask;
-        super.loadedData(event, ignoredFromGroup);
+    // - loaded View config if change view
+    Promise.all([this.viewProvider.read({ IDProject: this.id })]).then((values: any) => {
+      if (values[0].data) {
+        this.viewConfig = values[0].data;
       }
-    );
+   
+      this.items.forEach((i) => {
+        i._isRoot = i.IDParent == null || i.Id == this.id;
+        i._Type = this.typeList.find((d) => d.Code == i.Type);
+
+        if (i._isRoot) {
+          this.getAllChildrenHasOwner(i);
+        }
+      });
+
+      if (this.items.length) {
+        this.taskLinkService
+          .read({
+            Source: JSON.stringify(this.items.map((d) => d.Id)),
+            Target: JSON.stringify(this.items.map((d) => d.Id)),
+          })
+          .then((resp: any) => {
+            this.linksData = resp.data;
+          });
+      }
+
+      let groupBy: any = {
+        Id: 0,
+        IDProject: parseInt(this.id),
+        ViewConfig: '',
+      };
+
+      if (this.space.Id) {
+        this.space.activeSpace = this.space.spaceList.find((d) => d.Id == this.space.Id);
+        if (this.space.activeSpace) {
+          this.space.Name = this.space.activeSpace.Name;
+
+          this.view.viewList = JSON.parse(this.space.activeSpace.ViewConfig) || [];
+          if (this.viewConfig) {
+            let addViewConfig = this.viewConfig.map((item) => ({
+              Code: item.Name,
+              Name: item.Name,
+            }));
+
+            this.view.viewList = [...this.view.viewList, ...addViewConfig];
+          }
+          let defaultView = this.view.viewList.find((d) => d.Default);
+          if (!defaultView && this.view.viewList.length) defaultView = this.view.viewList[0];
+
+          if (!this.view.activeView) {
+            if (defaultView) {
+              this.view.activeView = defaultView?.Code;
+            } else {
+              this.env.showMessage('No view found, please check space config', 'warning');
+            }
+          }
+
+          this.spaceStatusProvider.read({ IDSpace: this.space.Id }).then((resp: any) => {
+            this.space.statusList = resp.data;
+          });
+
+          let isViewBoard = values[0].data.find((d) => d.Name == this.view.activeView);
+          if (isViewBoard) {
+            //custom view
+            groupBy.ViewConfig = JSON.parse(isViewBoard?.ViewConfig);
+            groupBy.Id = isViewBoard?.Id;
+          } else {
+            //space
+            groupBy.Id = this.space.Id;
+            groupBy.IDProject = parseInt(this.id);
+            groupBy.ViewActive = this.view.activeView;
+
+            groupBy.SpaceConfig = JSON.parse(this.space.activeSpace.ViewConfig);
+
+            if (this.view.activeView == 'Board') {
+              const viewConfig = Object.entries(this.itemsView).reduce((i, [groupName, items]) => {
+                i[groupName] = items.map((item) => ({
+                  Id: item.Id,
+                  Code: item.Code,
+                  Name: item.Name,
+                  Icon: item.Icon,
+                  Color: item.Color,
+                  Sort: item.Sort,
+                  Enable: item.Enable,
+                }));
+                return i;
+              }, {} as { [key: string]: { Id: any; Code: string; Name: string; Icon: string; Color: string; Sort: string; Enable: string }[] });
+              let obj = {
+                View: viewConfig,
+                Group: '',
+              };
+              let group = this.viewConfig.find((d) => d.Name == this.view.activeView);
+              if (group) obj.Group = JSON.parse(group.ViewConfig)?.Group;
+              groupBy.ViewConfig = JSON.stringify(obj);
+            }
+          }
+      
+        } else {
+          this.env.showMessage('Space not found!', 'warning');
+        }
+      } else {
+        this.view.viewList = [];
+      }
+      // groupByConfig
+      this.groupByConfig = groupBy;
+
+      let selectedSpaceTask = this.spaceTreeList.find((d) => d.Id == this.id);
+      if (!selectedSpaceTask) selectedSpaceTask = this.spaceTreeList.find((d) => d.IDSpace == this.space.Id);
+      if (selectedSpaceTask != this.selectedSpaceTask) this.selectedSpaceTask = selectedSpaceTask;
+      super.loadedData(event, ignoredFromGroup);
+    });
   }
 
   getAllChildrenHasOwner(item) {
@@ -335,8 +385,33 @@ Segment change:
         this.view.activeView = this.view.activeView;
       }, 1);
     }
+
+    //check in config
+    this.viewConfigActive = this.view.activeView;
+    let activeView = this.viewConfig.find((d) => d.Name == this.view.activeView);
+    if (activeView) this.viewConfigActive = activeView.Type;
+
+    if (this.viewConfig) {
+      let isViewBoard = this.viewConfig.find((d) => d.Name == this.view.activeView);
+      if (isViewBoard) {
+        let groupByInBoard: any = {
+          IDProject: parseInt(this.id),
+          ViewConfig: '',
+        };
+        groupByInBoard.ViewConfig = JSON.parse(isViewBoard?.ViewConfig);
+        groupByInBoard.Id = isViewBoard?.Id;
+        this.groupByConfig = groupByInBoard;
+      } else {
+        let groupBySpace: any = {
+          Id: this.space.Id,
+          IDProject: parseInt(this.id),
+          ViewConfig: this.space.activeSpace.ViewConfig,
+        };
+        this.groupByConfig = groupBySpace;
+      }
+    }
   }
-  customView;
+
   addView() {
     this.pageConfig.isShowFeature = !this.pageConfig.isShowFeature;
 
@@ -356,7 +431,7 @@ Segment change:
           ViewType: ['', Validators.required],
         }),
       };
-      this.customView = view;
+      this.editView = view;
     }
   }
 
@@ -364,19 +439,22 @@ Segment change:
     this.pageConfig.isShowFeature = !this.pageConfig.isShowFeature;
 
     if (this.pageConfig.isShowFeature) {
-      let view = this.viewConfig.find(d => d.Name == this.view.activeView);
-      const customizeView = {
-        Id: view.Id,
-        _formGroup: this.formBuilder.group({
-          ViewName: [view.Name, Validators.required],
-          ViewType: [view.Type, Validators.required],
-        }),
-      };
-      if(view.ViewConfig)this.itemsView = JSON.parse(view.ViewConfig);
-      this.customView = customizeView;
+      let view = this.viewConfig.find((d) => d.Name == this.view.activeView);
+      if (view) {
+        const customizeView = {
+          Id: view.Id,
+          _formGroup: this.formBuilder.group({
+            ViewName: [view.Name, Validators.required],
+            ViewType: [view.Type, Validators.required],
+          }),
+        };
+        if (view.ViewConfig) this.itemsView = JSON.parse(view.ViewConfig)?.View;
+        this.editView = customizeView;
+      } else {
+        this.editView = null;
+      }
     }
   }
-
 
   hiddenAll() {
     if (this.itemsView['Shown']) {
@@ -387,7 +465,7 @@ Segment change:
       this.itemsView['Hidden'].push(...shownItems);
       this.itemsView['Shown'] = [];
     }
-    this.saveView(this.customView);
+    this.saveView(this.editView);
   }
 
   nav() {
@@ -426,7 +504,6 @@ Segment change:
       if (!this.itemsView[targetGroup]) {
         this.itemsView[targetGroup] = [];
       }
-
       Object.keys(this.itemsView).forEach((groupName) => {
         const group = this.itemsView[groupName];
         const index = group.indexOf(item);
@@ -437,7 +514,7 @@ Segment change:
 
       this.itemsView[targetGroup].push(item);
     }
-    this.saveView(this.customView)
+    this.saveView(this.editView);
   }
 
   doReorder(ev, groups, nameGroup) {
@@ -453,6 +530,7 @@ Segment change:
     let parent = this.items.find((d) => d.Id == event.IDParent);
     this.openTaskModalOnKanban(event, parent);
   }
+
   async openTaskModalOnKanban(task, parentTask = null) {
     const space = this.space;
     if (task.Id) task = this.items.find((d) => d.Id == task.Id);
@@ -511,7 +589,6 @@ Segment change:
     this.env.publishEvent({ Code: 'app:autoCalculateLink' });
   }
 
-
   saveView(i) {
     if (!i._formGroup.valid) {
       this.env.showTranslateMessage('Please recheck information highlighted in red above', 'warning');
@@ -532,18 +609,26 @@ Segment change:
             Color: item.Color,
             Sort: item.Sort,
             Enable: item.Enable,
-            Group: groupName,
           }));
           return i;
-        }, {} as { [key: string]: { Id: any; Code: string; Name: string; Icon: string; Color: string; Sort: string; Enable: string; Group: string }[] });
-        submitItem.ViewConfig = JSON.stringify(viewConfig);
+        }, {} as { [key: string]: { Id: any; Code: string; Name: string; Icon: string; Color: string; Sort: string; Enable: string }[] });
+        let obj = {
+          View: viewConfig,
+          GroupBy: '',
+        };
+        if(submitItem.Id) {
+          //case edit
+          let value = this.viewConfig.find((d) => d.Name == this.view.activeView);
+          if (value) obj.GroupBy = JSON.parse(value.ViewConfig)?.GroupBy;
+        }
+        submitItem.ViewConfig = JSON.stringify(obj);
       }
       if (this.submitAttempt == false) {
         this.submitAttempt = true;
         this.viewProvider
           .save(submitItem)
-          .then((result : any) => {
-            this.customView.Id = result.Id;
+          .then((result: any) => {
+            this.editView.Id = result.Id;
             this.env.showTranslateMessage('View saved', 'success');
             this.submitAttempt = false;
             this.loadedData();
@@ -552,7 +637,6 @@ Segment change:
             this.env.showTranslateMessage('Cannot save, please try again', 'danger');
             this.submitAttempt = false;
           });
-          
       }
     }
   }

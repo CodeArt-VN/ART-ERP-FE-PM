@@ -102,18 +102,18 @@
     horizontal="end"
     slot="fixed"
   >
-    <div class="ion-padding" *ngIf="customView">
-      <form [formGroup]="customView._formGroup">
+    <div class="ion-padding" *ngIf="editView">
+      <form [formGroup]="editView._formGroup">
         <app-form-control
-          [field]="{id:'ViewName', type : 'text', label: 'View name', form : customView._formGroup }"
-          (change)="saveView(customView)"
+          [field]="{id:'ViewName', type : 'text', label: 'View name', form : editView._formGroup }"
+          (change)="saveView(editView)"
         ></app-form-control>
         <app-form-control
-          [field]="{id:'ViewType', type : 'ng-select', label: 'View type', form : customView._formGroup , dataSource: viewTypeDataSource,  bindLabel: 'Name',  bindValue: 'Code'}"
-          (change)="saveView(customView)"
+          [field]="{id:'ViewType', type : 'ng-select', label: 'View type', form : editView._formGroup , dataSource: viewTypeDataSource,  bindLabel: 'Name',  bindValue: 'Code'}"
+          (change)="saveView(editView)"
         ></app-form-control>
 
-        <ng-container *ngIf="customView._formGroup?.controls.ViewType.value == 'Board'">
+        <ng-container *ngIf="editView._formGroup?.controls.ViewType.value == 'Board'">
           <ion-list lines="none" *ngFor="let i of groupValue">
             <ion-list-header>
               <ion-label>
@@ -144,15 +144,17 @@
   </ion-fab>
   <div class="row-full shadow full-screen" *ngIf="items.length && pageConfig.showSpinner==false">
     <app-board
-      *ngIf="view.activeView == 'Board'"
+      *ngIf="view.activeView == 'Board' || viewConfigActive == 'Board'"
       [items]="items"
       [statusList]="this.space.statusList"
+      [groupByConfig]="this.groupByConfig"
       [viewList]="this.statusGroupBy"
+      (loaded)="loadedData()"
       (openTask)="onKanbanOpenTask($event)"
     >
     </app-board>
     <app-gantt
-      *ngIf="view.activeView == 'Gantt'"
+      *ngIf="view.activeView == 'Gantt' || viewConfigActive == 'Gantt'"
       [items]="items"
       [linksData]="linksData"
       (openTask)="onGanttOpenTask($event)"

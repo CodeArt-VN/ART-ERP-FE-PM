@@ -1,22 +1,13 @@
-import { FormGroup } from '@angular/forms';
-import { filter } from 'rxjs';
-import {
-  Component,
-  ElementRef,
-  EventEmitter,
-  Input,
-  OnInit,
-  Output,
-  ViewChild,
-  ViewEncapsulation,
-} from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, ViewChild, ViewEncapsulation } from '@angular/core';
 import { NavController, ModalController, AlertController, LoadingController, PopoverController } from '@ionic/angular';
 import { EnvService } from 'src/app/services/core/env.service';
-import { PageBase } from 'src/app/page-base';
-import { BRA_BranchProvider, PM_TaskLinkProvider, PM_TaskProvider } from 'src/app/services/static/services.service';
+import {
+  BRA_BranchProvider,
+  PM_TaskLinkProvider,
+  PM_TaskProvider,
+  PM_ViewProvider,
+} from 'src/app/services/static/services.service';
 import { Location } from '@angular/common';
-import { thirdPartyLibs } from 'src/app/services/static/thirdPartyLibs';
-import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { DynamicScriptLoaderService } from 'src/app/services/custom.service';
 
 declare var kanban: any;
@@ -28,49 +19,50 @@ declare var kanban: any;
 })
 export class BoardComponent implements OnInit {
   @ViewChild('groupPopover') groupPopover;
-  //bấm vào group mở popover, 2 dòng chọn
+
+  statusSelected;
+  prioritySelected;
+  statusOrder;
+  priorityOrder;
+
+  priorityList;
+  typeList;
+
+  submitAttempt = false;
   board;
   showBoardContent = false;
   groupBy = {
     level1: {
       property: 'Status',
-      order: 'Descending',
-      list: [
-        // { Id: 1, Code: 'todo', Name: 'Todo', Type: 'Active', Icon: 'flag-outline', Color: '', Remark: '1' },
-        // { Id: 1, Code: 'review', Name: 'Review', Type: 'Active', Icon: 'flag-outline', Color: '', Remark: '2' },
-        // { Id: 1, Code: 'coding', Name: 'Coding', Type: 'Active', Icon: 'flower-outline', Color: 'blue', Remark: '1' },
-        // { Id: 1, Code: 'testing', Name: 'Testing', Type: 'Active', Icon: 'flag-outline', Color: '', Remark: '2' },
-        // { Id: 1, Code: 'done', Name: 'Done', Type: 'Active', Icon: 'flag-outline', Color: '', Remark: '1' },
+      order: [
+        {
+          Code: 'desc',
+          Name: 'Descending',
+        },
+        {
+          Code: 'asc',
+          Name: 'Ascending',
+        },
       ],
+      list: [],
     },
     level2: {
       property: 'Priority',
-      order: 'Ascending',
-      list: [
-        { Id: 1, Code: '5', Name: 'HighPriorityUrgent', Type: 'Active', Icon: 'flag-outline', Color: '', Remark: '1' },
-        { Id: 1, Code: '1', Name: 'No', Type: 'Active', Icon: 'flag-outline', Color: '', Remark: '1' },
-        { Id: 1, Code: '2', Name: 'NotPriorityNotUrgent', Type: 'Active', Icon: 'flag-outline', Color: '', Remark: '2' },
-        { Id: 1, Code: '3', Name: 'LowPriorityUrgent', Type: 'Active', Icon: 'flower-outline', Color: 'red', Remark: '1' },
-        { Id: 1, Code: '4', Name: 'MediumPriorityNotUrgent', Type: 'Active', Icon: 'flag-outline', Color: '', Remark: '2' },
+      order: [
+        {
+          Code: 'desc',
+          Name: 'Descending',
+        },
+        {
+          Code: 'asc',
+          Name: 'Ascending',
+        },
       ],
+      list: [],
     },
   };
-  statusSelected = {
-    Code: 'Status', Name: 'Status'
-  };
 
-  prioritySelected = {
-    Code: '3', Name: 'LowPriorityUrgent', Type: 'Active', Icon: 'flower-outline', Color: 'red',
-  };
-  orderList = [{
-    Code: 'desc', Name: 'Descending',
-  },
-  {
-    Code: 'asc', Name: 'Ascending',
-  }];
-
-
-  priorities: string[] = [...new Set(this.groupBy.level2.list.map((task) => task.Code))];
+  //lib
   kanbanSource = {
     source: [
       { url: 'assets/kanban/kanbanmin.css', type: 'css' },
@@ -79,12 +71,14 @@ export class BoardComponent implements OnInit {
   };
 
   @Input() items: any;
+  @Input() groupByConfig: any;
   @Input() statusList: any;
   @Input() viewList: any;
   @Input() listParent: any[] = [];
   constructor(
     public pageProvider: PM_TaskProvider,
     public taskLinkService: PM_TaskLinkProvider,
+    public viewProvider: PM_ViewProvider,
     public branchProvider: BRA_BranchProvider,
     public modalController: ModalController,
     public popoverCtrl: PopoverController,
@@ -100,12 +94,9 @@ export class BoardComponent implements OnInit {
     this.groupBy.level1.list = this.viewList;
   }
 
-  priorityList;
-  typeList;
   ngAfterViewInit() {
     this.loadKanbanLibrary();
   }
-
 
   isGroupPopoverOpen = false;
   presentGroupPopover(e: Event) {
@@ -119,12 +110,16 @@ export class BoardComponent implements OnInit {
       this.priorityList.forEach((i) => {
         i.Code = parseInt(i.Code);
       });
+      this.groupBy.level2.list =this.priorityList;
       if (typeof kanban !== 'undefined') this.initKanban();
       else {
         this.dynamicScriptLoaderService
           .loadResources(this.kanbanSource.source)
           .then(() => {
-            this.initKanban();
+            setTimeout(() => {
+              this.initKanban();
+            }, 1);
+            
           })
           .catch((error) => console.error('Error loading script', error));
       }
@@ -132,6 +127,18 @@ export class BoardComponent implements OnInit {
   }
 
   initKanban() {
+    if (this.groupByConfig?.ViewConfig) {
+      //if(!this.groupByConfig?.ViewActive) {
+        //config in view
+        this.statusSelected = this.groupByConfig.ViewConfig?.GroupBy[0]?.Status;
+        this.statusOrder = this.groupByConfig.ViewConfig?.GroupBy[0]?.OrderBy;
+        this.prioritySelected = this.groupByConfig.ViewConfig?.GroupBy[1]?.Priority;
+        this.priorityOrder = this.groupByConfig.ViewConfig?.GroupBy[1]?.OrderBy;
+      //}else {
+        //config in space
+        //this.priorityOrder = this.groupByConfig.ViewActive;
+     // }
+    }
     let allUsersSet = new Map<number, any>();
     this.items.forEach((item: any) => {
       if (Array.isArray(item._members)) {
@@ -157,7 +164,7 @@ export class BoardComponent implements OnInit {
         users: (task._members || []).map((d) => d.Id),
         start_date: task.StartDate.substring(0, 10),
         end_date: task.EndDate?.substring(0, 10),
-        row_custom_key: task.Type,
+        row_custom_key: task.Priority,
         column_custom_key: task.Status,
         progress: task.Progress * 100,
         duration: task.Duration,
@@ -181,18 +188,15 @@ export class BoardComponent implements OnInit {
     });
     const cards = data;
 
-    let rows = [
-      { id: 'Folder', label: 'Folder' },
-      { id: 'List', label: 'List' },
-      { id: 'Backlog', label: 'Backlog' },
-      { id: 'Project', label: 'Project' },
-      { id: 'Task', label: 'Task' },
-      { id: 'Todo', label: 'Todo' },
-      { id: 'Milestone', label: 'Milestone' },
-    ];
+    let rows: any[] = this.groupBy.level2.list.map((row: any) => {
+        return {
+          id: row.Code,
+          label: row.Name,
+        };
+    });
 
     rows.forEach((row: any) => {
-      const check = data.some((task) => task.row_custom_key === row.id);
+      const check = data.some((task) => task.priority == row.id);
       if (!check) {
         row.collapsed = true;
       }
@@ -228,9 +232,9 @@ export class BoardComponent implements OnInit {
       readonly: {
         edit: false,
         add: false,
-        select: true, 
-        dnd: true
-    },
+        select: true,
+        dnd: true,
+      },
     });
 
     board.api.intercept('select-card', ({ id }) => {
@@ -241,14 +245,13 @@ export class BoardComponent implements OnInit {
       return false;
     });
 
-
     board.api.intercept('add-card', (obj) => {
-      if(!obj.before) {
+      if (!obj.before) {
         this.onOpenTask({ Id: 0, Status: obj.columnId, Type: obj.rowId });
       }
       return false;
     });
-   
+
     board.api.intercept('duplicate-card', (obj) => {
       let task = this.items.find((d) => d.Id == obj.id);
       let duplicateTask = { ...task };
@@ -261,55 +264,142 @@ export class BoardComponent implements OnInit {
       this.onOpenTask(duplicateTask);
     });
 
-    // board.api.on('move-card', (obj) => {
+    // board.api.on('update-card', (obj) => {
     //   console.log(obj);
     // });
-    board.api.on("update-card", (obj) => {
-      console.log(obj);
-  });
-    board.api.intercept("delete-card", (obj) => {
-      
-      console.log(obj.id);
-      return false;
-  });
+    // board.api.intercept('delete-card', (obj) => {
+    //   console.log(obj.id);
+    //   return false;
+    // });
   }
 
-  changeStatus(code) {
-    const selectedStatus = this.groupBy.level1.list.find(status => status.Code == code);
-    if (selectedStatus) {
-      this.statusSelected = selectedStatus;
+
+
+  changeSelected(type) {
+    if (type == 'Status') {
+      this.statusSelected.Type = 'Active';
+    } else {
+      this.prioritySelected.Type = 'Active';
     }
+    this.saveGroupBy();
   }
 
-  changePriority(code) {
-    const selectedPriority = this.groupBy.level2.list.find(priority => priority.Code == code);
-    if (selectedPriority) {
-      this.prioritySelected = selectedPriority;
-    }
-  }
-
-  changeOrderBy(level, order) {
-    if (level == 'status') {
-      this.groupBy.level1.order = order;
-    } else if (level === 'priority') {
-      this.groupBy.level2.order = order;
+  saveGroupBy() {
+    let obj = {
+      View: '',
+      GroupBy: [
+        {
+          Status: {
+            Id: this.statusSelected?.Id,
+            Code: this.statusSelected?.Code,
+            Name: this.statusSelected?.Name,
+            Icon: this.statusSelected?.Icon,
+            Color: this.statusSelected?.Color,
+            Sort: this.statusSelected?.Sort,
+            Enable: this.statusSelected?.Enable,
+          },
+          OrderBy: this.statusOrder,
+        },
+        {
+          Priority: {
+            Id: this.prioritySelected?.Id,
+            Code: this.prioritySelected?.Code,
+            Name: this.prioritySelected?.Name,
+            Icon: this.prioritySelected?.Icon,
+            Color: this.prioritySelected?.Color,
+            Sort: this.prioritySelected?.Sort,
+            Enable: this.prioritySelected?.Enable,
+          },
+          OrderBy: this.priorityOrder,
+        },
+      ],
+    };
+    if(this.groupByConfig?.ViewActive) {
+      obj.View = this.groupByConfig?.ViewConfig.View;
+      //save change in space
+      let submitItem: any = {
+        Id: this.groupByConfig.Id,
+      };
+      //gán lại view
+     
+      submitItem.ViewConfig =  JSON.stringify(this.groupByConfig.SpaceConfig.map((item) => {
+        if (item.Code == this.groupByConfig.ViewActive) {
+          return {
+            ...item,
+            GroupBy: obj.GroupBy,
+            View: obj.View
+          };
+        }
+        return item;
+      }));
+     
+      console.log(submitItem);
+      console.log(JSON.parse(submitItem.ViewConfig));
+  
+      // if (this.submitAttempt == false) {
+      //   this.submitAttempt = true;
+      //   this.viewProvider
+      //     .save(submitItem)
+      //     .then((result: any) => {
+      //       this.groupByConfig.Id = result.Id;
+      //       this.env.showTranslateMessage('View saved', 'success');
+      //       this.submitAttempt = false;
+      //       this.loadedData();
+      //     })
+      //     .catch((err) => {
+      //       this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+      //       this.submitAttempt = false;
+      //     });
+      // }
+    }else {
+      //save change in view
+      let submitItem: any = {
+        Id: this.groupByConfig?.Id ?? 0,
+        IDProject: this.groupByConfig?.IDProject,
+        Type: this.groupByConfig.Type,
+        Name: this.groupByConfig.Name
+      };
+  
+      obj.View = this.groupByConfig?.ViewConfig.View;
+      submitItem.ViewConfig = JSON.stringify(obj);
+  
+      if (this.submitAttempt == false) {
+        this.submitAttempt = true;
+        this.viewProvider
+          .save(submitItem)
+          .then((result: any) => {
+            this.groupByConfig.Id = result.Id;
+            this.env.showTranslateMessage('View saved', 'success');
+            this.submitAttempt = false;
+            this.loadedData();
+          })
+          .catch((err) => {
+            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.submitAttempt = false;
+          });
+      }
     }
   }
 
   deleteGroup(e) {
-    if(e == 'status') {
+    if (e == 'status') {
       this.statusSelected = null;
-      this.groupBy.level1.order = null;
-    }else {
+      this.statusOrder = null;
+    } else {
       this.prioritySelected = null;
-      this.groupBy.level2.order = null;
+      this.priorityOrder = null;
     }
+    this.saveGroupBy();
   }
-
 
   @Output() openTask = new EventEmitter();
   onOpenTask(task) {
     this.openTask.emit(task);
+  }
+
+  @Output() loaded = new EventEmitter();
+  loadedData() {
+    this.loaded.emit();
   }
   convertColorToHex(colorName) {
     const colorMap = {
