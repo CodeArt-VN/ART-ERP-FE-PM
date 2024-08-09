@@ -184,7 +184,7 @@ export class TaskTodoPage extends PageBase {
           })
           .catch((err) => {
             if (err.message != null) {
-              this.env.showMessage(err.message, 'danger');
+              this.env.showTranslateMessage(err.message, 'danger');
             } else {
               this.env.showTranslateMessage('Cannot loading data', 'danger');
             }

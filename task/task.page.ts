@@ -211,7 +211,7 @@ Segment change:
           if (defaultView) {
             this.view.activeView = defaultView?.Code;
           } else {
-            this.env.showMessage('No view found, please check space config', 'warning');
+            this.env.showTranslateMessage('No view found, please check space config', 'warning');
           }
         }
 
@@ -219,7 +219,7 @@ Segment change:
           this.space.statusList = resp.data;
         });
       } else {
-        this.env.showMessage('Space not found!', 'warning');
+        this.env.showTranslateMessage('Space not found!', 'warning');
       }
     } else {
       this.view.viewList = [];
@@ -309,7 +309,7 @@ Segment change:
     let task = this.items.find((d) => d.Id == taskId);
     if (taskId == 0) task = { Id: 0 };
     if (!task) {
-      this.env.showMessage('Task not found!', 'warning');
+      this.env.showTranslateMessage('Task not found!', 'warning');
       return;
     }
 
