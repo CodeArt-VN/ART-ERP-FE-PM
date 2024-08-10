@@ -565,7 +565,7 @@ Segment change:
     let task = this.items.find((d) => d.Id == taskId);
     if (taskId == 0) task = { Id: 0 };
     if (!task) {
-      this.env.showTranslateMessage('Task not found!', 'warning');
+      this.env.showMessage('Task not found!', 'warning');
       return;
     }
 

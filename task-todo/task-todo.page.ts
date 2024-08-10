@@ -146,7 +146,7 @@ export class TaskTodoPage extends PageBase {
     this.loadingController
       .create({
         cssClass: 'my-custom-class',
-        message: 'Đang tải dữ liệu...',
+        message: 'Please wait for a few moments',
       })
       .then((loading) => {
         loading.present();
@@ -184,9 +184,9 @@ export class TaskTodoPage extends PageBase {
           })
           .catch((err) => {
             if (err.message != null) {
-              this.env.showTranslateMessage(err.message, 'danger');
+              this.env.showMessage(err.message, 'danger');
             } else {
-              this.env.showTranslateMessage('Cannot loading data', 'danger');
+              this.env.showMessage('Cannot loading data', 'danger');
             }
             this.submitAttempt = false;
             if (loading) loading.dismiss();
@@ -221,9 +221,9 @@ export class TaskTodoPage extends PageBase {
         .toPromise()
         .then((rs) => {
           if (rs) {
-            this.env.showTranslateMessage('Saving completed!', 'success');
+            this.env.showMessage('Saving completed!', 'success');
           } else {
-            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.env.showMessage('Cannot save, please try again', 'danger');
           }
         });
     }

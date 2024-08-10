@@ -54,7 +54,7 @@ export class SpaceStatusModalPage extends PageBase {
   }
   saveStatus() {
     if (!this.formGroup.valid) {
-      this.env.showTranslateMessage('Please recheck information highlighted in red above', 'warning');
+      this.env.showMessage('Please recheck information highlighted in red above', 'warning');
       return;
     }
 

@@ -221,7 +221,7 @@ export class SpaceDetailPage extends PageBase {
 
   removeStatus(g, id) {
     this.env
-      .showPrompt2('Bạn có chắc muốn xóa không?', null, 'Xóa Status')
+      .showPrompt('Bạn có chắc muốn xóa không?', null, 'Xóa Status')
       .then((_) => {
         this.item.SpaceStatus = this.item.SpaceStatus.filter((f) => f.Id != id);
         let deletedSpaceStatus = this.formGroup.get('DeletedSpaceStatus').value;
