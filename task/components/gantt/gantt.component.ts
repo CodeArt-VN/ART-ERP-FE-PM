@@ -326,7 +326,7 @@ export class GanttComponent implements OnInit {
         if (this.submitAttempt == false) {
           this.submitAttempt = true;
           this.env
-            .showPrompt2(
+            .showPrompt(
               {code:'Bạn có chắc muốn xóa liên kết <b> {{value}} - {{value1}} </b> không?',value:{value:src.text,value1:trg.text}},
               null,
               '',
@@ -461,7 +461,7 @@ export class GanttComponent implements OnInit {
     if (this.submitAttempt == false) {
       this.submitAttempt = true;
       this.env
-        .showPrompt2('Bạn có chắc muốn sắp xếp lại các liên kết không?', null, '')
+        .showPrompt('Bạn có chắc muốn sắp xếp lại các liên kết không?', null, '')
         .then((_) => {
           let obj = {
             LinksUpdate: linksUpdate,
@@ -529,12 +529,12 @@ export class GanttComponent implements OnInit {
         this.pageProvider
           .save(_task)
           .then((savedItem: any) => {
-            this.env.showTranslateMessage('Saving completed!', 'success');
+            this.env.showMessage('Saving completed!', 'success');
             resolve(savedItem.Id);
             this.submitAttempt = false;
           })
           .catch((err) => {
-            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.env.showMessage('Cannot save, please try again', 'danger');
             this.submitAttempt = false;
             reject(err);
           });
@@ -561,11 +561,11 @@ export class GanttComponent implements OnInit {
             };
             //add new
             gantt.addLink(newLink);
-            this.env.showTranslateMessage('Saving completed!', 'success');
+            this.env.showMessage('Saving completed!', 'success');
             this.submitAttempt = false;
           })
           .catch((err) => {
-            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.env.showMessage('Cannot save, please try again', 'danger');
             this.submitAttempt = false;
             reject(err);
           });
@@ -580,11 +580,11 @@ export class GanttComponent implements OnInit {
         this.taskLinkService
           .save(this.formatLink(link))
           .then((data: any) => {
-            this.env.showTranslateMessage('Saving completed!', 'success');
+            this.env.showMessage('Saving completed!', 'success');
             this.submitAttempt = false;
           })
           .catch((err) => {
-            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.env.showMessage('Cannot save, please try again', 'danger');
             this.submitAttempt = false;
             reject(err);
           });
@@ -600,12 +600,12 @@ export class GanttComponent implements OnInit {
         this.taskLinkService
           .delete(this.formatLink(link))
           .then(() => {
-            this.env.showTranslateMessage('Deleted!', 'success');
+            this.env.showMessage('Deleted!', 'success');
             gantt.deleteLink(id);
             this.submitAttempt = false;
           })
           .catch((err) => {
-            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.env.showMessage('Cannot save, please try again', 'danger');
             this.submitAttempt = false;
             reject(err);
           });
