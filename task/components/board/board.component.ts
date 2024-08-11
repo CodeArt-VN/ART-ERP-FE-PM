@@ -310,12 +310,12 @@ export class BoardComponent implements OnInit {
               itemUpdate.Status = savedItem.Status;
             }
             this.loadedData();
-            this.env.showTranslateMessage('Saving completed!', 'success');
+            this.env.showMessage('Saving completed!', 'success');
             resolve(savedItem.Id);
             this.submitAttempt = false;
           })
           .catch((err) => {
-            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.env.showMessage('Cannot save, please try again', 'danger');
             this.submitAttempt = false;
             reject(err);
           });
@@ -382,12 +382,12 @@ export class BoardComponent implements OnInit {
           .save(submitItem)
           .then((result: any) => {
             this.groupByConfig.Id = result.Id;
-            this.env.showTranslateMessage('View saved', 'success');
+            this.env.showMessage('View saved', 'success');
             this.submitAttempt = false;
             this.loadedData();
           })
           .catch((err) => {
-            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.env.showMessage('Cannot save, please try again', 'danger');
             this.submitAttempt = false;
           });
       }
@@ -409,12 +409,12 @@ export class BoardComponent implements OnInit {
           .save(submitItem)
           .then((result: any) => {
             this.groupByConfig.Id = result.Id;
-            this.env.showTranslateMessage('View saved', 'success');
+            this.env.showMessage('View saved', 'success');
             this.submitAttempt = false;
             this.loadedData();
           })
           .catch((err) => {
-            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.env.showMessage('Cannot save, please try again', 'danger');
             this.submitAttempt = false;
           });
       }
