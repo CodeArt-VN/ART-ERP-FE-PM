@@ -593,7 +593,7 @@ Segment change:
 
   saveView(i) {
     if (!i._formGroup.valid) {
-      this.env.showTranslateMessage('Please recheck information highlighted in red above', 'warning');
+      this.env.showMessage('Please recheck information highlighted in red above', 'warning');
     } else {
       let submitItem: any = {
         Id: i.Id,
@@ -631,12 +631,12 @@ Segment change:
           .save(submitItem)
           .then((result: any) => {
             this.editView.Id = result.Id;
-            this.env.showTranslateMessage('View saved', 'success');
+            this.env.showMessage('View saved', 'success');
             this.submitAttempt = false;
             this.loadedData();
           })
           .catch((err) => {
-            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.env.showMessage('Cannot save, please try again', 'danger');
             this.submitAttempt = false;
           });
       }
