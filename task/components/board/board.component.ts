@@ -3,6 +3,7 @@ import { NavController, ModalController, AlertController, LoadingController, Pop
 import { EnvService } from 'src/app/services/core/env.service';
 import {
   BRA_BranchProvider,
+  PM_SpaceProvider,
   PM_TaskLinkProvider,
   PM_TaskProvider,
   PM_ViewProvider,
@@ -79,6 +80,7 @@ export class BoardComponent implements OnInit {
     public pageProvider: PM_TaskProvider,
     public taskLinkService: PM_TaskLinkProvider,
     public viewProvider: PM_ViewProvider,
+    public spaceProvider: PM_SpaceProvider,
     public branchProvider: BRA_BranchProvider,
     public modalController: ModalController,
     public popoverCtrl: PopoverController,
@@ -110,16 +112,18 @@ export class BoardComponent implements OnInit {
       this.priorityList.forEach((i) => {
         i.Code = parseInt(i.Code);
       });
-      this.groupBy.level2.list =this.priorityList;
-      if (typeof kanban !== 'undefined') this.initKanban();
-      else {
+      this.groupBy.level2.list = this.priorityList;
+      if (typeof kanban !== 'undefined') {
+        setTimeout(() => {
+          this.initKanban();
+        }, 100);
+      } else {
         this.dynamicScriptLoaderService
           .loadResources(this.kanbanSource.source)
           .then(() => {
             setTimeout(() => {
               this.initKanban();
-            }, 1);
-            
+            }, 100);
           })
           .catch((error) => console.error('Error loading script', error));
       }
@@ -128,16 +132,24 @@ export class BoardComponent implements OnInit {
 
   initKanban() {
     if (this.groupByConfig?.ViewConfig) {
-      //if(!this.groupByConfig?.ViewActive) {
-        //config in view
-        this.statusSelected = this.groupByConfig.ViewConfig?.GroupBy[0]?.Status;
-        this.statusOrder = this.groupByConfig.ViewConfig?.GroupBy[0]?.OrderBy;
-        this.prioritySelected = this.groupByConfig.ViewConfig?.GroupBy[1]?.Priority;
-        this.priorityOrder = this.groupByConfig.ViewConfig?.GroupBy[1]?.OrderBy;
-      //}else {
-        //config in space
-        //this.priorityOrder = this.groupByConfig.ViewActive;
-     // }
+      if (this.groupByConfig?.SpaceViewActive) {
+        // get config in space
+        let boardInSpace = this.groupByConfig.ViewConfig.find((d) => d.Code == this.groupByConfig.SpaceViewActive);
+        if (boardInSpace.GroupBy) {
+          this.statusSelected = boardInSpace.GroupBy[0]?.Status;
+          this.statusOrder = boardInSpace.GroupBy[0]?.OrderBy;
+          this.prioritySelected = boardInSpace.GroupBy[1]?.Priority;
+          this.priorityOrder = boardInSpace.GroupBy[1]?.OrderBy;
+        }
+      } else {
+        // get config in view
+        if (this.groupByConfig.ViewConfig?.GroupBy) {
+          this.statusSelected = this.groupByConfig.ViewConfig?.GroupBy[0]?.Status;
+          this.statusOrder = this.groupByConfig.ViewConfig?.GroupBy[0]?.OrderBy;
+          this.prioritySelected = this.groupByConfig.ViewConfig?.GroupBy[1]?.Priority;
+          this.priorityOrder = this.groupByConfig.ViewConfig?.GroupBy[1]?.OrderBy;
+        }
+      }
     }
     let allUsersSet = new Map<number, any>();
     this.items.forEach((item: any) => {
@@ -189,10 +201,10 @@ export class BoardComponent implements OnInit {
     const cards = data;
 
     let rows: any[] = this.groupBy.level2.list.map((row: any) => {
-        return {
-          id: row.Code,
-          label: row.Name,
-        };
+      return {
+        id: row.Code,
+        label: row.Name,
+      };
     });
 
     rows.forEach((row: any) => {
@@ -264,16 +276,11 @@ export class BoardComponent implements OnInit {
       this.onOpenTask(duplicateTask);
     });
 
-    // board.api.on('update-card', (obj) => {
-    //   console.log(obj);
-    // });
-    // board.api.intercept('delete-card', (obj) => {
-    //   console.log(obj.id);
-    //   return false;
-    // });
+    board.api.on('move-card', (task) => {
+      this.updateTask(task);
+    });
+   
   }
-
-
 
   changeSelected(type) {
     if (type == 'Status') {
@@ -284,7 +291,40 @@ export class BoardComponent implements OnInit {
     this.saveGroupBy();
   }
 
+  updateTask(task) {
+    let _task = {
+      Id: task.id,
+      Priority: task.rowId,
+      Status: task.columnId,
+    };
+
+    return new Promise((resolve, reject) => {
+      if (this.submitAttempt == false) {
+        this.submitAttempt = true;
+        this.pageProvider
+          .save(_task)
+          .then((savedItem: any) => {
+            let itemUpdate = this.items.find((d) => d.Id === savedItem.Id);
+            if (itemUpdate) {
+              itemUpdate.Priority = savedItem.Priority;
+              itemUpdate.Status = savedItem.Status;
+            }
+            this.loadedData();
+            this.env.showTranslateMessage('Saving completed!', 'success');
+            resolve(savedItem.Id);
+            this.submitAttempt = false;
+          })
+          .catch((err) => {
+            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.submitAttempt = false;
+            reject(err);
+          });
+      }
+    });
+  }
+
   saveGroupBy() {
+    // config value
     let obj = {
       View: '',
       GroupBy: [
@@ -314,55 +354,55 @@ export class BoardComponent implements OnInit {
         },
       ],
     };
-    if(this.groupByConfig?.ViewActive) {
-      obj.View = this.groupByConfig?.ViewConfig.View;
-      //save change in space
+
+    if (this.groupByConfig?.SpaceViewActive) {
+      //save change config in space
       let submitItem: any = {
         Id: this.groupByConfig.Id,
+        IDProject: this.groupByConfig?.IDProject,
       };
-      //gán lại view
-     
-      submitItem.ViewConfig =  JSON.stringify(this.groupByConfig.SpaceConfig.map((item) => {
-        if (item.Code == this.groupByConfig.ViewActive) {
-          return {
-            ...item,
-            GroupBy: obj.GroupBy,
-            View: obj.View
-          };
-        }
-        return item;
-      }));
-     
-      console.log(submitItem);
-      console.log(JSON.parse(submitItem.ViewConfig));
-  
-      // if (this.submitAttempt == false) {
-      //   this.submitAttempt = true;
-      //   this.viewProvider
-      //     .save(submitItem)
-      //     .then((result: any) => {
-      //       this.groupByConfig.Id = result.Id;
-      //       this.env.showTranslateMessage('View saved', 'success');
-      //       this.submitAttempt = false;
-      //       this.loadedData();
-      //     })
-      //     .catch((err) => {
-      //       this.env.showTranslateMessage('Cannot save, please try again', 'danger');
-      //       this.submitAttempt = false;
-      //     });
-      // }
-    }else {
-      //save change in view
+      //change 'ViewConfig' in 'space' but not change previous 'ViewConfig'
+      submitItem.ViewConfig = JSON.stringify(
+        this.groupByConfig.ViewConfig.map((item) => {
+          //check is board and add GroupBy, View
+          if (item.Code == this.groupByConfig.SpaceViewActive) {
+            return {
+              ...item,
+              GroupBy: obj.GroupBy,
+              View: obj.View,
+            };
+          }
+          return item;
+        }),
+      );
+
+      if (this.submitAttempt == false) {
+        this.submitAttempt = true;
+        this.spaceProvider
+          .save(submitItem)
+          .then((result: any) => {
+            this.groupByConfig.Id = result.Id;
+            this.env.showTranslateMessage('View saved', 'success');
+            this.submitAttempt = false;
+            this.loadedData();
+          })
+          .catch((err) => {
+            this.env.showTranslateMessage('Cannot save, please try again', 'danger');
+            this.submitAttempt = false;
+          });
+      }
+    } else {
+      //save change config in view
       let submitItem: any = {
         Id: this.groupByConfig?.Id ?? 0,
         IDProject: this.groupByConfig?.IDProject,
         Type: this.groupByConfig.Type,
-        Name: this.groupByConfig.Name
+        Name: this.groupByConfig.Name,
       };
-  
+
       obj.View = this.groupByConfig?.ViewConfig.View;
       submitItem.ViewConfig = JSON.stringify(obj);
-  
+
       if (this.submitAttempt == false) {
         this.submitAttempt = true;
         this.viewProvider

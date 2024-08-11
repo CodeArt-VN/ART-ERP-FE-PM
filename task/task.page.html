@@ -143,21 +143,23 @@
     </div>
   </ion-fab>
   <div class="row-full shadow full-screen" *ngIf="items.length && pageConfig.showSpinner==false">
-    <app-board
-      *ngIf="view.activeView == 'Board' || viewConfigActive == 'Board'"
-      [items]="items"
-      [statusList]="this.space.statusList"
-      [groupByConfig]="this.groupByConfig"
-      [viewList]="this.statusGroupBy"
-      (loaded)="loadedData()"
-      (openTask)="onKanbanOpenTask($event)"
-    >
-    </app-board>
-    <app-gantt
-      *ngIf="view.activeView == 'Gantt' || viewConfigActive == 'Gantt'"
-      [items]="items"
-      [linksData]="linksData"
-      (openTask)="onGanttOpenTask($event)"
-    ></app-gantt>
+    <ng-container *ngIf="isSegmentActive">
+      <app-board
+        *ngIf="view.activeView == 'Board' || viewConfigActive == 'Board'"
+        [items]="items"
+        [statusList]="this.space.statusList"
+        [groupByConfig]="this.groupByConfig"
+        [viewList]="this.statusGroupBy"
+        (loaded)="loadedData()"
+        (openTask)="onKanbanOpenTask($event)"
+      ></app-board>
+    
+      <app-gantt
+        *ngIf="view.activeView == 'Gantt' || viewConfigActive == 'Gantt'"
+        [items]="items"
+        [linksData]="linksData"
+        (openTask)="onGanttOpenTask($event)"
+      ></app-gantt>
+    </ng-container>
   </div>
 </ion-content>

@@ -84,6 +84,7 @@ Segment change:
   groupByConfig;
   viewConfigActive = ''; // active View in config
 
+  isSegmentActive: boolean = true;
   groupValue = [
     {
       Name: 'Shown',
@@ -232,12 +233,30 @@ Segment change:
     // - Get views/ default view from space
     // - Call Segment change to default view
 
-    // - loaded View config if change view
-    Promise.all([this.viewProvider.read({ IDProject: this.id })]).then((values: any) => {
+    //loaded View config
+    let promises = [this.viewProvider.read({ IDProject: this.id })]; //
+    if (this.items.length) {
+      promises.push(this.taskLinkService
+      .read({
+        Source: JSON.stringify(this.items.map((d) => d.Id)),
+        Target: JSON.stringify(this.items.map((d) => d.Id)),
+      }));
+    }
+    //reload this.space.activeSpace if change
+    if(this.groupByConfig?.SpaceViewActive) {
+      promises.push(this.spaceProvider.read());
+    }
+
+    if (this.space.Id) {
+      promises.push(this.spaceStatusProvider.read({ IDSpace: this.space.Id }));
+    }
+
+   
+    Promise.all(promises).then((values: any) => {
       if (values[0].data) {
         this.viewConfig = values[0].data;
       }
-   
+      let indexPromises = 1;
       this.items.forEach((i) => {
         i._isRoot = i.IDParent == null || i.Id == this.id;
         i._Type = this.typeList.find((d) => d.Code == i.Type);
@@ -248,14 +267,13 @@ Segment change:
       });
 
       if (this.items.length) {
-        this.taskLinkService
-          .read({
-            Source: JSON.stringify(this.items.map((d) => d.Id)),
-            Target: JSON.stringify(this.items.map((d) => d.Id)),
-          })
-          .then((resp: any) => {
-            this.linksData = resp.data;
-          });
+        this.linksData = values[indexPromises].data;
+        indexPromises++;
+      }
+
+      if (this.groupByConfig?.SpaceViewActive) {
+        this.space.spaceList = values[indexPromises].data; 
+        indexPromises++;
       }
 
       let groupBy: any = {
@@ -289,44 +307,21 @@ Segment change:
             }
           }
 
-          this.spaceStatusProvider.read({ IDSpace: this.space.Id }).then((resp: any) => {
-            this.space.statusList = resp.data;
-          });
+          //get status list in space
+          this.space.statusList = values[indexPromises].data;
 
-          let isViewBoard = values[0].data.find((d) => d.Name == this.view.activeView);
-          if (isViewBoard) {
+          // Check is 'view' or 'space'
+          let isView  = values[0].data.find((d) => d.Name == this.view.activeView);
+          if (isView) {
             //custom view
-            groupBy.ViewConfig = JSON.parse(isViewBoard?.ViewConfig);
-            groupBy.Id = isViewBoard?.Id;
+            groupBy.ViewConfig = JSON.parse(isView?.ViewConfig);
+            groupBy.Id = isView?.Id;
           } else {
             //space
             groupBy.Id = this.space.Id;
             groupBy.IDProject = parseInt(this.id);
-            groupBy.ViewActive = this.view.activeView;
-
-            groupBy.SpaceConfig = JSON.parse(this.space.activeSpace.ViewConfig);
-
-            if (this.view.activeView == 'Board') {
-              const viewConfig = Object.entries(this.itemsView).reduce((i, [groupName, items]) => {
-                i[groupName] = items.map((item) => ({
-                  Id: item.Id,
-                  Code: item.Code,
-                  Name: item.Name,
-                  Icon: item.Icon,
-                  Color: item.Color,
-                  Sort: item.Sort,
-                  Enable: item.Enable,
-                }));
-                return i;
-              }, {} as { [key: string]: { Id: any; Code: string; Name: string; Icon: string; Color: string; Sort: string; Enable: string }[] });
-              let obj = {
-                View: viewConfig,
-                Group: '',
-              };
-              let group = this.viewConfig.find((d) => d.Name == this.view.activeView);
-              if (group) obj.Group = JSON.parse(group.ViewConfig)?.Group;
-              groupBy.ViewConfig = JSON.stringify(obj);
-            }
+            groupBy.SpaceViewActive = this.view.activeView;
+            groupBy.ViewConfig = JSON.parse(this.space.activeSpace.ViewConfig);
           }
       
         } else {
@@ -386,26 +381,33 @@ Segment change:
       }, 1);
     }
 
-    //check in config
+    this.isSegmentActive = false;
+    setTimeout(() => {
+      this.isSegmentActive = true; 
+    }, 50); 
+    
+
+     // Check is 'view' or 'space'
     this.viewConfigActive = this.view.activeView;
     let activeView = this.viewConfig.find((d) => d.Name == this.view.activeView);
     if (activeView) this.viewConfigActive = activeView.Type;
 
     if (this.viewConfig) {
-      let isViewBoard = this.viewConfig.find((d) => d.Name == this.view.activeView);
-      if (isViewBoard) {
+      let isView = this.viewConfig.find((d) => d.Name == this.view.activeView);
+      if (isView) {
         let groupByInBoard: any = {
           IDProject: parseInt(this.id),
           ViewConfig: '',
         };
-        groupByInBoard.ViewConfig = JSON.parse(isViewBoard?.ViewConfig);
-        groupByInBoard.Id = isViewBoard?.Id;
+        groupByInBoard.ViewConfig = JSON.parse(isView?.ViewConfig);
+        groupByInBoard.Id = isView?.Id;
         this.groupByConfig = groupByInBoard;
       } else {
         let groupBySpace: any = {
           Id: this.space.Id,
           IDProject: parseInt(this.id),
-          ViewConfig: this.space.activeSpace.ViewConfig,
+          SpaceViewActive: this.view.activeView,
+          ViewConfig: JSON.parse(this.space.activeSpace.ViewConfig),
         };
         this.groupByConfig = groupBySpace;
       }
