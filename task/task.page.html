@@ -48,12 +48,12 @@
     </ion-segment>
 
     <ion-buttons slot="end">
-      <ion-button fill="outline" size="small" class="small-btn" (click)="addView()">
+      <ion-button fill="outline" size="small" class="small-btn" (click)="customizeView('add')">
         <ion-icon slot="start" name="add"></ion-icon>
         {{'View' | translate}}
       </ion-button>
 
-      <ion-button fill="outline" size="small" class="small-btn" (click)="customizeView()">
+      <ion-button fill="outline" size="small" class="small-btn" (click)="customizeView('edit')">
         <ion-icon slot="start" name="cog-outline"></ion-icon>
         {{'Customize' | translate}}
       </ion-button>

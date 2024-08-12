@@ -255,6 +255,10 @@ Segment change:
     Promise.all(promises).then((values: any) => {
       if (values[0].data) {
         this.viewConfig = values[0].data;
+         // Check is 'view' or 'space'
+         this.viewConfigActive = this.view.activeView;
+         let activeView = this.viewConfig.find((d) => d.Name == this.view.activeView);
+         if (activeView) this.viewConfigActive = activeView.Type;
       }
       let indexPromises = 1;
       this.items.forEach((i) => {
@@ -414,46 +418,44 @@ Segment change:
     }
   }
 
-  addView() {
+  customizeView(type) {
     this.pageConfig.isShowFeature = !this.pageConfig.isShowFeature;
 
     if (this.pageConfig.isShowFeature) {
-      if (this.itemsView['Shown']) {
-        const shownItems = this.itemsView['Shown'];
-        shownItems.forEach((i) => {
-          i.Enable = false;
-        });
-        this.itemsView['Hidden'].push(...shownItems);
-        this.itemsView['Shown'] = [];
-      }
-      const view = {
-        Id: 0,
-        _formGroup: this.formBuilder.group({
-          ViewName: ['', Validators.required],
-          ViewType: ['', Validators.required],
-        }),
-      };
-      this.editView = view;
-    }
-  }
-
-  customizeView() {
-    this.pageConfig.isShowFeature = !this.pageConfig.isShowFeature;
-
-    if (this.pageConfig.isShowFeature) {
-      let view = this.viewConfig.find((d) => d.Name == this.view.activeView);
-      if (view) {
-        const customizeView = {
-          Id: view.Id,
+      if(type == 'add') {
+        // add
+          if (this.itemsView['Shown']) {
+          const shownItems = this.itemsView['Shown'];
+          shownItems.forEach((i) => {
+            i.Enable = false;
+          });
+          this.itemsView['Hidden'].push(...shownItems);
+          this.itemsView['Shown'] = [];
+        }
+        const view = {
+          Id: 0,
           _formGroup: this.formBuilder.group({
-            ViewName: [view.Name, Validators.required],
-            ViewType: [view.Type, Validators.required],
+            ViewName: ['', Validators.required],
+            ViewType: ['', Validators.required],
           }),
         };
-        if (view.ViewConfig) this.itemsView = JSON.parse(view.ViewConfig)?.View;
-        this.editView = customizeView;
-      } else {
-        this.editView = null;
+        this.editView = view;
+      }else {
+        // edit
+        let view = this.viewConfig.find((d) => d.Name == this.view.activeView);
+        if (view) {
+          const customizeView = {
+            Id: view.Id,
+            _formGroup: this.formBuilder.group({
+              ViewName: [view.Name, Validators.required],
+              ViewType: [view.Type, Validators.required],
+            }),
+          };
+          if (view.ViewConfig) this.itemsView = JSON.parse(view.ViewConfig)?.View;
+          this.editView = customizeView;
+        } else {
+          this.editView = null;
+        }
       }
     }
   }
@@ -634,6 +636,15 @@ Segment change:
             this.env.showMessage('View saved', 'success');
             this.submitAttempt = false;
             this.loadedData();
+            //change name, type
+            let activeView = this.viewConfig.find((d) => d.Id == result.Id);
+            if (activeView) {
+              //update
+              activeView.Name = result.Name;
+              activeView.Type = result.Type;
+            }else {
+              this.viewConfig.push(result);
+            }
           })
           .catch((err) => {
             this.env.showMessage('Cannot save, please try again', 'danger');

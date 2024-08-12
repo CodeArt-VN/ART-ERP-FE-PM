@@ -131,26 +131,6 @@ export class BoardComponent implements OnInit {
   }
 
   initKanban() {
-    if (this.groupByConfig?.ViewConfig) {
-      if (this.groupByConfig?.SpaceViewActive) {
-        // get config in space
-        let boardInSpace = this.groupByConfig.ViewConfig.find((d) => d.Code == this.groupByConfig.SpaceViewActive);
-        if (boardInSpace.GroupBy) {
-          this.statusSelected = boardInSpace.GroupBy[0]?.Status;
-          this.statusOrder = boardInSpace.GroupBy[0]?.OrderBy;
-          this.prioritySelected = boardInSpace.GroupBy[1]?.Priority;
-          this.priorityOrder = boardInSpace.GroupBy[1]?.OrderBy;
-        }
-      } else {
-        // get config in view
-        if (this.groupByConfig.ViewConfig?.GroupBy) {
-          this.statusSelected = this.groupByConfig.ViewConfig?.GroupBy[0]?.Status;
-          this.statusOrder = this.groupByConfig.ViewConfig?.GroupBy[0]?.OrderBy;
-          this.prioritySelected = this.groupByConfig.ViewConfig?.GroupBy[1]?.Priority;
-          this.priorityOrder = this.groupByConfig.ViewConfig?.GroupBy[1]?.OrderBy;
-        }
-      }
-    }
     let allUsersSet = new Map<number, any>();
     this.items.forEach((item: any) => {
       if (Array.isArray(item._members)) {
@@ -168,6 +148,114 @@ export class BoardComponent implements OnInit {
 
     let allUsers = Array.from(allUsersSet.values());
 
+    let priorityList: any[] = this.priorityList?.map((priority: any) => {
+      const code = parseInt(priority.Code);
+      return {
+        id: code,
+        label: priority.Name,
+        value: code,
+        color: this.convertColorToHex(priority.Color.toLowerCase()),
+      };
+    });
+
+    const cardShape = {
+      label: true,
+      description: true,
+      progress: true,
+      start_date: true,
+      end_date: true,
+      users: {
+        show: true,
+        values: allUsers,
+      },
+      priority: {
+        show: true,
+        values: priorityList,
+      },
+      color: false,
+      menu: false,
+      cover: false,
+      attached: false,
+    };
+
+    this.board = new kanban.Kanban('#kanban_here', {
+      rowKey: 'row_custom_key',
+      columnKey: 'column_custom_key',
+      cardShape,
+      readonly: {
+        edit: false,
+        add: false,
+        select: true,
+        dnd: true,
+      },
+    });
+
+    this.board.api.intercept('select-card', ({ id }) => {
+      let task = this.items.find((d) => d.Id == id);
+      if (task) {
+        this.onOpenTask({ Id: task.Id, IDParent: task.IDParent });
+      }
+      return false;
+    });
+
+    this.board.api.intercept('add-card', (obj) => {
+      if (!obj.before) {
+        this.onOpenTask({ Id: 0, Status: obj.columnId, Type: obj.rowId });
+      }
+      return false;
+    });
+
+    this.board.api.intercept('duplicate-card', (obj) => {
+      let task = this.items.find((d) => d.Id == obj.id);
+      let duplicateTask = { ...task };
+      duplicateTask.Id = 0;
+      duplicateTask.Name = null;
+      duplicateTask.CreatedBy = null;
+      duplicateTask.CreatedDate = null;
+      duplicateTask.ModifiedBy = null;
+      duplicateTask.ModifiedDate = null;
+      this.onOpenTask(duplicateTask);
+    });
+
+    this.board.api.on('move-card', (task) => {
+      this.updateTask(task);
+    });
+
+    if (this.groupByConfig?.ViewConfig) {
+      if (this.groupByConfig?.SpaceViewActive) {
+        // get config in space
+        let boardInSpace = this.groupByConfig.ViewConfig.find((d) => d.Code == this.groupByConfig.SpaceViewActive);
+        if (boardInSpace.GroupBy) {
+          this.statusSelected = boardInSpace.GroupBy[0]?.Status;
+          this.statusOrder = boardInSpace.GroupBy[0]?.OrderBy;
+          this.prioritySelected = boardInSpace.GroupBy[1]?.Priority;
+          this.priorityOrder = boardInSpace.GroupBy[1]?.OrderBy;
+          //sort
+          this.sortGroupBy();
+        }
+      } else {
+        // get config in view
+        if (this.groupByConfig.ViewConfig?.GroupBy) {
+          this.statusSelected = this.groupByConfig.ViewConfig?.GroupBy[0]?.Status;
+          this.statusOrder = this.groupByConfig.ViewConfig?.GroupBy[0]?.OrderBy;
+          this.prioritySelected = this.groupByConfig.ViewConfig?.GroupBy[1]?.Priority;
+          this.priorityOrder = this.groupByConfig.ViewConfig?.GroupBy[1]?.OrderBy;
+          //sort
+          this.sortGroupBy();
+        }
+      }
+    }
+    this.loadKanban();
+  }
+
+  loadKanban() {
+    let columns: any[] = this.statusList?.map((status: any) => {
+      return {
+        id: status.Code,
+        label: status.Name,
+      };
+    });
+
     let data: any[] = this.items.map((task: any) => {
       return {
         id: task.Id,
@@ -180,22 +268,11 @@ export class BoardComponent implements OnInit {
         column_custom_key: task.Status,
         progress: task.Progress * 100,
         duration: task.Duration,
-      };
-    });
+        duration_plan: task.DurationPlan,
+        assignee : task.IDOwner,
+        due_date : task.Deadline,
+        date_updated : task.ModifiedDate,
 
-    let priorityList: any[] = this.priorityList?.map((priority: any) => {
-      const code = parseInt(priority.Code);
-      return {
-        id: code,
-        label: priority.Name,
-        value: code,
-        color: this.convertColorToHex(priority.Color.toLowerCase()),
-      };
-    });
-    let columns: any[] = this.statusList?.map((status: any) => {
-      return {
-        id: status.Code,
-        label: status.Name,
       };
     });
     const cards = data;
@@ -213,73 +290,11 @@ export class BoardComponent implements OnInit {
         row.collapsed = true;
       }
     });
-
-    const cardShape = {
-      label: true,
-      description: true,
-      progress: true,
-      start_date: true,
-      end_date: true,
-      users: {
-        show: true,
-        values: allUsers,
-      },
-      priority: {
-        show: true,
-        values: priorityList,
-      },
-      color: true,
-      menu: true,
-      cover: true,
-      attached: false,
-    };
-
-    const board = new kanban.Kanban('#kanban_here', {
-      rows,
+    this.board.parse({
       columns,
-      rowKey: 'row_custom_key',
-      columnKey: 'column_custom_key',
       cards,
-      cardShape,
-      readonly: {
-        edit: false,
-        add: false,
-        select: true,
-        dnd: true,
-      },
+      rows,
     });
-
-    board.api.intercept('select-card', ({ id }) => {
-      let task = this.items.find((d) => d.Id == id);
-      if (task) {
-        this.onOpenTask({ Id: task.Id, IDParent: task.IDParent });
-      }
-      return false;
-    });
-
-    board.api.intercept('add-card', (obj) => {
-      if (!obj.before) {
-        this.onOpenTask({ Id: 0, Status: obj.columnId, Type: obj.rowId });
-      }
-      return false;
-    });
-
-    board.api.intercept('duplicate-card', (obj) => {
-      let task = this.items.find((d) => d.Id == obj.id);
-      let duplicateTask = { ...task };
-      duplicateTask.Id = 0;
-      duplicateTask.Name = null;
-      duplicateTask.CreatedBy = null;
-      duplicateTask.CreatedDate = null;
-      duplicateTask.ModifiedBy = null;
-      duplicateTask.ModifiedDate = null;
-      this.onOpenTask(duplicateTask);
-    });
-
-    board.api.on('move-card', (task) => {
-      this.updateTask(task);
-    });
-   
   }
 
   changeSelected(type) {
@@ -308,6 +323,7 @@ export class BoardComponent implements OnInit {
             if (itemUpdate) {
               itemUpdate.Priority = savedItem.Priority;
               itemUpdate.Status = savedItem.Status;
+              this.loadKanban();
             }
             this.loadedData();
             this.env.showMessage('Saving completed!', 'success');
@@ -321,6 +337,68 @@ export class BoardComponent implements OnInit {
           });
       }
     });
+  }
+
+  sortGroupBy() {
+    if (!this.statusSelected?.Code) {
+      this.board.setSort({
+        by: (obj) => obj.id,
+        dir: 'desc',
+        preserve: false,
+      });
+
+    }
+    const sortDirection = this.statusOrder?.Code || 'desc';
+      let sortField: (obj: any) => any;
+      switch (this.statusSelected.Code) {
+        case 'TaskName':
+          sortField = (obj) => obj.label;
+          break;
+        case 'Status':
+          sortField = (obj) => obj.column_custom_key;
+          break;
+        case 'Assignee':
+          sortField = (obj) => obj.assignee;//
+          break;
+        case 'DueDate':
+          sortField = (obj) => obj.due_date;//
+          break;
+        case 'Priority':
+          sortField = (obj) => obj.priority;
+          break;
+        case 'DateCreated':
+          sortField = (obj) => obj.start_date;
+          break;
+        case 'CustomTaskId':
+          sortField = (obj) => obj.id;//
+          break;
+        case 'DateClosed':
+          sortField = (obj) => obj.end_date;
+          break;
+        case 'DateUpdated':
+          sortField = (obj) => obj.date_updated;//
+          break;
+        case 'Tags':
+          sortField = (obj) => obj.label;//
+          break;
+        case 'TaskId':
+          sortField = (obj) => obj.id;
+          break;  
+        case 'TimeEstimate':
+          sortField = (obj) => obj.duration_plan;//
+          break;
+        case 'TimeTracked':
+          sortField = (obj) => obj.label;//
+          break;  
+        default:
+          sortField = (obj) => obj.label; // Default sorting Name
+          break;
+      }
+      this.board.setSort({
+        by: sortField,
+        dir: sortDirection,
+        preserve: false,
+      });
   }
 
   saveGroupBy() {
@@ -385,6 +463,8 @@ export class BoardComponent implements OnInit {
             this.env.showMessage('View saved', 'success');
             this.submitAttempt = false;
             this.loadedData();
+            //sort
+            this.sortGroupBy();
           })
           .catch((err) => {
             this.env.showMessage('Cannot save, please try again', 'danger');
@@ -412,6 +492,8 @@ export class BoardComponent implements OnInit {
             this.env.showMessage('View saved', 'success');
             this.submitAttempt = false;
             this.loadedData();
+            //sort
+            this.sortGroupBy();
           })
           .catch((err) => {
             this.env.showMessage('Cannot save, please try again', 'danger');
