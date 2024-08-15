@@ -114,3 +114,29 @@
 .min-btn {
   cursor: pointer;
 }
+.icon-status {
+  margin: 0 3px;
+}
+
+.wx-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.wx-card-icons {
+  flex: 1 1 auto;
+  max-width: 150px;
+}
+
+.wx-footer.svelte-vhwr63.stack-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wx-footer.svelte-vhwr63.no-stack-fields {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+}

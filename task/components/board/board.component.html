@@ -3,14 +3,14 @@
     <ion-button size="small" shape="round" (click)="presentGroupPopover($event)">
       <ion-icon slot="start" name="layers"></ion-icon>
       Group : &nbsp;
-      <span *ngIf="statusSelected?.Name && prioritySelected?.Name">
-        {{ statusSelected.Name }} / {{ prioritySelected.Name }}
+      <span *ngIf="group1Selected && group2Selected ">
+        {{ getGroupName(group1Selected, 1) }} / {{ getGroupName(group2Selected, 2) }}
       </span>
-      <span *ngIf="statusSelected?.Name && !prioritySelected?.Name">
-        {{ statusSelected.Name }}
+      <span *ngIf="group1Selected && !group2Selected">
+        {{ getGroupName(group1Selected, 1) }}
       </span>
-      <span *ngIf="!statusSelected?.Name && prioritySelected?.Name">
-        {{ prioritySelected.Name }}
+      <span *ngIf="!group1Selected && group2Selected">
+        {{ getGroupName(group2Selected, 2) }}
       </span>
     </ion-button>
   </ion-toolbar>
@@ -30,13 +30,14 @@
               <div class="c-control">
                 <ng-select
                   appendTo="#ng-select-holder"
-                  [(ngModel)]="statusSelected"
+                  [(ngModel)]="group1Selected"
                   class="c-input"
                   [items]="groupBy.level1.list"
                   [clearable]="false"
                   [virtualScroll]="true"
                   bindLabel="Name"
-                  (change)="changeSelected('Status')"
+                  bindValue="Code"
+                  (change)="saveGroupBy()"
                 >
                   <ng-template ng-label-tmp let-i="item">
                     <div *ngIf="i">
@@ -56,7 +57,7 @@
                           name="checkmark-outline"
                           slot="end"
                           color="primary"
-                          *ngIf="statusSelected?.Code == i.Code"
+                          *ngIf="group1Selected?.Code == i.Code"
                         ></ion-icon>
                       </div>
                     </div>
@@ -66,12 +67,13 @@
               <div class="c-control group-by">
                 <ng-select
                   appendTo="#ng-select-holder"
-                  [(ngModel)]="statusOrder"
+                  [(ngModel)]="group1Order"
                   class="c-input"
                   [items]="groupBy.level1.order"
                   [clearable]="false"
                   [virtualScroll]="true"
                   bindLabel="Name"
+                  bindValue="Code"
                   (change)="saveGroupBy()"
                 >
                   <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
@@ -98,14 +100,16 @@
               <div class="c-control">
                 <ng-select
                   appendTo="#ng-select-holder"
-                  [(ngModel)]="prioritySelected"
+                  [(ngModel)]="group2Selected"
                   class="c-input"
                   [items]="groupBy.level2.list"
                   [clearable]="false"
                   [virtualScroll]="true"
                   bindLabel="Name"
-                  (change)="changeSelected('Priority')"
+                  bindValue="Code"
+                  (change)="saveGroupBy()"
                 >
+                
                   <ng-template ng-label-tmp let-i="item">
                     <div *ngIf="i">
                       <div>
@@ -134,12 +138,13 @@
               <div class="c-control group-by">
                 <ng-select
                   appendTo="#ng-select-holder"
-                  [(ngModel)]="priorityOrder"
+                  [(ngModel)]="group2Order"
                   class="c-input"
                   [items]="groupBy.level2.order"
                   [clearable]="false"
                   [virtualScroll]="true"
                   bindLabel="Name"
+                  bindValue="Code"
                   (change)="saveGroupBy()"
                 >
                   <ng-template ng-option-tmp let-i="item" let-search="searchTerm">

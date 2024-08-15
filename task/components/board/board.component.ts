@@ -21,10 +21,10 @@ declare var kanban: any;
 export class BoardComponent implements OnInit {
   @ViewChild('groupPopover') groupPopover;
 
-  statusSelected;
-  prioritySelected;
-  statusOrder;
-  priorityOrder;
+  group1Selected;
+  group2Selected;
+  group1Order;
+  group2Order;
 
   priorityList;
   typeList;
@@ -172,18 +172,139 @@ export class BoardComponent implements OnInit {
         show: true,
         values: priorityList,
       },
-      color: false,
-      menu: false,
+      color: true,
+      menu: true,
       cover: false,
       attached: false,
     };
+
+    const cardTemplate = ({ cardFields, selected, dragging, cardShape }, viewConfig) => {
+      const {
+        task,
+        id,
+        label,
+        priority,
+        users,
+        start_date,
+        end_date,
+        status,
+        progress,
+        duration,
+        row_custom_key,
+        column_custom_key,
+      } = cardFields;
+
+      const showEmptyFields = viewConfig.Layout.Card.IsEmptyFields;
+      const stackFields = viewConfig.Layout.Card.IsStackFields;
+
+      const options: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true,
+      };
+
+      const optionsStartEnd: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      };
+
+      if (viewConfig?.Fields) {
+        const generateFieldsHtml = (fields, showEmptyFields, stackFields) => {
+          const fieldHtml = fields
+            .map((field) => {
+              const color = field.Color || '';
+              const icon = field.Icon || '';
+              const fieldValue = task[field.Name] || '-';
+
+              const show = showEmptyFields || task[field.Name];
+              const displayText = task[field.Name] ? `${field.Name}: ${fieldValue}` : showEmptyFields ? `-` : '';
+
+              return show
+                ? `
+            <div class="wx-card-icons svelte-vhwr63">
+              <div class="wx-icons-container svelte-vhwr63">
+                <div class="wx-date svelte-vhwr63">
+                  <span class="icon-status">
+                    <ion-icon class="menu-icon ios ion-color ion-color-${color} hydrated" role="img" name="${icon}"></ion-icon>
+                  </span>
+                  <span class="wx-date-value svelte-vhwr63">${displayText}</span>
+                </div>
+              </div>
+              <div class="wx-icons-container svelte-vhwr63">  </div>
+            </div>
+          `
+                : '';
+            })
+            .join('');
+
+          if (stackFields) {
+            return `
+            <div class="wx-footer svelte-vhwr63 stack-fields">
+              ${fieldHtml}
+            </div>
+          `;
+          } else {
+            return `
+            <div class="wx-footer svelte-vhwr63 no-stack-fields">
+              ${fieldHtml}
+            </div>
+          `;
+          }
+        };
+
+        const fieldsHtml = generateFieldsHtml(viewConfig.Fields, showEmptyFields, stackFields);
+        return `
+          <div class="wx-content svelte-kqkezg">
+              <div class="wx-card-header svelte-upffav">
+              </div>
+              <div class="wx-body svelte-kqkezg">
+             
+              </div>
+     
+              <div class="wx-footer  ${stackFields ? 'stack-fields' : 'no-stack-fields'} wx-with-content">
+                 ${fieldsHtml}
+              </div>
+          </div>
+    
+        `;
+      }
+    };
+
+    let viewConfig = [];
+    if (this.groupByConfig?.ViewConfig) {
+      if (this.groupByConfig?.SpaceViewActive) {
+        // get config in space
+        let boardInSpace = this.groupByConfig.ViewConfig.find((d) => d.Code == this.groupByConfig.SpaceViewActive);
+        if (boardInSpace.GroupBy) {
+          this.group1Selected = boardInSpace.GroupBy.Group1?.Code;
+          this.group1Order = boardInSpace.GroupBy.Group1?.Sort;
+          this.group2Selected = boardInSpace.GroupBy.Group2?.Code;
+          this.group2Order = boardInSpace.GroupBy.Group2?.Sort;
+          viewConfig = boardInSpace;
+        }
+      } else {
+        // get config in view
+        if (this.groupByConfig.ViewConfig?.GroupBy) {
+          this.group1Selected = this.groupByConfig.ViewConfig.GroupBy.Group1?.Code;
+          this.group1Order = this.groupByConfig.ViewConfig.GroupBy.Group1?.Sort;
+          this.group2Selected = this.groupByConfig.ViewConfig.GroupBy.Group2?.Code;
+          this.group2Order = this.groupByConfig.ViewConfig.GroupBy.Group2?.Sort;
+        }
+        viewConfig = this.groupByConfig.ViewConfig;
+      }
+    }
 
     this.board = new kanban.Kanban('#kanban_here', {
       rowKey: 'row_custom_key',
       columnKey: 'column_custom_key',
       cardShape,
+      cardTemplate: kanban.template((card) => cardTemplate(card, viewConfig)),
       readonly: {
-        edit: false,
+        edit: true,
         add: false,
         select: true,
         dnd: true,
@@ -221,61 +342,35 @@ export class BoardComponent implements OnInit {
       this.updateTask(task);
     });
 
-    if (this.groupByConfig?.ViewConfig) {
-      if (this.groupByConfig?.SpaceViewActive) {
-        // get config in space
-        let boardInSpace = this.groupByConfig.ViewConfig.find((d) => d.Code == this.groupByConfig.SpaceViewActive);
-        if (boardInSpace.GroupBy) {
-          this.statusSelected = boardInSpace.GroupBy[0]?.Status;
-          this.statusOrder = boardInSpace.GroupBy[0]?.OrderBy;
-          this.prioritySelected = boardInSpace.GroupBy[1]?.Priority;
-          this.priorityOrder = boardInSpace.GroupBy[1]?.OrderBy;
-          //sort
-          this.sortGroupBy();
-        }
-      } else {
-        // get config in view
-        if (this.groupByConfig.ViewConfig?.GroupBy) {
-          this.statusSelected = this.groupByConfig.ViewConfig?.GroupBy[0]?.Status;
-          this.statusOrder = this.groupByConfig.ViewConfig?.GroupBy[0]?.OrderBy;
-          this.prioritySelected = this.groupByConfig.ViewConfig?.GroupBy[1]?.Priority;
-          this.priorityOrder = this.groupByConfig.ViewConfig?.GroupBy[1]?.OrderBy;
-          //sort
-          this.sortGroupBy();
-        }
-      }
-    }
     this.loadKanban();
   }
 
   loadKanban() {
-    let columns: any[] = this.statusList?.map((status: any) => {
-      return {
-        id: status.Code,
-        label: status.Name,
-      };
-    });
-
     let data: any[] = this.items.map((task: any) => {
       return {
+        task,
         id: task.Id,
         label: task.Name,
         priority: task.Priority,
         users: (task._members || []).map((d) => d.Id),
         start_date: task.StartDate.substring(0, 10),
         end_date: task.EndDate?.substring(0, 10),
-        row_custom_key: task.Priority,
-        column_custom_key: task.Status,
+        status: task.Status,
         progress: task.Progress * 100,
         duration: task.Duration,
-        duration_plan: task.DurationPlan,
-        assignee : task.IDOwner,
-        due_date : task.Deadline,
-        date_updated : task.ModifiedDate,
-
+        row_custom_key: task.Priority,
+        column_custom_key: task.Status,
       };
     });
     const cards = data;
+
+    let columns: any[] = this.items?.map((i: any) => {
+      return {
+        id: i.Id,
+        label: i.Status,
+      };
+    });
+   
 
     let rows: any[] = this.groupBy.level2.list.map((row: any) => {
       return {
@@ -290,20 +385,13 @@ export class BoardComponent implements OnInit {
         row.collapsed = true;
       }
     });
+
+
     this.board.parse({
       columns,
       cards,
-      rows,
+      //rows,
     });
-  }
-
-  changeSelected(type) {
-    if (type == 'Status') {
-      this.statusSelected.Type = 'Active';
-    } else {
-      this.prioritySelected.Type = 'Active';
-    }
-    this.saveGroupBy();
   }
 
   updateTask(task) {
@@ -339,123 +427,37 @@ export class BoardComponent implements OnInit {
     });
   }
 
-  sortGroupBy() {
-    if (!this.statusSelected?.Code) {
-      this.board.setSort({
-        by: (obj) => obj.id,
-        dir: 'desc',
-        preserve: false,
-      });
-
-    }
-    const sortDirection = this.statusOrder?.Code || 'desc';
-      let sortField: (obj: any) => any;
-      switch (this.statusSelected.Code) {
-        case 'TaskName':
-          sortField = (obj) => obj.label;
-          break;
-        case 'Status':
-          sortField = (obj) => obj.column_custom_key;
-          break;
-        case 'Assignee':
-          sortField = (obj) => obj.assignee;//
-          break;
-        case 'DueDate':
-          sortField = (obj) => obj.due_date;//
-          break;
-        case 'Priority':
-          sortField = (obj) => obj.priority;
-          break;
-        case 'DateCreated':
-          sortField = (obj) => obj.start_date;
-          break;
-        case 'CustomTaskId':
-          sortField = (obj) => obj.id;//
-          break;
-        case 'DateClosed':
-          sortField = (obj) => obj.end_date;
-          break;
-        case 'DateUpdated':
-          sortField = (obj) => obj.date_updated;//
-          break;
-        case 'Tags':
-          sortField = (obj) => obj.label;//
-          break;
-        case 'TaskId':
-          sortField = (obj) => obj.id;
-          break;  
-        case 'TimeEstimate':
-          sortField = (obj) => obj.duration_plan;//
-          break;
-        case 'TimeTracked':
-          sortField = (obj) => obj.label;//
-          break;  
-        default:
-          sortField = (obj) => obj.label; // Default sorting Name
-          break;
-      }
-      this.board.setSort({
-        by: sortField,
-        dir: sortDirection,
-        preserve: false,
-      });
-  }
-
   saveGroupBy() {
-    // config value
-    let obj = {
-      View: '',
-      GroupBy: [
-        {
-          Status: {
-            Id: this.statusSelected?.Id,
-            Code: this.statusSelected?.Code,
-            Name: this.statusSelected?.Name,
-            Icon: this.statusSelected?.Icon,
-            Color: this.statusSelected?.Color,
-            Sort: this.statusSelected?.Sort,
-            Enable: this.statusSelected?.Enable,
-          },
-          OrderBy: this.statusOrder,
-        },
-        {
-          Priority: {
-            Id: this.prioritySelected?.Id,
-            Code: this.prioritySelected?.Code,
-            Name: this.prioritySelected?.Name,
-            Icon: this.prioritySelected?.Icon,
-            Color: this.prioritySelected?.Color,
-            Sort: this.prioritySelected?.Sort,
-            Enable: this.prioritySelected?.Enable,
-          },
-          OrderBy: this.priorityOrder,
-        },
-      ],
+    //config template
+
+    let groupBy = {
+      GroupBy: {
+        Group1: { Code: this.group1Selected, Sort: this.group1Order },
+        Group2: { Code: this.group2Selected, Sort: this.group2Order },
+      },
     };
-
-    if (this.groupByConfig?.SpaceViewActive) {
-      //save change config in space
-      let submitItem: any = {
-        Id: this.groupByConfig.Id,
-        IDProject: this.groupByConfig?.IDProject,
-      };
-      //change 'ViewConfig' in 'space' but not change previous 'ViewConfig'
-      submitItem.ViewConfig = JSON.stringify(
-        this.groupByConfig.ViewConfig.map((item) => {
-          //check is board and add GroupBy, View
+    let submitItem: any = {
+      Id: this.groupByConfig.Id,
+      IDProject: this.groupByConfig.IDProject,
+    };
+    if (this.submitAttempt == false) {
+      //this.submitAttempt = true;
+      if (this.groupByConfig.SpaceViewActive) {
+        //space
+        let spaceValue = this.groupByConfig.ViewConfig;
+        let configSpace = spaceValue.map((item) => {
           if (item.Code == this.groupByConfig.SpaceViewActive) {
-            return {
+            let updatedItem = {
               ...item,
-              GroupBy: obj.GroupBy,
-              View: obj.View,
+              GroupBy: groupBy,
             };
+            return updatedItem;
           }
-          return item;
-        }),
-      );
 
-      if (this.submitAttempt == false) {
-        this.submitAttempt = true;
+          return item;
+        });
+
+        submitItem.ViewConfig = JSON.stringify(configSpace);
         this.spaceProvider
           .save(submitItem)
           .then((result: any) => {
@@ -463,28 +465,21 @@ export class BoardComponent implements OnInit {
             this.env.showMessage('View saved', 'success');
             this.submitAttempt = false;
             this.loadedData();
-            //sort
-            this.sortGroupBy();
+            this.loadKanban();
           })
           .catch((err) => {
             this.env.showMessage('Cannot save, please try again', 'danger');
             this.submitAttempt = false;
           });
-      }
-    } else {
-      //save change config in view
-      let submitItem: any = {
-        Id: this.groupByConfig?.Id ?? 0,
-        IDProject: this.groupByConfig?.IDProject,
-        Type: this.groupByConfig.Type,
-        Name: this.groupByConfig.Name,
-      };
+      } else {
+        //view
+        let viewConfig = this.groupByConfig.ViewConfig;
+        viewConfig.GroupBy = {
+          Group1: groupBy.GroupBy.Group1,
+          Group2: groupBy.GroupBy.Group2,
+        };
 
-      obj.View = this.groupByConfig?.ViewConfig.View;
-      submitItem.ViewConfig = JSON.stringify(obj);
-
-      if (this.submitAttempt == false) {
-        this.submitAttempt = true;
+        submitItem.ViewConfig = JSON.stringify(viewConfig);
         this.viewProvider
           .save(submitItem)
           .then((result: any) => {
@@ -492,8 +487,7 @@ export class BoardComponent implements OnInit {
             this.env.showMessage('View saved', 'success');
             this.submitAttempt = false;
             this.loadedData();
-            //sort
-            this.sortGroupBy();
+            this.loadKanban();
           })
           .catch((err) => {
             this.env.showMessage('Cannot save, please try again', 'danger');
@@ -503,13 +497,23 @@ export class BoardComponent implements OnInit {
     }
   }
 
+  getGroupName(selectedCode: any, level): string {
+    if (level == 1) {
+      const group = this.groupBy.level1.list.find((item) => item.Code === selectedCode);
+      return group ? group.Name : selectedCode;
+    } else {
+      const group = this.groupBy.level2.list.find((item) => item.Code === selectedCode);
+      return group ? group.Name : selectedCode;
+    }
+  }
+
   deleteGroup(e) {
     if (e == 'status') {
-      this.statusSelected = null;
-      this.statusOrder = null;
+      this.group1Selected = null;
+      this.group1Order = null;
     } else {
-      this.prioritySelected = null;
-      this.priorityOrder = null;
+      this.group2Selected = null;
+      this.group2Order = null;
     }
     this.saveGroupBy();
   }

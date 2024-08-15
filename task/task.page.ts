@@ -922,7 +922,7 @@ Segment change:
       }
       
       if (this.submitAttempt == false) {
-        //this.submitAttempt = true;
+        this.submitAttempt = true;
         let isView = this.viewConfig.find((d) =>{
           const viewConfig = JSON.parse(d.ViewConfig)?.Layout.View.Name;
           return viewConfig == this.view.activeView;
