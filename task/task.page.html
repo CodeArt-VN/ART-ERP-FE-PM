@@ -112,32 +112,34 @@
           [field]="{id:'ViewType', type : 'ng-select', label: 'View type', form : editView._formGroup , dataSource: viewTypeDataSource,  bindLabel: 'Name',  bindValue: 'Code'}"
           (change)="saveView(editView)"
         ></app-form-control>
-
+        
         <ng-container *ngIf="editView._formGroup?.controls.ViewType.value == 'Board'">
           <ion-list lines="none" *ngFor="let i of groupValue">
             <ion-list-header>
               <ion-label>
-                <h3>{{i.Name | translate}}</h3>
+                <h3>{{ i.Name | translate }}</h3>
               </ion-label>
-              <ion-label (click)="hiddenAll()" *ngIf="i.Name == 'Shown' && itemsView['Shown']?.length > 0">
-                <h3 class="hidden-all">{{'Hide all'| translate}}</h3>
+              <ion-label (click)="hiddenAll()" *ngIf="i.Name == 'Shown' && groupValue[0].Fields.length > 0">
+                <h3 class="hidden-all">{{ 'Hide all' | translate }}</h3>
               </ion-label>
             </ion-list-header>
-            <ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, itemsView[i.Name],i.Name)">
-              <ion-item class="item-status" *ngFor="let g of itemsView[i.Name]">
+            <ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, groupValue[0].Fields, i.Name)">
+    
+              <ion-item class="item-status" *ngFor="let g of i.Fields">
                 <ion-reorder *ngIf="g.Enable" slot="start">
                   <ion-icon name="apps"></ion-icon>
                 </ion-reorder>
-
+        
                 <span class="icon-status">
-                  <ion-icon class="menu-icon" [color]="g.Color" [name]="g.Icon|| 'radio-button-on'"></ion-icon>
+                  <ion-icon class="menu-icon" [color]="g.Color" [name]="g.Icon || 'radio-button-on'"></ion-icon>
                 </span>
-                <ion-label><h3>{{g.Name | translate}}</h3></ion-label>
+                <ion-label><h3>{{ g.Name | translate }}</h3></ion-label>
                 <ion-toggle slot="end" [checked]="g.Enable" (ionChange)="viewEnable(g)"></ion-toggle>
               </ion-item>
             </ion-reorder-group>
           </ion-list>
         </ng-container>
+        
         
       </form>
     </div>
