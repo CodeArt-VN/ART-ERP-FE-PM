@@ -390,7 +390,7 @@ export class BoardComponent implements OnInit {
     this.board.parse({
       columns,
       cards,
-      //rows,
+      rows,
     });
   }
 
@@ -429,19 +429,12 @@ export class BoardComponent implements OnInit {
 
   saveGroupBy() {
     //config template
-
-    let groupBy = {
-      GroupBy: {
-        Group1: { Code: this.group1Selected, Sort: this.group1Order },
-        Group2: { Code: this.group2Selected, Sort: this.group2Order },
-      },
-    };
     let submitItem: any = {
       Id: this.groupByConfig.Id,
       IDProject: this.groupByConfig.IDProject,
     };
     if (this.submitAttempt == false) {
-      //this.submitAttempt = true;
+      this.submitAttempt = true;
       if (this.groupByConfig.SpaceViewActive) {
         //space
         let spaceValue = this.groupByConfig.ViewConfig;
@@ -449,7 +442,10 @@ export class BoardComponent implements OnInit {
           if (item.Code == this.groupByConfig.SpaceViewActive) {
             let updatedItem = {
               ...item,
-              GroupBy: groupBy,
+              GroupBy: {
+                Group1: { Code: this.group1Selected, Sort: this.group1Order },
+                Group2: { Code: this.group2Selected, Sort: this.group2Order },
+              },
             };
             return updatedItem;
           }
@@ -475,8 +471,8 @@ export class BoardComponent implements OnInit {
         //view
         let viewConfig = this.groupByConfig.ViewConfig;
         viewConfig.GroupBy = {
-          Group1: groupBy.GroupBy.Group1,
-          Group2: groupBy.GroupBy.Group2,
+          Group1: { Code: this.group1Selected, Sort: this.group1Order },
+          Group2: { Code: this.group2Selected, Sort: this.group2Order },
         };
 
         submitItem.ViewConfig = JSON.stringify(viewConfig);
