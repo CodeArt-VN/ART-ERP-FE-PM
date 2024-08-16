@@ -82,6 +82,7 @@ Segment change:
   viewConfig;
   groupByConfig;
   viewConfigActive = ''; // active View in config
+  schemaOriginal;
 
   isSegmentActive: boolean = true;
   groupValue = [
@@ -177,8 +178,8 @@ Segment change:
           let taskList = values[1].data;
           let viewData = values[2].Fields;
           this.statusGroupBy = viewData;
-          
-          this.groupValue.forEach((group) => {
+          this.schemaOriginal = [...this.groupValue];
+          this.schemaOriginal.forEach((group) => {
             if (group.Name == 'Hidden') {
               group.Fields.push(...viewData);
             }
@@ -497,7 +498,7 @@ Segment change:
 
   customizeView(type) {
     this.pageConfig.isShowFeature = !this.pageConfig.isShowFeature;
-
+    this.groupValue = [...this.schemaOriginal];
     if (this.pageConfig.isShowFeature) {
       if (type == 'add') {
         // add
@@ -791,9 +792,6 @@ Segment change:
     this.saveView(this.editView);
   }
   
-  
-  
-
   doReorder(ev: any, fields: any[], nameGroup: string) {
     const reorderedFields = ev.detail.complete(fields);
   
@@ -801,8 +799,10 @@ Segment change:
       item.Sort = index + 1;
       item.Group = nameGroup;
     });
-
-    this.groupValue[0].Fields = reorderedFields
+    const groupUpdate = this.groupValue.find(g => g.Name == 'Shown');
+    if (groupUpdate) {
+      groupUpdate.Fields = reorderedFields;
+    }
     this.saveView(this.editView);
   }
 
@@ -930,8 +930,9 @@ Segment change:
       
       if (this.submitAttempt == false) {
         this.submitAttempt = true;
+        
         const existingConfig = this.viewConfig.find((d) => JSON.parse(d.ViewConfig)?.Layout.View.Name == this.view.activeView);
-          if (existingConfig) {
+          if (existingConfig && submitItem.Id) {
             const existingGroupBy = JSON.parse(existingConfig.ViewConfig).GroupBy;
             if (existingGroupBy) {
               config.GroupBy = existingGroupBy;
@@ -970,7 +971,7 @@ Segment change:
           let configSpace = spaceValue.map(item => {
             if (item.Code == this.view.activeView) {
               const existingGroupBy = item.GroupBy;
-              if (existingGroupBy) {
+              if (existingGroupBy && submitItem.Id) {
                 config.GroupBy = existingGroupBy;
               }
               return {

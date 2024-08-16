@@ -26,12 +26,9 @@ export class BoardComponent implements OnInit {
   group1Order;
   group2Order;
 
-  priorityList;
-  typeList;
-
   submitAttempt = false;
   board;
-  showBoardContent = false;
+
   groupBy = {
     level1: {
       property: 'Status',
@@ -106,13 +103,12 @@ export class BoardComponent implements OnInit {
     this.isGroupPopoverOpen = true;
   }
   loadKanbanLibrary() {
-    Promise.all([this.env.getType('TaskPriority'), this.env.getType('TaskType')]).then((values: any) => {
-      this.priorityList = values[0];
-      this.typeList = values[1];
-      this.priorityList.forEach((i) => {
+    Promise.all([this.env.getType('TaskPriority')]).then((values: any) => {
+      let priorityList = values[0];
+      priorityList.forEach((i) => {
         i.Code = parseInt(i.Code);
       });
-      this.groupBy.level2.list = this.priorityList;
+      this.groupBy.level2.list = priorityList;
       if (typeof kanban !== 'undefined') {
         setTimeout(() => {
           this.initKanban();
@@ -148,7 +144,7 @@ export class BoardComponent implements OnInit {
 
     let allUsers = Array.from(allUsersSet.values());
 
-    let priorityList: any[] = this.priorityList?.map((priority: any) => {
+    let priorityList: any[] = this.groupBy.level2.list?.map((priority: any) => {
       const code = parseInt(priority.Code);
       return {
         id: code,
@@ -178,7 +174,7 @@ export class BoardComponent implements OnInit {
       attached: false,
     };
 
-    const cardTemplate = ({ cardFields, selected, dragging, cardShape }, viewConfig) => {
+    const cardTemplate = ({ cardFields, selected, dragging, cardShape }, viewConfig, viewList, group1Selected) => {
       const {
         task,
         id,
@@ -194,8 +190,9 @@ export class BoardComponent implements OnInit {
         column_custom_key,
       } = cardFields;
 
-      const showEmptyFields = viewConfig.Layout.Card.IsEmptyFields;
-      const stackFields = viewConfig.Layout.Card.IsStackFields;
+      const isShowEmptyFields = viewConfig.Layout.Card.IsEmptyFields;
+      const isStackFields = viewConfig.Layout.Card.IsStackFields;
+      const isColorColumns = viewConfig.Layout.Card.IsColorColumns;
 
       const options: Intl.DateTimeFormatOptions = {
         year: 'numeric',
@@ -206,22 +203,16 @@ export class BoardComponent implements OnInit {
         hour12: true,
       };
 
-      const optionsStartEnd: Intl.DateTimeFormatOptions = {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      };
-
       if (viewConfig?.Fields) {
-        const generateFieldsHtml = (fields, showEmptyFields, stackFields) => {
+        const generateFieldsHtml = (fields, isShowEmptyFields, isStackFields) => {
           const fieldHtml = fields
             .map((field) => {
               const color = field.Color || '';
               const icon = field.Icon || '';
               const fieldValue = task[field.Name] || '-';
 
-              const show = showEmptyFields || task[field.Name];
-              const displayText = task[field.Name] ? `${field.Name}: ${fieldValue}` : showEmptyFields ? `-` : '';
+              const show = isShowEmptyFields || task[field.Name];
+              const displayText = task[field.Name] ? `${field.Name}: ${fieldValue}` : isShowEmptyFields ? `-` : '';
 
               return show
                 ? `
@@ -241,7 +232,7 @@ export class BoardComponent implements OnInit {
             })
             .join('');
 
-          if (stackFields) {
+          if (isStackFields) {
             return `
             <div class="wx-footer svelte-vhwr63 stack-fields">
               ${fieldHtml}
@@ -256,16 +247,39 @@ export class BoardComponent implements OnInit {
           }
         };
 
-        const fieldsHtml = generateFieldsHtml(viewConfig.Fields, showEmptyFields, stackFields);
+        const fieldsHtml = generateFieldsHtml(viewConfig.Fields, isShowEmptyFields, isStackFields);
+        const colorMap = {
+          primary: '#3880ff',
+          secondary: '#0cd1e8',
+          tertiary: '#7044ff',
+          success: '#10dc60',
+          warning: '#ffce00',
+          danger: '#f04141',
+          red: '#ff0000',
+          pink: '#ff69b4',
+          purple: '#800080',
+          blue: '#0000ff',
+          bluegreen: '#00ced1',
+          dark: '#000000',
+          medium: '#808080',
+          light: '#f0f0f0',
+        };
+        let colorColumns = '#ffffff'; //default
+        if (group1Selected) {
+          const selectedColor = viewList.find(d => d.Code === group1Selected)?.Color;
+          colorColumns = colorMap[selectedColor] || colorColumns;
+        }
+
+        const style = isColorColumns ? `style="background: ${colorColumns};"` : '';
         return `
-          <div class="wx-content svelte-kqkezg">
+          <div class="wx-content svelte-kqkezg"${style}>
               <div class="wx-card-header svelte-upffav">
               </div>
               <div class="wx-body svelte-kqkezg">
              
               </div>
      
-              <div class="wx-footer  ${stackFields ? 'stack-fields' : 'no-stack-fields'} wx-with-content">
+              <div class="wx-footer ${isStackFields ? 'stack-fields' : 'no-stack-fields'} wx-with-content">
                  ${fieldsHtml}
               </div>
           </div>
@@ -302,7 +316,7 @@ export class BoardComponent implements OnInit {
       rowKey: 'row_custom_key',
       columnKey: 'column_custom_key',
       cardShape,
-      cardTemplate: kanban.template((card) => cardTemplate(card, viewConfig)),
+      cardTemplate: kanban.template((card) => cardTemplate(card, viewConfig, this.viewList, this.group1Selected)),
       readonly: {
         edit: true,
         add: false,
@@ -338,7 +352,10 @@ export class BoardComponent implements OnInit {
       this.onOpenTask(duplicateTask);
     });
 
-    this.board.api.on('move-card', (task) => {
+ 
+
+    this.board.api.intercept('move-card', (task) => {
+      if(this.group1Selected == "Id") return false;
       this.updateTask(task);
     });
 
@@ -346,6 +363,9 @@ export class BoardComponent implements OnInit {
   }
 
   loadKanban() {
+    if (!this.group1Selected) {
+      return;
+    }
     let data: any[] = this.items.map((task: any) => {
       return {
         task,
@@ -358,34 +378,90 @@ export class BoardComponent implements OnInit {
         status: task.Status,
         progress: task.Progress * 100,
         duration: task.Duration,
-        row_custom_key: task.Priority,
-        column_custom_key: task.Status,
+        row_custom_key: this.group2Selected ? task.Priority : 'none',
+        column_custom_key: task[this.group1Selected],
       };
     });
     const cards = data;
 
-    let columns: any[] = this.items?.map((i: any) => {
-      return {
-        id: i.Id,
-        label: i.Status,
-      };
-    });
-   
+    //columns
+    let columns = this.items.reduce((task: any[], i: any) => {
+      const label = i[this.group1Selected];
+      if (label !== null && label !== undefined) {
+        const columnLabel = String(label);
+        if (!task.some((column) => column.label === columnLabel)) {
+          task.push({
+            id: label,
+            label: columnLabel,
+          });
+        }
+      }
+      return task;
+    }, []);
 
-    let rows: any[] = this.groupBy.level2.list.map((row: any) => {
-      return {
-        id: row.Code,
-        label: row.Name,
-      };
-    });
+    if (this.group1Order) {
+      columns.sort((a, b) => {
+        if (this.group1Order == 'asc') {
+          return a.label.localeCompare(b.label);
+        } else if (this.group1Order == 'desc') {
+          return b.label.localeCompare(a.label);
+        }
+        return 0;
+      });
+    }
+    
+    let viewConfig: any;
+    if (this.groupByConfig?.SpaceViewActive) {
+      let spaceConfig = this.groupByConfig.ViewConfig.find((d) => d.Code == this.groupByConfig.SpaceViewActive);
+      viewConfig = spaceConfig;
+    }else {
+      viewConfig = this.groupByConfig.ViewConfig;
+    }
 
+    //collapsed columns
+    if (viewConfig.Layout.Card.IsCollapseEmptyColumns) {
+      columns.forEach((column: any) => {
+        const hasTasks = data.some((i) => i.column_custom_key == column.id);
+        if (!hasTasks) {
+          column.collapsed = true;
+        }
+      });
+    }
+
+    //rows
+    let rows: any[] = this.group2Selected ? this.groupBy.level2.list.map((row: any) => {
+      return {
+          id: row.Code,
+          label: row.Name,
+      };
+    }) : [{ id: 'none', label: '' }];
+
+    //collapsed rows
     rows.forEach((row: any) => {
-      const check = data.some((task) => task.priority == row.id);
-      if (!check) {
+      const hasTasks = data.some((i) => i.row_custom_key == row.id);
+      if (!hasTasks) {
         row.collapsed = true;
       }
     });
 
+    if (this.group2Selected) {
+      rows.sort((a, b) => {
+        const valueA = a.value;
+        const valueB = b.value;
+        if (valueA == this.group2Selected && valueB !== this.group2Selected) {
+          return -1; 
+        } else if (valueB == this.group2Selected && valueA !== this.group2Selected) {
+          return 1;
+        } else {
+          if (this.group2Order == 'asc') {
+            return a.label.localeCompare(b.label);
+          } else if (this.group2Order == 'desc') {
+            return b.label.localeCompare(a.label);
+          }
+          return 0;
+        }
+      });
+    }
 
     this.board.parse({
       columns,
@@ -395,11 +471,17 @@ export class BoardComponent implements OnInit {
   }
 
   updateTask(task) {
-    let _task = {
-      Id: task.id,
-      Priority: task.rowId,
-      Status: task.columnId,
-    };
+    let _task : any;
+    if(this.group1Selected == "Id") return;
+    if(this.group1Selected) {
+      _task = {
+        Id: task.id,
+        [this.group1Selected]: task.columnId, 
+      };
+    }
+    if (this.group2Selected) {
+      _task.Priority = task.rowId;
+    }
 
     return new Promise((resolve, reject) => {
       if (this.submitAttempt == false) {
@@ -409,11 +491,16 @@ export class BoardComponent implements OnInit {
           .then((savedItem: any) => {
             let itemUpdate = this.items.find((d) => d.Id == savedItem.Id);
             if (itemUpdate) {
-              itemUpdate.Priority = savedItem.Priority;
-              itemUpdate.Status = savedItem.Status;
+              if(this.group1Selected) {
+                itemUpdate[this.group1Selected] = savedItem[this.group1Selected];
+              }
+              if (this.group2Selected) {
+                itemUpdate.Priority = savedItem.Priority;
+              }
               this.loadKanban();
+            }else {
+              this.loadedData();
             }
-            this.loadedData();
             this.env.showMessage('Saving completed!', 'success');
             resolve(savedItem.Id);
             this.submitAttempt = false;
@@ -460,8 +547,8 @@ export class BoardComponent implements OnInit {
             this.groupByConfig.Id = result.Id;
             this.env.showMessage('View saved', 'success');
             this.submitAttempt = false;
+            this.isGroupPopoverOpen = false;
             this.loadedData();
-
           })
           .catch((err) => {
             this.env.showMessage('Cannot save, please try again', 'danger');
@@ -482,6 +569,7 @@ export class BoardComponent implements OnInit {
             this.groupByConfig.Id = result.Id;
             this.env.showMessage('View saved', 'success');
             this.submitAttempt = false;
+            this.isGroupPopoverOpen = false;
             this.loadedData();
           })
           .catch((err) => {
@@ -531,9 +619,14 @@ export class BoardComponent implements OnInit {
       success: '#28a745',
       warning: '#ffc107',
       danger: '#dc3545',
-      light: '#f4f4f4',
-      medium: '#989aa2',
-      dark: '#222428',
+      red: '#ff0000',
+      pink: '#ff69b4',
+      purple: '#800080',
+      blue: '#0000ff',
+      bluegreen: '#00ced1',
+      dark: '#000000',
+      medium: '#808080',
+      light: '#f0f0f0',
     };
 
     return colorMap[colorName] || null;
