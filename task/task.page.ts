@@ -931,7 +931,7 @@ Segment change:
       if (this.submitAttempt == false) {
         this.submitAttempt = true;
         
-        const existingConfig = this.viewConfig.find((d) => JSON.parse(d.ViewConfig)?.Layout.View.Name == this.view.activeView);
+        const existingConfig = this.viewConfig.find((d) => JSON.parse(d.ViewConfig)?.Layout?.View?.Name == this.view.activeView);
           if (existingConfig && submitItem.Id) {
             const existingGroupBy = JSON.parse(existingConfig.ViewConfig).GroupBy;
             if (existingGroupBy) {
