@@ -386,6 +386,11 @@ Segment change:
       let selectedSpaceTask = this.spaceTreeList.find((d) => d.Id == this.id);
       if (!selectedSpaceTask) selectedSpaceTask = this.spaceTreeList.find((d) => d.IDSpace == this.space.Id);
       if (selectedSpaceTask != this.selectedSpaceTask) this.selectedSpaceTask = selectedSpaceTask;
+
+      this.isSegmentActive = false;
+      setTimeout(() => {
+        this.isSegmentActive = true;
+      }, 50);
       super.loadedData(event, ignoredFromGroup);
     });
   }
@@ -919,10 +924,19 @@ Segment change:
             }
           }
         });
+
+        
       }
       
       if (this.submitAttempt == false) {
         this.submitAttempt = true;
+        const existingConfig = this.viewConfig.find((d) => JSON.parse(d.ViewConfig)?.Layout.View.Name == this.view.activeView);
+          if (existingConfig) {
+            const existingGroupBy = JSON.parse(existingConfig.ViewConfig).GroupBy;
+            if (existingGroupBy) {
+              config.GroupBy = existingGroupBy;
+            }
+          }
         let isView = this.viewConfig.find((d) =>{
           const viewConfig = JSON.parse(d.ViewConfig)?.Layout.View.Name;
           return viewConfig == this.view.activeView;
@@ -951,10 +965,14 @@ Segment change:
               this.submitAttempt = false;
           });
         }else {
+          
           let spaceValue = JSON.parse(this.space.activeSpace.ViewConfig);
           let configSpace = spaceValue.map(item => {
             if (item.Code == this.view.activeView) {
-              
+              const existingGroupBy = item.GroupBy;
+              if (existingGroupBy) {
+                config.GroupBy = existingGroupBy;
+              }
               return {
                 Code: item.Code,
                 Name: item.Name,

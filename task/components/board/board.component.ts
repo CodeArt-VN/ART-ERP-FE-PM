@@ -407,7 +407,7 @@ export class BoardComponent implements OnInit {
         this.pageProvider
           .save(_task)
           .then((savedItem: any) => {
-            let itemUpdate = this.items.find((d) => d.Id === savedItem.Id);
+            let itemUpdate = this.items.find((d) => d.Id == savedItem.Id);
             if (itemUpdate) {
               itemUpdate.Priority = savedItem.Priority;
               itemUpdate.Status = savedItem.Status;
@@ -461,7 +461,7 @@ export class BoardComponent implements OnInit {
             this.env.showMessage('View saved', 'success');
             this.submitAttempt = false;
             this.loadedData();
-            this.loadKanban();
+
           })
           .catch((err) => {
             this.env.showMessage('Cannot save, please try again', 'danger');
@@ -483,7 +483,6 @@ export class BoardComponent implements OnInit {
             this.env.showMessage('View saved', 'success');
             this.submitAttempt = false;
             this.loadedData();
-            this.loadKanban();
           })
           .catch((err) => {
             this.env.showMessage('Cannot save, please try again', 'danger');
@@ -495,10 +494,10 @@ export class BoardComponent implements OnInit {
 
   getGroupName(selectedCode: any, level): string {
     if (level == 1) {
-      const group = this.groupBy.level1.list.find((item) => item.Code === selectedCode);
+      const group = this.groupBy.level1.list.find((item) => item.Code == selectedCode);
       return group ? group.Name : selectedCode;
     } else {
-      const group = this.groupBy.level2.list.find((item) => item.Code === selectedCode);
+      const group = this.groupBy.level2.list.find((item) => item.Code == selectedCode);
       return group ? group.Name : selectedCode;
     }
   }
@@ -523,6 +522,7 @@ export class BoardComponent implements OnInit {
   loadedData() {
     this.loaded.emit();
   }
+
   convertColorToHex(colorName) {
     const colorMap = {
       primary: '#005ce6',
