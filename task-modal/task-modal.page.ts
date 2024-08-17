@@ -128,10 +128,12 @@ export class TaskModalPage extends PageBase {
     if (!this.item.Id) {
       this.formGroup.controls.IDBranch.markAsDirty();
 
-      this.formGroup.controls.Type.setValue(this.formDataSources.Type[1].Code);
+      if(this.item.Type) this.formGroup.controls.Type.setValue(this.item.Type);
+      else this.formGroup.controls.Type.setValue(this.formDataSources.Type[1].Code); 
       this.formGroup.controls.Type.markAsDirty();
 
-      this.formGroup.controls.StartDate.setValue(
+      if(this.item.StartDate) this.formGroup.controls.StartDate.setValue(this.item.StartDate);
+      else this.formGroup.controls.StartDate.setValue(
         lib.dateFormat(new Date(), 'yyyy-mm-ddThh:MM:ss').slice(0, 19).slice(0, 13) + ':00:00',
       );
       this.formGroup.controls.StartDate.markAsDirty();
@@ -140,14 +142,23 @@ export class TaskModalPage extends PageBase {
         this.formGroup.controls.IDParent.setValue(this.parentTask.Id);
         this.formGroup.controls.IDParent.markAsDirty();
       }
-
-      this.formGroup.controls.StartDatePlan.setValue(
+      if(this.item.StartDatePlan) this.formGroup.controls.StartDatePlan.setValue(this.item.StartDatePlan);
+      else this.formGroup.controls.StartDatePlan.setValue(
         lib.dateFormat(new Date(), 'yyyy-mm-ddThh:MM:ss').slice(0, 19).slice(0, 13) + ':00:00',
       );
       this.formGroup.controls.StartDatePlan.markAsDirty();
 
       this.formGroup.controls.IDSpace.setValue(this.space.Id);
-      this.formGroup.controls.IDParent.markAsDirty();
+      this.formGroup.controls.IDSpace.markAsDirty();
+
+      if(this.item.Status) this.formGroup.controls.Status.markAsDirty();
+      if(this.item.EndDate) this.formGroup.controls.EndDate.markAsDirty();
+      if(this.item.EndDatePlan) this.formGroup.controls.EndDatePlan.markAsDirty();
+      if(this.item.Duration) this.formGroup.controls.Duration.markAsDirty();
+      if(this.item.DurationPlan) this.formGroup.controls.DurationPlan.markAsDirty();
+      if(this.item.Deadline) this.formGroup.controls.Deadline.markAsDirty();
+      if(this.item.IDOwner) this.formGroup.controls.IDOwner.markAsDirty();
+      if(this.item.Priority) this.formGroup.controls.Priority.markAsDirty();
     }
   }
 

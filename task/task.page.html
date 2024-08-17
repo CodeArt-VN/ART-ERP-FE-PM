@@ -1,6 +1,7 @@
 <ion-header>
   <app-toolbar [page]="this" [ShowAdd]="space.Id">
-    <ng-select style="min-width: 260px;"
+    <ng-select
+      style="min-width: 260px"
       startTitle
       class="selected-task"
       (change)="selectSpaceTask($event);"
@@ -47,12 +48,12 @@
     </ion-segment>
 
     <ion-buttons slot="end">
-      <ion-button fill="outline" size="small" class="small-btn" (click)="toggleFeature()">
+      <ion-button fill="outline" size="small" class="small-btn" (click)="customizeView('add')">
         <ion-icon slot="start" name="add"></ion-icon>
         {{'View' | translate}}
       </ion-button>
 
-      <ion-button fill="outline" size="small" class="small-btn" (click)="toggleFeature()">
+      <ion-button fill="outline" size="small" class="small-btn" (click)="customizeView('edit')">
         <ion-icon slot="start" name="cog-outline"></ion-icon>
         {{'Customize' | translate}}
       </ion-button>
@@ -68,7 +69,7 @@
     [showSpinner]="pageConfig.showSpinner"
   >
     <hr />
-    <div class="c-control" style="min-width: 260px;">
+    <div class="c-control" style="min-width: 260px">
       <ng-select
         class="c-input no-check-dirty"
         (change)="selectSpaceTask($event);"
@@ -101,18 +102,66 @@
     horizontal="end"
     slot="fixed"
   >
-  ss
-</ion-fab>
-  <div class="row-full shadow full-screen" *ngIf="items.length && pageConfig.showSpinner==false">
-    <div *ngIf="view.activeView == 'Board'">
-      <app-board></app-board>
-    </div>
+    <div class="ion-padding" *ngIf="editView">
+      <form [formGroup]="editView._formGroup">
+        <app-form-control
+          [field]="{id:'ViewName', type : 'text', label: 'View name', form : editView._formGroup }"
+          (change)="saveView(editView)"
+        ></app-form-control>
+        <app-form-control
+          [field]="{id:'ViewType', type : 'ng-select', label: 'View type', form : editView._formGroup , dataSource: viewTypeDataSource,  bindLabel: 'Name',  bindValue: 'Code'}"
+          (change)="saveView(editView)"
+        ></app-form-control>
 
-    <app-gantt
-      *ngIf="view.activeView == 'Gantt'"
-      [items]="items"
-      [linksData]="linksData"
-      (openTask)="onGanttOpenTask($event)"
-    ></app-gantt>
+        <ng-container *ngIf="editView._formGroup?.controls.ViewType.value == 'Board'">
+          <ion-list lines="none" *ngFor="let i of groupValue">
+            <ion-list-header>
+              <ion-label>
+                <h3>{{ i.Name | translate }}</h3>
+              </ion-label>
+              <ion-label (click)="hiddenAll()" *ngIf="i.Name == 'Shown' && groupValue[0].Fields.length > 0">
+                <h3 class="hidden-all">{{ 'Hide all' | translate }}</h3>
+              </ion-label>
+            </ion-list-header>
+            <ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, groupValue[0].Fields, i.Name)">
+    
+              <ion-item class="item-status" *ngFor="let g of i.Fields">
+                <ion-reorder *ngIf="g.Enable" slot="start">
+                  <ion-icon name="apps"></ion-icon>
+                </ion-reorder>
+        
+                <span class="icon-status">
+                  <ion-icon class="menu-icon" [color]="g.Color" [name]="g.Icon || 'pricetag-outline'"></ion-icon>
+                </span>
+                <ion-label><h3>{{ g.Name | translate }}</h3></ion-label>
+                <ion-toggle slot="end" [checked]="g.Enable" (ionChange)="viewEnable(g)"></ion-toggle>
+              </ion-item>
+            </ion-reorder-group>
+          </ion-list>
+        </ng-container>
+        
+        
+      </form>
+    </div>
+  </ion-fab>
+  <div class="row-full shadow full-screen" *ngIf="items.length && pageConfig.showSpinner==false">
+    <ng-container *ngIf="isSegmentActive">
+      <app-board
+        *ngIf="view.activeView == 'Board' || viewConfigActive == 'Board'"
+        [items]="items"
+        [statusList]="this.space.statusList"
+        [groupByConfig]="this.groupByConfig"
+        [viewList]="this.statusGroupBy"
+        (loaded)="loadedData()"
+        (openTask)="onKanbanOpenTask($event)"
+      ></app-board>
+    
+      <app-gantt
+        *ngIf="view.activeView == 'Gantt' || viewConfigActive == 'Gantt'"
+        [items]="items"
+        [linksData]="linksData"
+        (openTask)="onGanttOpenTask($event)"
+      ></app-gantt>
+    </ng-container>
   </div>
 </ion-content>
