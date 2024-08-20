@@ -1,16 +1,14 @@
-import { ChangeDetectorRef, Component, ElementRef, ViewChild, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectorRef, Component, ViewEncapsulation } from '@angular/core';
 import {
   NavController,
   ModalController,
   AlertController,
   LoadingController,
   PopoverController,
-  ItemReorderEventDetail,
 } from '@ionic/angular';
 import { EnvService } from 'src/app/services/core/env.service';
 import { PageBase } from 'src/app/page-base';
-import { BRA_BranchProvider, PM_SpaceProvider } from 'src/app/services/static/services.service';
-import { Location } from '@angular/common';
+import { PM_SpaceProvider } from 'src/app/services/static/services.service';
 import { FormArray, FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from 'src/app/services/core/common.service';
@@ -35,7 +33,7 @@ export class SpaceDetailPage extends PageBase {
     },
   ];
 
-  viewLists = [
+  viewLists : any = [
     {
       Code: 'List',
       Name: 'List',
@@ -93,16 +91,32 @@ export class SpaceDetailPage extends PageBase {
 
   loadedData(event?: any) {
     if (this.item.ViewConfig) {
-      const ViewConfigList = JSON.parse(this.item.ViewConfig);
+      const viewConfigList = JSON.parse(this.item.ViewConfig);
       this.viewLists.forEach((e) => {
-        if (ViewConfigList.find((f) => e.Code == f.Code)) {
+        const view = viewConfigList.Views.find((f) => f.Layout.View.Name == e.Code);
+        if (view && view.Layout?.View?.IsActive) {
           e.Enable = true;
+        }else {
+          e.Enable = false;
+        }
+      });
+      this.viewLists = this.viewLists.filter((e: any) => !e.IsConfig);
+      //push view in config
+      viewConfigList.Views.forEach((view) => {
+        const existView = this.viewLists.find((e) => e.Code == view.Layout.View.Name);
+        if (!existView) {
+          this.viewLists.push({
+            Code: view.Layout.View.Type,
+            Name: view.Layout.View.Name || view.Layout.View.Type, 
+            Icon: view.Layout.View.Icon || 'pricetag-outline',
+            Enable: view.Layout.View.IsActive || false,
+            IsConfig: true
+          });
         }
       });
     }
     super.loadedData(event);
     this.patchSpaceStatusValue();
-    //this.convertJsonViewList();
   }
 
   private patchSpaceStatusValue() {
@@ -162,15 +176,26 @@ export class SpaceDetailPage extends PageBase {
   }
 
   convertJsonViewList() {
-    let data = this.viewLists
-      .filter((f) => f.Enable)
-      .map((e) => {
-        return {
-          Code: e.Code,
+    let config = {
+      Views: []
+    };
+    let data = this.viewLists.map((e) => ({
+      Layout: {
+        View: {
           Name: e.Name,
-        };
-      });
-    this.formGroup.get('ViewConfig').setValue(JSON.stringify(data));
+          Type: e.Code,
+          Icon: '',
+          Color: '',
+          IsPinned: false,
+          IsDefault: false,
+          IsActive: e.Enable,
+        }
+      }
+    }));
+    config.Views = data;
+    console.log(config);
+    
+    this.formGroup.get('ViewConfig').setValue(JSON.stringify(config));
     this.formGroup.get('ViewConfig').markAsDirty();
   }
 
