@@ -179,7 +179,7 @@ export class SpaceDetailPage extends PageBase {
     let config = {
       Views: []
     };
-    let data = this.viewLists.map((e) => ({
+    let data = this.viewLists.map((e, index) => ({
       Layout: {
         View: {
           Name: e.Name,
@@ -190,11 +190,10 @@ export class SpaceDetailPage extends PageBase {
           IsDefault: false,
           IsActive: e.Enable,
         }
-      }
+      },
+      Sort: [index + 1],
     }));
     config.Views = data;
-    console.log(config);
-    
     this.formGroup.get('ViewConfig').setValue(JSON.stringify(config));
     this.formGroup.get('ViewConfig').markAsDirty();
   }
