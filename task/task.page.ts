@@ -387,6 +387,33 @@ Segment change:
               this.groupByConfig = groupBySpace;
             }
             
+          }else {
+            const jsonSpace = JSON.parse(this.space.activeSpace.ViewConfig) || {};
+              let configSpace = jsonSpace.Views.map((item: any) => {
+                const fields = item.Fields ?? [{Code: '',Name: '',Icon: '',Color: '',Sort: ''}]
+                return {
+                  Layout: {
+                    View: { Name: item.Layout.View.Name, Type: item.Layout.View.Type, Icon: '', Color: '', IsPinned: item.Layout.View.IsPinned || false, IsDefault: item.Layout.View.IsDefault || false, IsActive: item.Layout.View.IsActive || false },
+                    Card: { IsStackFields: item?.Layout?.Card?.IsStackFields || false, IsEmptyFields: item?.Layout?.Card?.IsEmptyFields || false, IsCollapseEmptyColumns: item?.Layout?.Card?.IsCollapseEmptyColumns || false, IsColorColumns: item?.Layout?.Card?.IsColorColumns || false, Size: 'Medium'},
+                  },
+                  Fields: fields,
+                  GroupBy: {
+                    Group1: {Code: item?.GroupBy?.Group1?.Code || '',Sort: item?.GroupBy?.Group1?.Sort || ''},
+                    Group2: {Code: item?.GroupBy?.Group2?.Code || '',Sort: item?.GroupBy?.Group2?.Sort || ''}
+                  },
+                  Filter: [],
+                  Sort: [item.Sort[0]],
+                };
+              });
+              
+              let groupBySpace: any = {
+                Id: this.space.Id,
+                IDProject: parseInt(this.id),
+                SpaceView: this.view.activeView.Name,
+                ViewConfig: configSpace,
+                ActiveView: this.view.activeView
+              };
+              this.groupByConfig = groupBySpace;
           }
         } else {
           this.env.showMessage('Space not found!', 'warning');
@@ -513,6 +540,33 @@ Segment change:
         };
         this.groupByConfig = groupBySpace;
       }
+    }else {
+      const jsonSpace = JSON.parse(this.space.activeSpace.ViewConfig) || {};
+              let configSpace = jsonSpace.Views.map((item: any) => {
+                const fields = item.Fields ?? [{Code: '',Name: '',Icon: '',Color: '',Sort: ''}]
+                return {
+                  Layout: {
+                    View: { Name: item.Layout.View.Name, Type: item.Layout.View.Type, Icon: '', Color: '', IsPinned: item.Layout.View.IsPinned || false, IsDefault: item.Layout.View.IsDefault || false, IsActive: item.Layout.View.IsActive || false },
+                    Card: { IsStackFields: item?.Layout?.Card?.IsStackFields || false, IsEmptyFields: item?.Layout?.Card?.IsEmptyFields || false, IsCollapseEmptyColumns: item?.Layout?.Card?.IsCollapseEmptyColumns || false, IsColorColumns: item?.Layout?.Card?.IsColorColumns || false, Size: 'Medium'},
+                  },
+                  Fields: fields,
+                  GroupBy: {
+                    Group1: {Code: item?.GroupBy?.Group1?.Code || '',Sort: item?.GroupBy?.Group1?.Sort || ''},
+                    Group2: {Code: item?.GroupBy?.Group2?.Code || '',Sort: item?.GroupBy?.Group2?.Sort || ''}
+                  },
+                  Filter: [],
+                  Sort: [item.Sort[0]],
+                };
+              });
+              
+              let groupBySpace: any = {
+                Id: this.space.Id,
+                IDProject: parseInt(this.id),
+                SpaceView: this.view.activeView.Name,
+                ViewConfig: configSpace,
+                ActiveView: this.view.activeView
+              };
+              this.groupByConfig = groupBySpace;
     }
   }
 
