@@ -319,8 +319,8 @@ Segment change:
           if (!defaultView && this.view.viewList.length) defaultView = this.view.viewList[0];
 
           if (!this.view.activeView.Name) {
-            if (defaultView) {
-              this.view.activeView.Name = defaultView?.Code;
+            if (defaultView) { 
+              this.view.activeView.Name = defaultView?.Name;
             } else {
               this.env.showMessage('No view found, please check space config', 'warning');
             }

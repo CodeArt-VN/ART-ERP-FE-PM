@@ -171,31 +171,46 @@ export class SpaceDetailPage extends PageBase {
     if (itemView) {
       itemView.Enable = !itemView.Enable;
     }
-    this.convertJsonViewList();
-    this.saveChange();
-  }
+    let existConfig = JSON.parse(this.formGroup.get('ViewConfig').value || '{"Views": []}');
+  
 
-  convertJsonViewList() {
-    let config = {
-      Views: []
-    };
-    let data = this.viewLists.map((e, index) => ({
-      Layout: {
-        View: {
-          Name: e.Name,
-          Type: e.Code,
-          Icon: '',
-          Color: '',
-          IsPinned: false,
-          IsDefault: false,
-          IsActive: e.Enable,
-        }
-      },
-      Sort: [index + 1],
-    }));
-    config.Views = data;
-    this.formGroup.get('ViewConfig').setValue(JSON.stringify(config));
+    let updatedViews = this.viewLists.map((e, index) => {
+  
+      let existingView = existConfig.Views.find((view: any) => view.Layout.View.Name == e.Name && view.Layout.View.Type == e.Code);
+  
+      let result = {
+        ...existingView,
+        Layout: {
+          ...existingView?.Layout,
+          View: {
+            ...existingView?.Layout?.View,
+            Name: e.Name,
+            Type: e.Code,
+            IsActive: e.Enable, 
+          },
+          Card: existingView?.Layout?.Card || {
+            IsStackFields: false,
+            IsEmptyFields: false,
+            IsCollapseEmptyColumns: false,
+            IsColorColumns: false,
+            Size: 'Medium',
+          },
+        },
+        Fields: existingView?.Fields || [{ Code: '', Name: '', Icon: '', Color: '', Sort: '' }],
+        GroupBy: existingView?.GroupBy || { Group1: { Code: '', Sort: '' }, Group2: null },
+        Filter: existingView?.Filter || [],
+        Sort: existingView?.Sort || [index + 1],
+      };
+  
+      return result;
+    });
+  
+  
+    existConfig.Views = updatedViews;
+    
+    this.formGroup.get('ViewConfig').setValue(JSON.stringify(existConfig));
     this.formGroup.get('ViewConfig').markAsDirty();
+    this.saveChange();
   }
 
   async showModalStauts(formGroup, name) {
