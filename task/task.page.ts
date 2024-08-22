@@ -540,7 +540,8 @@ Segment change:
         };
         this.groupByConfig = groupBySpace;
       }
-    }else {
+    }
+    else {
       const jsonSpace = JSON.parse(this.space.activeSpace.ViewConfig) || {};
               let configSpace = jsonSpace.Views.map((item: any) => {
                 const fields = item.Fields ?? [{Code: '',Name: '',Icon: '',Color: '',Sort: ''}]
@@ -1114,7 +1115,6 @@ Segment change:
             submitItem.ViewConfig = JSON.stringify({ Views: updatedViews });
           }
           submitItem.IDProject = this.id;
-          console.log(JSON.parse(submitItem.ViewConfig));
           this.viewProvider
             .save(submitItem)
             .then((result: any) => {

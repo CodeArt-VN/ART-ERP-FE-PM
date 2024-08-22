@@ -167,51 +167,64 @@ export class SpaceDetailPage extends PageBase {
     this.saveChange();
   }
 
-  viewEnable(itemView) {
+  viewEnable(itemView, i) {
     if (itemView) {
       itemView.Enable = !itemView.Enable;
     }
     let existConfig = JSON.parse(this.formGroup.get('ViewConfig').value || '{"Views": []}');
+    let existingViews = [...existConfig.Views];
+    this.viewLists.forEach((e, index) => {
+      let existingViewIndex = existingViews.findIndex((view: any) => view.Layout.View.Name == e.Name && view.Layout.View.Type == e.Code);
   
-
-    let updatedViews = this.viewLists.map((e, index) => {
-  
-      let existingView = existConfig.Views.find((view: any) => view.Layout.View.Name == e.Name && view.Layout.View.Type == e.Code);
-  
-      let result = {
-        ...existingView,
-        Layout: {
-          ...existingView?.Layout,
-          View: {
-            ...existingView?.Layout?.View,
-            Name: e.Name,
-            Type: e.Code,
-            IsActive: e.Enable, 
+      if (existingViewIndex !== -1) {
+        existingViews[existingViewIndex] = {
+          ...existingViews[existingViewIndex],
+          Layout: {
+            ...existingViews[existingViewIndex].Layout,
+            View: {
+              ...existingViews[existingViewIndex].Layout.View,
+              Name: e.Name,
+              Type: e.Code,
+              IsActive: e.Enable,
+            },
+            Card: existingViews[existingViewIndex].Layout.Card || {
+              IsStackFields: false,
+              IsEmptyFields: false,
+              IsCollapseEmptyColumns: false,
+              IsColorColumns: false,
+              Size: 'Medium',
+            },
           },
-          Card: existingView?.Layout?.Card || {
-            IsStackFields: false,
-            IsEmptyFields: false,
-            IsCollapseEmptyColumns: false,
-            IsColorColumns: false,
-            Size: 'Medium',
-          },
-        },
-        Fields: existingView?.Fields || [{ Code: '', Name: '', Icon: '', Color: '', Sort: '' }],
-        GroupBy: existingView?.GroupBy || { Group1: { Code: '', Sort: '' }, Group2: null },
-        Filter: existingView?.Filter || [],
-        Sort: existingView?.Sort || [index + 1],
-      };
-  
-      return result;
+          Fields: existingViews[existingViewIndex].Fields || [{ Code: '', Name: '', Icon: '', Color: '', Sort: '' }],
+          GroupBy: existingViews[existingViewIndex].GroupBy || { Group1: { Code: '', Sort: '' }, Group2: null },
+          Filter: existingViews[existingViewIndex].Filter || [],
+          Sort: existingViews[existingViewIndex]?.Sort || [index + 1],
+        };
+      } 
     });
   
-  
-    existConfig.Views = updatedViews;
-    
+    existingViews = existingViews.map((view, index) => ({
+      ...view,
+      Sort: [index + 1], 
+    }));
+
+    if (i >= 0 && i < existingViews.length) {
+      existingViews[i] = {
+        ...existingViews[i],
+        Layout: {
+          ...existingViews[i].Layout,
+          View: {
+            ...existingViews[i].Layout.View,
+            IsActive: itemView.Enable,
+          },
+        },
+      };
+    }
+    existConfig.Views = existingViews;
     this.formGroup.get('ViewConfig').setValue(JSON.stringify(existConfig));
     this.formGroup.get('ViewConfig').markAsDirty();
     this.saveChange();
-  }
+  } 
 
   async showModalStauts(formGroup, name) {
     let item = {
