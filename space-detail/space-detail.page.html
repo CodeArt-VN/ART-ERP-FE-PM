@@ -109,11 +109,11 @@
                 <ion-list lines="none">
                   <ion-grid>
                     <ion-row>
-                      <ion-col size="6" *ngFor="let i of viewLists">
+                      <ion-col size="6" *ngFor="let i of viewLists; let idx = index;">
                         <ion-item class="item-view" [ngClass]="{'ion-item-toggle':i.Enable}">
                           <ion-icon [name]="i.Icon" slot="start"></ion-icon>
                           <ion-label class="name-status">{{i.Name}}</ion-label>
-                          <ion-toggle [checked]="i.Enable" (ionChange)="viewEnable(i)"></ion-toggle>
+                          <ion-toggle [checked]="i.Enable" (ionChange)="viewEnable(i, idx)"></ion-toggle>
                         </ion-item>
                       </ion-col>
                     </ion-row>

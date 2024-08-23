@@ -65,7 +65,7 @@ Segment change:
 
   // URL params
   space = { Id: null, Name: '', statusList: [], activeSpace: null, spaceList: [] };
-  view = { activeView: '', viewList: [] };
+  view = { activeView:{  Name: '', Type: '', From: '', Sort: 0 } , viewList: [] };
 
   typeList = [];
   spaceTreeList = []; // Header space stree data source
@@ -81,8 +81,9 @@ Segment change:
 
   viewConfig;
   groupByConfig;
-  viewConfigActive = ''; // active View in config
   schemaOriginal;
+
+  activeViewIndex;
 
   isSegmentActive: boolean = true;
   groupValue = [
@@ -148,7 +149,7 @@ Segment change:
     this.route.paramMap.subscribe((param) => {
       this.id = param.get('id') != 'null' ? parseInt(param.get('id')) : null;
       this.space.Id = param.get('space') != 'null' ? parseInt(param.get('space')) : null;
-      this.view.activeView = param.get('view') != 'null' ? param.get('view') : null;
+      this.view.activeView.Name = param.get('view') != 'null' ? param.get('view') : null;
       if (this.space.activeSpace) this.refresh();
     });
   }
@@ -239,6 +240,7 @@ Segment change:
     // - Call Segment change to default view
 
     //loaded View config
+    this.id = this.id == "null" ? null : this.id;
     let promises = [this.viewProvider.read({ IDProject: this.id })]; //
     if (this.items.length) {
       promises.push(
@@ -248,8 +250,8 @@ Segment change:
         }),
       );
     }
-    //reload this.space.activeSpace if change
-    if (this.groupByConfig?.SpaceViewActive) {
+    
+    if (this.groupByConfig?.SpaceView) {
       promises.push(this.spaceProvider.read());
     }
 
@@ -259,14 +261,11 @@ Segment change:
 
     Promise.all(promises).then((values: any) => {
       if (values[0].data) {
-        this.viewConfig = values[0].data;
-        // Check is 'view' or 'space'
-        this.viewConfigActive = this.view.activeView;
-        let activeView = this.viewConfig.find((d) => {
-          const viewConfig = JSON.parse(d.ViewConfig)?.Layout.View.Name;
-          return viewConfig == this.view.activeView;
-        });
-        if (activeView) this.viewConfigActive = JSON.parse(activeView.ViewConfig)?.Layout.View.Type;
+        this.viewConfig = values[0].data[0];
+        
+        if(this.viewConfig) {
+          this.viewConfig.ViewConfig = JSON.parse(values[0].data[0].ViewConfig);
+        } 
       }
       let indexPromises = 1;
       this.items.forEach((i) => {
@@ -283,30 +282,33 @@ Segment change:
         indexPromises++;
       }
 
-      if (this.groupByConfig?.SpaceViewActive) {
+      if (this.groupByConfig?.SpaceView) {
         this.space.spaceList = values[indexPromises].data;
         indexPromises++;
       }
-
-      let groupBy: any = {
-        Id: 0,
-        IDProject: parseInt(this.id),
-        ViewConfig: '',
-      };
 
       if (this.space.Id) {
         this.space.activeSpace = this.space.spaceList.find((d) => d.Id == this.space.Id);
         if (this.space.activeSpace) {
           this.space.Name = this.space.activeSpace.Name;
-
-          this.view.viewList = JSON.parse(this.space.activeSpace.ViewConfig) || [];
+          const viewConfig = JSON.parse(this.space.activeSpace.ViewConfig) || {};
+          this.view.viewList = viewConfig.Views
+            .filter(view => view.Layout.View.IsActive)
+            .map(view => ({
+              Type: view.Layout.View.Type,
+              Name: view.Layout.View.Name,
+              From: "Space",
+              Sort: view.Sort
+            }));
+          
           if (this.viewConfig) {
 
-            let addViewConfig = this.viewConfig.map((item: any) => { 
-              const value = JSON.parse(item.ViewConfig)?.Layout.View;
+            let addViewConfig = this.viewConfig.ViewConfig.Views.map((item: any) => { 
               return {
-                Code: value.Name || '',
-                Name: value.Name || ''
+                Type: item.Layout.View.Type || '',
+                Name: item.Layout.View.Name || '',
+                From: "View",
+                Sort: item.Sort
               };
             });
             
@@ -316,9 +318,9 @@ Segment change:
           let defaultView = this.view.viewList.find((d) => d.Default);
           if (!defaultView && this.view.viewList.length) defaultView = this.view.viewList[0];
 
-          if (!this.view.activeView) {
-            if (defaultView) {
-              this.view.activeView = defaultView?.Code;
+          if (!this.view.activeView.Name) {
+            if (defaultView) { 
+              this.view.activeView.Name = defaultView?.Name;
             } else {
               this.env.showMessage('No view found, please check space config', 'warning');
             }
@@ -328,61 +330,100 @@ Segment change:
           this.space.statusList = values[indexPromises].data;
 
           // Check is 'view' or 'space'
-          let isView = values[0].data.find((d) =>{
-            const viewConfig = JSON.parse(d.ViewConfig)?.Layout.View.Name;
-            return viewConfig == this.view.activeView;
-          });
-          if (isView) {
-            //custom view
-            groupBy.ViewConfig = JSON.parse(isView?.ViewConfig);
-            groupBy.Id = isView?.Id;
-          } else {
-            //space
-
-            const jsonSpace = JSON.parse(this.space.activeSpace.ViewConfig) || {};
-            let configSpace = jsonSpace.map(item => ({
-              Code: item.Code,
-              Name: item.Name,
-              Layout: {
-                View: { Name: item.Code, Type: item.Code,Icon: '',Color: '',IsPinned: false,IsDefault: false},
-                Card: {IsStackFields: false,IsEmptyFields: false,IsCollapseEmptyColumns: false,IsColorColumns: false,Size: 'Medium'},
-              },
-              Fields: [{Code: '',Name: '',Icon: '',Color: '',Sort: ''}],
-              GroupBy: {
-                Group1: {Code: '',Sort: ''},
-                Group2: null
-              },
-              Filter: [],
-              Sort: [],
-            }));
-            // check exist config
-            let check = jsonSpace.find(d => d.Code == this.view.activeView);
-            if(check?.Layout) {
-              configSpace = jsonSpace;
-              groupBy.Id = this.space.Id;
-              groupBy.IDProject = parseInt(this.id);
-              groupBy.SpaceViewActive = this.view.activeView;
-              groupBy.ViewConfig = configSpace;
-            }else {
-              //case view after update
-              let viewAfterUpdate = values[0].data.find((d) =>{
-                const viewConfig = JSON.parse(d.ViewConfig)?.Layout.View.Name;
-                return this.view.viewList.find(i => i.Code == viewConfig);
-              });
-              if(viewAfterUpdate) {
-                groupBy.ViewConfig = JSON.parse(viewAfterUpdate.ViewConfig);
-                groupBy.Id = viewAfterUpdate.Id;
-              }
+          if(this.view.activeView.From == "") {
+            this.view.activeView = this.view.viewList.find(d => d.Name == this.view.activeView.Name);
+            if(!this.view.activeView) {
+              this.env.showMessage('View not found!', 'warning');
+              this.pageConfig.showSpinner = false;
+            return 
             }
+          }
+          if (this.viewConfig) {
+            
+            let activeView = this.viewConfig.ViewConfig.Views.find((d) => {
+              return (
+                d.Layout.View.Name == this.view.activeView.Name &&
+                d.Layout.View.Type == this.view.activeView.Type &&
+                d.Sort[0] == this.view.activeView.Sort[0]
+              );
+            });
+
+            if (activeView) {
+              let groupByInBoard: any = {
+                IDProject: parseInt(this.id),
+                ViewConfig: '',
+                ActiveView: this.view.activeView
+              };
+              groupByInBoard.ViewConfig = this.viewConfig.ViewConfig.Views;
+              groupByInBoard.Id = this.viewConfig.Id;
+              this.groupByConfig = groupByInBoard;
+            } else {
+      
+              const jsonSpace = JSON.parse(this.space.activeSpace.ViewConfig) || {};
+              let configSpace = jsonSpace.Views.map((item: any) => {
+                const fields = item.Fields ?? [{Code: '',Name: '',Icon: '',Color: '',Sort: ''}]
+                return {
+                  Layout: {
+                    View: { Name: item.Layout.View.Name, Type: item.Layout.View.Type, Icon: '', Color: '', IsPinned: item.Layout.View.IsPinned || false, IsDefault: item.Layout.View.IsDefault || false, IsActive: item.Layout.View.IsActive || false },
+                    Card: { IsStackFields: item?.Layout?.Card?.IsStackFields || false, IsEmptyFields: item?.Layout?.Card?.IsEmptyFields || false, IsCollapseEmptyColumns: item?.Layout?.Card?.IsCollapseEmptyColumns || false, IsColorColumns: item?.Layout?.Card?.IsColorColumns || false, Size: 'Medium'},
+                  },
+                  Fields: fields,
+                  GroupBy: {
+                    Group1: {Code: item?.GroupBy?.Group1?.Code || '',Sort: item?.GroupBy?.Group1?.Sort || ''},
+                    Group2: {Code: item?.GroupBy?.Group2?.Code || '',Sort: item?.GroupBy?.Group2?.Sort || ''}
+                  },
+                  Filter: [],
+                  Sort: [item.Sort[0]],
+                };
+              });
+              
+              let groupBySpace: any = {
+                Id: this.space.Id,
+                IDProject: parseInt(this.id),
+                SpaceView: this.view.activeView.Name,
+                ViewConfig: configSpace,
+                ActiveView: this.view.activeView
+              };
+              this.groupByConfig = groupBySpace;
+            }
+            
+          }else {
+            const jsonSpace = JSON.parse(this.space.activeSpace.ViewConfig) || {};
+              let configSpace = jsonSpace.Views.map((item: any) => {
+                const fields = item.Fields ?? [{Code: '',Name: '',Icon: '',Color: '',Sort: ''}]
+                return {
+                  Layout: {
+                    View: { Name: item.Layout.View.Name, Type: item.Layout.View.Type, Icon: '', Color: '', IsPinned: item.Layout.View.IsPinned || false, IsDefault: item.Layout.View.IsDefault || false, IsActive: item.Layout.View.IsActive || false },
+                    Card: { IsStackFields: item?.Layout?.Card?.IsStackFields || false, IsEmptyFields: item?.Layout?.Card?.IsEmptyFields || false, IsCollapseEmptyColumns: item?.Layout?.Card?.IsCollapseEmptyColumns || false, IsColorColumns: item?.Layout?.Card?.IsColorColumns || false, Size: 'Medium'},
+                  },
+                  Fields: fields,
+                  GroupBy: {
+                    Group1: {Code: item?.GroupBy?.Group1?.Code || '',Sort: item?.GroupBy?.Group1?.Sort || ''},
+                    Group2: {Code: item?.GroupBy?.Group2?.Code || '',Sort: item?.GroupBy?.Group2?.Sort || ''}
+                  },
+                  Filter: [],
+                  Sort: [item.Sort[0]],
+                };
+              });
+              
+              let groupBySpace: any = {
+                Id: this.space.Id,
+                IDProject: parseInt(this.id),
+                SpaceView: this.view.activeView.Name,
+                ViewConfig: configSpace,
+                ActiveView: this.view.activeView
+              };
+              this.groupByConfig = groupBySpace;
           }
         } else {
           this.env.showMessage('Space not found!', 'warning');
         }
+        const activeViewIndex = this.view.viewList.findIndex(d => d.Name === this.view.activeView.Name);
+        this.activeViewIndex = activeViewIndex;
+        
       } else {
         this.view.viewList = [];
       }
-      // groupByConfig
-      this.groupByConfig = groupBy;
 
       let selectedSpaceTask = this.spaceTreeList.find((d) => d.Id == this.id);
       if (!selectedSpaceTask) selectedSpaceTask = this.spaceTreeList.find((d) => d.IDSpace == this.space.Id);
@@ -424,16 +465,26 @@ Segment change:
     }
   }
 
-  segmentChanged(ev: any) {
+  segmentChanged(event: any) {
     if (this.pageConfig.isShowFeature) {
       this.toggleFeature();
     }
-    if (ev.detail.value != 'addView') {
-      this.view.activeView = ev.detail.value;
+    if (event.detail.value != 'addView') {
+      const selectedIdx = event.detail.value;
+      const selectedView = this.view.viewList[selectedIdx];
+  
+
+      this.view.activeView = {
+        Name: selectedView.Name,
+        Type: selectedView.Type,
+        From: selectedView.From,
+        Sort: selectedView.Sort
+      };
+  
       this.nav();
     } else {
       setTimeout(() => {
-        this.view.activeView = this.view.activeView;
+        this.view.activeView.Name = this.view.activeView.Name;
       }, 1);
     }
 
@@ -442,57 +493,81 @@ Segment change:
       this.isSegmentActive = true;
     }, 50);
 
-    // Check is 'view' or 'space'
-    this.viewConfigActive = this.view.activeView;
-    let activeView = this.viewConfig.find((d) => {
-      const viewConfig = JSON.parse(d.ViewConfig)?.Layout.View.Name;
-      return viewConfig == this.view.activeView;
-      
-    });
-    if (activeView) this.viewConfigActive = JSON.parse(activeView.ViewConfig)?.Layout.View.Type;
-
     if (this.viewConfig) {
 
+      let activeView = this.viewConfig.ViewConfig.Views.find((d) => {
+        return (
+          d.Layout.View.Name == this.view.activeView.Name &&
+          d.Layout.View.Type == this.view.activeView.Type &&
+          d.Sort[0] == this.view.activeView.Sort[0]
+        );
+      });
+  
       if (activeView) {
         let groupByInBoard: any = {
           IDProject: parseInt(this.id),
           ViewConfig: '',
+          ActiveView: this.view.activeView
         };
-        groupByInBoard.ViewConfig = JSON.parse(activeView?.ViewConfig);
-        groupByInBoard.Id = activeView?.Id;
+        groupByInBoard.ViewConfig = this.viewConfig.ViewConfig.Views;
+        groupByInBoard.Id = this.viewConfig.Id;
         this.groupByConfig = groupByInBoard;
       } else {
 
         const jsonSpace = JSON.parse(this.space.activeSpace.ViewConfig) || {};
-        let configSpace = jsonSpace.map(item => ({
-          Code: item.Code,
-          Name: item.Name,
+        let configSpace = jsonSpace.Views.map((item) => {
+          const fields = item.Fields ?? [{Code: '',Name: '',Icon: '',Color: '',Sort: ''}]
+          return {
           Layout: {
-            View: { Name: item.Code, Type: item.Code,Icon: '',Color: '',IsPinned: false,IsDefault: false},
-            Card: {IsStackFields: false,IsEmptyFields: false,IsCollapseEmptyColumns: false,IsColorColumns: false,Size: 'Medium',},
+            View: { Name: item.Layout.View.Name, Type: item.Layout.View.Type, Icon: '', Color: '', IsPinned: item.Layout.View.IsPinned || false, IsDefault: item.Layout.View.IsDefault || false, IsActive: item.Layout.View.IsActive || false},
+            Card: { IsStackFields: item?.Layout?.Card?.IsStackFields || false, IsEmptyFields: item?.Layout?.Card?.IsEmptyFields || false, IsCollapseEmptyColumns: item?.Layout?.Card?.IsCollapseEmptyColumns || false, IsColorColumns: item?.Layout?.Card?.IsColorColumns || false, Size: item?.Layout?.Card?.Size || 'Medium'},
           },
-          Fields: [{Code: '',Name: '',Icon: '',Color: '',Sort: ''
-          }],
+          Fields: fields,
           GroupBy: {
-            Group1: {Code: '',Sort: ''},
-            Group2: null
+            Group1: {Code: item?.GroupBy?.Group1?.Code || '',Sort: item?.GroupBy?.Group1?.Sort || ''},
+            Group2: {Code: item?.GroupBy?.Group2?.Code || '',Sort: item?.GroupBy?.Group2?.Sort || ''}
           },
           Filter: [],
-          Sort: [],
-        }));
-        // check exist config
-        let check = jsonSpace.find(d => d.Code == this.view.activeView);
-        if(check.Layout) {
-          configSpace = jsonSpace;
-        }
+          Sort: [item.Sort[0]],
+          }
+        });
         let groupBySpace: any = {
           Id: this.space.Id,
           IDProject: parseInt(this.id),
-          SpaceViewActive: this.view.activeView,
+          SpaceView: this.view.activeView.Name,
           ViewConfig: configSpace,
+          ActiveView: this.view.activeView
         };
         this.groupByConfig = groupBySpace;
       }
+    }
+    else {
+      const jsonSpace = JSON.parse(this.space.activeSpace.ViewConfig) || {};
+              let configSpace = jsonSpace.Views.map((item: any) => {
+                const fields = item.Fields ?? [{Code: '',Name: '',Icon: '',Color: '',Sort: ''}]
+                return {
+                  Layout: {
+                    View: { Name: item.Layout.View.Name, Type: item.Layout.View.Type, Icon: '', Color: '', IsPinned: item.Layout.View.IsPinned || false, IsDefault: item.Layout.View.IsDefault || false, IsActive: item.Layout.View.IsActive || false },
+                    Card: { IsStackFields: item?.Layout?.Card?.IsStackFields || false, IsEmptyFields: item?.Layout?.Card?.IsEmptyFields || false, IsCollapseEmptyColumns: item?.Layout?.Card?.IsCollapseEmptyColumns || false, IsColorColumns: item?.Layout?.Card?.IsColorColumns || false, Size: 'Medium'},
+                  },
+                  Fields: fields,
+                  GroupBy: {
+                    Group1: {Code: item?.GroupBy?.Group1?.Code || '',Sort: item?.GroupBy?.Group1?.Sort || ''},
+                    Group2: {Code: item?.GroupBy?.Group2?.Code || '',Sort: item?.GroupBy?.Group2?.Sort || ''}
+                  },
+                  Filter: [],
+                  Sort: [item.Sort[0]],
+                };
+              });
+              
+              let groupBySpace: any = {
+                Id: this.space.Id,
+                IDProject: parseInt(this.id),
+                SpaceView: this.view.activeView.Name,
+                ViewConfig: configSpace,
+                ActiveView: this.view.activeView
+              };
+              this.groupByConfig = groupBySpace;
     }
   }
 
@@ -532,6 +607,7 @@ Segment change:
             };
           }
         });
+      
         this.groupValue = groupValue;
         const view = {
           Id: 0,
@@ -543,17 +619,19 @@ Segment change:
         this.editView = view;
       } else {
         // edit
-        let view = this.viewConfig.find((d) => {
-          const viewConfig = JSON.parse(d.ViewConfig)?.Layout.View.Name;
-          return viewConfig == this.view.activeView;
+        let view = this.viewConfig?.ViewConfig?.Views?.find((d) => {
+          return (
+            d.Layout.View.Name == this.view.activeView.Name &&
+            d.Layout.View.Type == this.view.activeView.Type &&
+            d.Sort[0] == this.view.activeView.Sort[0]
+          );
         });
         if (view) {
-          let value = JSON.parse(view.ViewConfig);
           const customizeView = {
-            Id: view.Id,
+            Id: this.viewConfig.Id,
             _formGroup: this.formBuilder.group({
-              ViewName: [value.Layout.View.Name, Validators.required],
-              ViewType: [value.Layout.View.Type, Validators.required],
+              ViewName: [view.Layout.View.Name, Validators.required],
+              ViewType: [view.Layout.View.Type, Validators.required],
             }),
           };
           const shownGroup = this.groupValue.find(g => g.Name == 'Shown');
@@ -561,7 +639,7 @@ Segment change:
           const layoutGroup = this.groupValue.find(g => g.Name == 'Layout');
           const updateFields = (group) => {
             if (group && group.Fields.length > 0) {
-              value.Fields.forEach(field => {
+              view.Fields.forEach(field => {
                 const existingField: any = group.Fields.find(f => f.Code == field.Code);
                 if (existingField) {
                   //update Name, Icon, Color
@@ -578,15 +656,24 @@ Segment change:
                   
                 }
               });
+              shownGroup.Fields = shownGroup.Fields.filter(field => {
+                const isInViewFields = view.Fields.some(viewField => viewField.Code == field.Code);
+                if (!isInViewFields) {
+                  field.Enable = false;
+                  hiddenGroup.Fields.push(field);
+                  return false; // Remove from shownGroup
+                }
+                return true; // Keep in shownGroup
+              });
             }
           };
           const updateLayoutFields = (group) => {
-            if (group && group.Fields.length > 0 && value.Layout && value.Layout.Card) {
-              Object.keys(value.Layout.Card).forEach(cardKey => {
+            if (group && group.Fields.length > 0 && view.Layout && view.Layout.Card) {
+              Object.keys(view.Layout.Card).forEach(cardKey => {
                 const layoutField = group.Fields.find(f => f.Code == cardKey);
                 if (layoutField) {
                   // Enable or disable based on Layout.Card value
-                  layoutField.Enable = value.Layout.Card[cardKey];
+                  layoutField.Enable = view.Layout.Card[cardKey];
 
                 }
               });
@@ -595,12 +682,38 @@ Segment change:
           updateFields(shownGroup);
           updateFields(hiddenGroup);
           updateLayoutFields(layoutGroup);
+          if(view.Fields.length == 0) {
+            const groupValue = this.groupValue.map(group => {
+              if (group.Name == 'Hidden') {
+                //Hidden
+                const shownItems = this.groupValue.find(g => g.Name == 'Shown')?.Fields || [];
+                shownItems.forEach(item => item.Enable = false);
+                return {
+                  ...group,
+                  Fields: [
+                    ...group.Fields,
+                    ...shownItems
+                  ]
+                };
+              } else if (group.Name == 'Shown') {
+                //Shown
+                return {
+                  Name: 'Shown', 
+                  Fields: [] 
+                };
+              } else {
+                // Layout
+                return group;
+              }
+            });
           
+            this.groupValue = groupValue;
+          }
           this.editView = customizeView;
         } else {
           let space = JSON.parse(this.space.activeSpace.ViewConfig);
-          let value = space.find(d => d.Code == this.view.activeView);
-          if(value.Layout) {
+          let value = space.Views.find(d => d.Layout.View.Name == this.view.activeView.Name);
+          if(value.Fields) {
             // case exist config
             const customizeView = {
               Id: this.space.Id,
@@ -628,8 +741,16 @@ Segment change:
                       }
                       // Remove from Hidden
                       hiddenGroup.Fields = hiddenGroup.Fields.filter(f => f.Code !== field.Code);
-                    
                   }
+                });
+                shownGroup.Fields = shownGroup.Fields.filter(field => {
+                  const isInViewFields = value.Fields.some(viewField => viewField.Code == field.Code);
+                  if (!isInViewFields) {
+                    field.Enable = false;
+                    hiddenGroup.Fields.push(field);
+                    return false; // Remove from shownGroup
+                  }
+                  return true; // Keep in shownGroup
                 });
               }
             };
@@ -640,9 +761,7 @@ Segment change:
                 Object.keys(value.Layout.Card).forEach(cardKey => {
                   const layoutField = group.Fields.find(f => f.Code == cardKey);
                   if (layoutField) {
-                    // Enable or disable based on Layout.Card value
                     layoutField.Enable = value.Layout.Card[cardKey];
-  
                   }
                 });
               }
@@ -650,7 +769,33 @@ Segment change:
             updateFields(shownGroup);
             updateFields(hiddenGroup);
             updateLayoutFields(layoutGroup);
+            if(value.Fields.length == 0) {
+              const groupValue = this.groupValue.map(group => {
+                if (group.Name == 'Hidden') {
+                  //Hidden
+                  const shownItems = this.groupValue.find(g => g.Name == 'Shown')?.Fields || [];
+                  shownItems.forEach(item => item.Enable = false);
+                  return {
+                    ...group,
+                    Fields: [
+                      ...group.Fields,
+                      ...shownItems
+                    ]
+                  };
+                } else if (group.Name == 'Shown') {
+                  //Shown
+                  return {
+                    Name: 'Shown', 
+                    Fields: [] 
+                  };
+                } else {
+                  // Layout
+                  return group;
+                }
+              });
             
+              this.groupValue = groupValue;
+            }
             this.editView = customizeView;
           }else {
             // case config
@@ -690,8 +835,8 @@ Segment change:
             const view = {
               Id: this.space.Id,
               _formGroup: this.formBuilder.group({
-                ViewName: [value.Name, Validators.required],
-                ViewType: [value.Name, Validators.required],
+                ViewName: [value.Layout.View.Name, Validators.required],
+                ViewType: [value.Layout.View.Type, Validators.required],
               }),
             };
             this.editView = view;
@@ -732,7 +877,7 @@ Segment change:
   }
 
   nav() {
-    let newURL = '#/task/' + this.id + '/' + this.space.Id + '/' + this.view.activeView;
+    let newURL = '#/task/' + this.id + '/' + this.space.Id + '/' + this.view.activeView.Name;
     history.pushState({}, null, newURL);
   }
 
@@ -871,9 +1016,9 @@ Segment change:
 
   saveView(i) {
     //config template
-    let config = {
+    let config : any = {
       Layout: {
-        View: { Name: '', Type: '', Icon: '', Color: '', IsPinned: false, IsDefault: false },
+        View: { Name: '', Type: '', Icon: '', Color: '', IsPinned: false, IsDefault: false, IsActive: false },
         Card: {
           IsStackFields: false,
           IsEmptyFields: false,
@@ -891,12 +1036,11 @@ Segment change:
     if (!i._formGroup.valid) {
       this.env.showMessage('Please recheck information highlighted in red above', 'warning');
     } else {
-      let submitItem: any = {
-        Id: i.Id,
-        IDProject: this.id,
-      };
+     
       config.Layout.View.Name = i._formGroup.value.ViewName;
       config.Layout.View.Type = i._formGroup.value.ViewType;
+      config.Layout.View.IsActive = true;
+      config.Sort = this.view.activeView.Sort;
       if (i._formGroup.value.ViewType == 'Board') {
         config.Fields = this.groupValue.find(g => g.Name == 'Shown').Fields.map((field: any) => ({
           Code: field.Code || '',
@@ -930,20 +1074,47 @@ Segment change:
       
       if (this.submitAttempt == false) {
         this.submitAttempt = true;
-        
-        const existingConfig = this.viewConfig.find((d) => JSON.parse(d.ViewConfig)?.Layout?.View?.Name == this.view.activeView);
-          if (existingConfig && submitItem.Id) {
-            const existingGroupBy = JSON.parse(existingConfig.ViewConfig).GroupBy;
-            if (existingGroupBy) {
-              config.GroupBy = existingGroupBy;
-            }
-          }
-        let isView = this.viewConfig.find((d) =>{
-          const viewConfig = JSON.parse(d.ViewConfig)?.Layout.View.Name;
-          return viewConfig == this.view.activeView;
+        let submitItem: any = {
+          Id: i.Id,
+        };
+       
+        let isView = this.viewConfig?.ViewConfig?.Views?.find((d) =>{
+          return (
+            d.Layout.View.Name == this.view.activeView.Name &&
+            d.Layout.View.Type == this.view.activeView.Type &&
+            d.Sort[0] == this.view.activeView.Sort[0]
+          );
         });
-        if(isView) {
-          submitItem.ViewConfig = JSON.stringify(config);
+
+        
+        if(isView || (isView && this.id)) {
+          if(!submitItem.Id) {
+            submitItem.Id = this.viewConfig.Id;
+            const existViews = this.viewConfig?.ViewConfig?.Views || [];
+            let newSortPosition = existViews.length > 0 ? Math.max(...existViews.map(view => view.Sort || 0)) + 1 : 1;
+            config.Sort = [newSortPosition];
+            submitItem.ViewConfig = JSON.stringify({
+              Views: [...existViews, config]
+            });
+          }else {
+            const existViews = this.viewConfig?.ViewConfig?.Views || [];
+            const updatedViews = existViews.map(view => {
+              if (view.Layout.View.Type == config.Layout.View.Type && view.Sort[0] == config.Sort[0]) {
+
+                const updatedView = { 
+                  ...view, 
+                  ...config,
+                  GroupBy: view.GroupBy, 
+                  Sort: view.Sort 
+                };
+                return updatedView;
+              }
+              return view;
+            });
+           
+            submitItem.ViewConfig = JSON.stringify({ Views: updatedViews });
+          }
+          submitItem.IDProject = this.id;
           this.viewProvider
             .save(submitItem)
             .then((result: any) => {
@@ -951,55 +1122,58 @@ Segment change:
               this.env.showMessage('View saved', 'success');
               this.submitAttempt = false;
               this.loadedData();
-              //change name, type
-              let activeView = this.viewConfig.find((d) => d.Id == result.Id);
-              if (activeView) {
-                //update
-                activeView.Name = result.Name;
-                activeView.Type = result.Type;
-              } else {
-                this.viewConfig.push(result);
-              }
             })
             .catch((err) => {
               this.env.showMessage('Cannot save, please try again', 'danger');
               this.submitAttempt = false;
           });
         }else {
+          let submitItemSpace: any = {
+            Id: this.space.Id,
+          };
           
           let spaceValue = JSON.parse(this.space.activeSpace.ViewConfig);
-          let configSpace = spaceValue.map(item => {
-            if (item.Code == this.view.activeView) {
-              const existingGroupBy = item.GroupBy;
-              if (existingGroupBy && submitItem.Id) {
-                config.GroupBy = existingGroupBy;
-              }
-              return {
-                Code: item.Code,
-                Name: item.Name,
-                ...config,
-              };
-            }
-            return item;
-          });
-          submitItem.ViewConfig = JSON.stringify(configSpace);
+       
+          if (!submitItem.Id) {
+            const existSpaces = spaceValue.Views || [];
 
+            let newSortPosition = existSpaces.length > 0 ? Math.max(...existSpaces.map(view => view.Sort || 0)) + 1 : 1;
+            config.Sort = [newSortPosition];
+            submitItemSpace.ViewConfig = JSON.stringify({
+              Views: [...spaceValue.Views, config]
+            });
+          } else {
+            const existSpaces = spaceValue.Views || [];
+            const updatedSpaces = existSpaces.map(space => {
+              if (space.Layout.View.Type == config.Layout.View.Type && space.Sort[0] == config.Sort[0]) {
+                return {
+                  ...space,
+                  ...config,
+                  GroupBy: space.GroupBy,
+                  Sort: space.Sort
+                };
+              }
+              return space;
+            });
+          
+            submitItemSpace.ViewConfig = JSON.stringify({ Views: updatedSpaces });
+          }
           this.spaceProvider
-            .save(submitItem)
+            .save(submitItemSpace)
             .then((result: any) => {
               this.editView.Id = result.Id;
+              
+              if (!submitItem.Id) {
+                this.space.activeSpace.ViewConfig = submitItemSpace.ViewConfig;
+              }else {
+                let configResult = JSON.parse(result.ViewConfig)
+                spaceValue.Views = configResult.Views;
+                this.space.activeSpace.ViewConfig = JSON.stringify(spaceValue);
+              }
+              
               this.env.showMessage('View saved', 'success');
               this.submitAttempt = false;
               this.loadedData();
-              //change name, type
-              let activeView = this.viewConfig.find((d) => d.Id == result.Id);
-              if (activeView) {
-                //update
-                activeView.Name = result.Name;
-                activeView.Type = result.Type;
-              } else {
-                this.viewConfig.push(result);
-              }
             })
             .catch((err) => {
               this.env.showMessage('Cannot save, please try again', 'danger');
