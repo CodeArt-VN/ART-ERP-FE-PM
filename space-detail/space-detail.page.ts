@@ -38,7 +38,7 @@ export class SpaceDetailPage extends PageBase {
       Code: 'List',
       Name: 'List',
       Icon: 'list',
-      Enable: true,
+      Enable: false,
     },
     {
       Code: 'Board',
@@ -87,6 +87,13 @@ export class SpaceDetailPage extends PageBase {
       SpaceStatus: this.formBuilder.array([]),
       DeletedSpaceStatus: [[]],
     });
+  }
+
+  loadData(event?: any): void {
+      super.loadData(event);
+      if(!this.id){
+        this.viewEnable(this.viewLists[0], 0);
+      }
   }
 
   loadedData(event?: any) {
@@ -200,7 +207,33 @@ export class SpaceDetailPage extends PageBase {
           Filter: existingViews[existingViewIndex].Filter || [],
           Sort: existingViews[existingViewIndex]?.Sort || [index + 1],
         };
-      } 
+      } else {
+        // Add new view
+        existingViews.push({
+          Layout: {
+            View: {
+              Name: e.Name,
+              Type: e.Code,
+              IsActive: e.Enable,
+              Icon: '',
+              Color: '',
+              IsPinned: false,
+              IsDefault: false,
+            },
+            Card: {
+              IsStackFields: false,
+              IsEmptyFields: false,
+              IsCollapseEmptyColumns: false,
+              IsColorColumns: false,
+              Size: 'Medium',
+            },
+          },
+          Fields: [{ Code: '', Name: '', Icon: '', Color: '', Sort: '' }],
+          GroupBy: { Group1: { Code: '', Sort: '' }, Group2: null },
+          Filter: [],
+          Sort: [index + 1],
+        });
+      }
     });
   
     existingViews = existingViews.map((view, index) => ({
