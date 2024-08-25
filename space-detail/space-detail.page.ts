@@ -13,6 +13,7 @@ import { FormArray, FormBuilder, FormControl, FormGroup, Validators } from '@ang
 import { ActivatedRoute } from '@angular/router';
 import { CommonService } from 'src/app/services/core/common.service';
 import { SpaceStatusModalPage } from '../space-status-modal/space-status-modal.page';
+import { lib } from 'src/app/services/static/global-functions';
 
 @Component({
   encapsulation: ViewEncapsulation.None,
@@ -33,7 +34,7 @@ export class SpaceDetailPage extends PageBase {
     },
   ];
 
-  viewLists : any = [
+  defaultViewLists : any = [
     {
       Code: 'List',
       Name: 'List',
@@ -53,6 +54,8 @@ export class SpaceDetailPage extends PageBase {
       Enable: false,
     },
   ];
+
+  viewLists = [];
 
   constructor(
     public pageProvider: PM_SpaceProvider,
@@ -121,6 +124,10 @@ export class SpaceDetailPage extends PageBase {
           });
         }
       });
+    }
+
+    if(this.viewLists.length == 0){
+      this.viewLists = lib.cloneObject(this.defaultViewLists);
     }
     super.loadedData(event);
     this.patchSpaceStatusValue();
@@ -321,6 +328,12 @@ export class SpaceDetailPage extends PageBase {
 
   filterStatusType(item, statusType) {
     return item.filter((f) => f.value.Type == statusType);
+  }
+
+  resetViewConfig() {
+    this.viewLists = lib.cloneObject(this.defaultViewLists);
+    this.formGroup.get('ViewConfig').setValue('');
+    this.viewEnable(this.viewLists[0], 0);
   }
 
   async saveChange() {

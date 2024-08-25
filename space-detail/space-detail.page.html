@@ -20,79 +20,77 @@
 
               <ion-col size="12" size-sm size-xl="4">
                 <app-form-control
-                  [field]="{id:'Id', label: 'Id', type : 'span-text', form : formGroup }"
+                  [field]="{id:'Id', label: 'Id', type: 'span-text', form: formGroup }"
                   (change)="saveChange()"
                 >
                 </app-form-control>
 
                 <app-form-control
-                  [field]="{id:'Name', label: 'Name', type : 'text', form : formGroup }"
+                  [field]="{id:'Name', label: 'Name', type: 'text', form: formGroup }"
                   (change)="saveChange()"
                 >
                 </app-form-control>
 
                 <app-form-control
-                  [field]="{id:'Icon', secondaryId: 'Color', label: 'Icon',  type : 'icon-color', form : formGroup }"
+                  [field]="{id:'Icon', secondaryId: 'Color', label: 'Icon', type: 'icon-color', form: formGroup }"
                   (change)="saveChange()"
                 ></app-form-control>
               </ion-col>
               <ion-col size="12" size-sm size-xl="4">
                 <app-form-control
-                  [field]="{id:'Code', label: 'Code', type : 'text', form : formGroup }"
+                  [field]="{id:'Code', label: 'Code', type: 'text', form: formGroup }"
                   (change)="saveChange()"
                 >
                 </app-form-control>
 
                 <app-form-control
-                  [field]="{id:'Remark',label: 'Remark', type : 'textarea', form : formGroup }"
+                  [field]="{id:'Remark',label: 'Remark', type: 'textarea', form: formGroup }"
                   (change)="saveChange()"
                 ></app-form-control>
               </ion-col>
             </ion-row>
-
             <ion-row class="hr-group">
               <ion-col size="12" size-sm="12" size-md="12" size-xl="3">
                 <ion-list-header class="ion-no-padding">
                   <ion-label color="primary">{{'Group status' | translate}}</ion-label>
                 </ion-list-header>
               </ion-col>
-              <ion-col size="12" size-sm size-xl="8">
-                <ion-list lines="none" *ngFor="let i of groupStatus">
-                  <ion-list-header>
-                    <ion-label color="primary">{{i.Name | translate}}</ion-label>
+              <ion-col size="12" size-xl="8">
+                <ion-list *ngFor="let i of groupStatus">
+                  <ion-list-header lines="inset">
+                    <ion-label>{{i.Name | translate}}</ion-label>
                   </ion-list-header>
                   <ion-reorder-group
                     [disabled]="false"
                     (ionItemReorder)="doReorder($event, formGroup.get('SpaceStatus')['controls'],i.Name)"
                   >
-                    <ion-item
-                      class="item-status"
+                    <ng-container
                       *ngFor="let g of filterStatusType(formGroup.get('SpaceStatus')['controls'],i.Name); let idx = index;"
                     >
-                      <ng-container [formGroup]="g">
-                        <ion-reorder slot="start">
-                          <ion-icon name="apps"></ion-icon>
-                        </ion-reorder>
-
-                        <span class="icon-status">
-                          <ion-icon
-                            class="menu-icon"
-                            [color]="g.get('Color').value"
-                            [name]="g.get('Icon').value|| 'radio-button-on'"
-                          ></ion-icon>
-                        </span>
-                        <ion-label class="name-status" (click)="showModalStauts(g)">{{g.get('Name').value}}</ion-label>
-                        <ion-button color="danger" fill="clear" (click)="removeStatus(g,g.get('Id'))">
-                          <ion-icon class="menu-icon" name="trash"></ion-icon>
+                      <ion-item [formGroup]="g" (click)="showModalStauts(g)" button detail="false">
+                        <ion-icon
+                          slot="start"
+                          [color]="g.get('Color').value"
+                          [name]="g.get('Icon').value|| 'radio-button-on'"
+                        ></ion-icon>
+                        <ion-label>{{g.get('Name').value}}</ion-label>
+                        <ion-button
+                          slot="end"
+                          color="danger"
+                          fill="clear"
+                          (click)="$event.stopPropagation(); removeStatus(g,g.get('Id'))"
+                        >
+                          <ion-icon slot="icon-only" name="trash"></ion-icon>
                         </ion-button>
-                      </ng-container>
-                    </ion-item>
+                        <ion-reorder slot="end"></ion-reorder>
+                      </ion-item>
+                    </ng-container>
                   </ion-reorder-group>
-                  <ion-item button class="item-status-add" (click)="showModalStauts(null,i.Name)" detail="false">
-                    <span class="icon-status">
-                      <ion-icon class="menu-icon" name="add"></ion-icon>
-                    </span>
-                    <ion-label class="name-status">{{'Add Status' | translate}}</ion-label>
+                  <ion-item lines="none">
+                    <ion-button slot="end" (click)="showModalStauts(null,i.Name)">
+                      <ion-icon slot="start" name="add"></ion-icon>
+                      {{'Add' | translate}}
+                    </ion-button>
                   </ion-item>
                 </ion-list>
               </ion-col>
@@ -104,20 +102,20 @@
                   <ion-label color="primary">{{'View' | translate}}</ion-label>
                 </ion-list-header>
               </ion-col>
-
-              <ion-col size="12" size-sm>
-                <ion-list lines="none">
-                  <ion-grid>
-                    <ion-row>
-                      <ion-col size="6" *ngFor="let i of viewLists; let idx = index;">
-                        <ion-item class="item-view" [ngClass]="{'ion-item-toggle':i.Enable}">
-                          <ion-icon [name]="i.Icon" slot="start"></ion-icon>
-                          <ion-label class="name-status">{{i.Name}}</ion-label>
-                          <ion-toggle [checked]="i.Enable" (ionChange)="viewEnable(i, idx)"></ion-toggle>
-                        </ion-item>
-                      </ion-col>
-                    </ion-row>
-                  </ion-grid>
+              <ion-col size="12" size-xl="8">
+                <ion-list>
+                  <ion-item *ngFor="let i of viewLists; let idx = index;">
+                    <ion-icon [name]="i.Icon" slot="start"></ion-icon>
+                    <ion-toggle [checked]="i.Enable" (ionChange)="viewEnable(i, idx)">
+                      <ion-label>{{i.Name}}</ion-label>
+                    </ion-toggle>
+                  </ion-item>
+                  <ion-item lines="none">
+                    <ion-button slot="end" color="danger" (click)="resetViewConfig()" >
+                      <ion-icon slot="start" name="close-circle-outline"></ion-icon>
+                      {{'Reset' | translate}}
+                    </ion-button>
+                  </ion-item>
                 </ion-list>
               </ion-col>
             </ion-row>
@@ -131,24 +129,24 @@
               </ion-col>
               <ion-col size="12" size-sm size-xl="4">
                 <app-form-control
-                  [field]="{id:'CreatedBy', type : 'text', label: 'Created by', form : formGroup }"
+                  [field]="{id:'CreatedBy', type: 'text', label: 'Created by', form: formGroup }"
                 ></app-form-control>
                 <app-form-control
-                  [field]="{id:'CreatedDate', type : 'span-datetime', label: 'Created date', form : formGroup }"
+                  [field]="{id:'CreatedDate', type: 'span-datetime', label: 'Created date', form: formGroup }"
                 ></app-form-control>
                 <app-form-control
-                  [field]="{id:'ModifiedBy', type : 'text', label: 'Last modified by', form : formGroup }"
+                  [field]="{id:'ModifiedBy', type: 'text', label: 'Last modified by', form: formGroup }"
                 ></app-form-control>
                 <app-form-control
-                  [field]="{id:'ModifiedDate', type : 'span-datetime', label: 'Last modified date', form : formGroup }"
+                  [field]="{id:'ModifiedDate', type: 'span-datetime', label: 'Last modified date', form: formGroup }"
                 ></app-form-control>
               </ion-col>
               <ion-col size="12" size-sm size-xl="4">
                 <app-form-control
-                  [field]="{id:'IDBranch', type : 'branch-breadcrumbs', label: 'Branch', form : formGroup, dataSource:env.branchList }"
+                  [field]="{id:'IDBranch', type: 'branch-breadcrumbs', label: 'Branch', form: formGroup, dataSource:env.branchList }"
                 ></app-form-control>
                 <app-form-control
-                  [field]="{id:'Remark', type : 'textarea', label: 'Remark', form : formGroup }"
+                  [field]="{id:'Remark', type: 'textarea', label: 'Remark', form: formGroup }"
                   (change)="saveChange()"
                 ></app-form-control>
               </ion-col>

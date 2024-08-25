@@ -122,9 +122,7 @@
             <ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, groupValue[0].Fields, i.Name)">
     
               <ion-item class="item-status" *ngFor="let g of i.Fields">
-                <ion-reorder *ngIf="g.Enable" slot="start">
-                  <ion-icon name="apps"></ion-icon>
-                </ion-reorder>
+                <ion-reorder *ngIf="g.Enable" slot="start"></ion-reorder>
         
                 <span class="icon-status">
                   <ion-icon class="menu-icon" [color]="g.Color" [name]="g.Icon || 'pricetag-outline'"></ion-icon>
