@@ -112,6 +112,8 @@ export class TaskModalPage extends PageBase {
         Keyword: term,
         IDSpace: this.space?.Id,
         Type_in: JSON.stringify(this.getParentTaskTypeByTaskType(this.item?.Type)),
+        Id_ne: this.formGroup.controls.Id.value,
+        NoNested: true,
         AllParent: true,
       });
     }, true);
