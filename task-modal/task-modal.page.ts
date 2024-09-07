@@ -266,8 +266,12 @@ export class TaskModalPage extends PageBase {
       this.formGroup.controls.Duration.setValue(0);
     }
 
-    const endDateValue = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
-    this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDateValue));
+    const wholeDays = Math.floor(duration);
+    const fractionalDay = duration - wholeDays;
+    startDate.setDate(startDate.getDate() + wholeDays);
+    startDate.setHours(startDate.getHours() + fractionalDay * 24);
+    const formattedEndDate = startDate.toLocaleString('sv-SE', { hour12: false }).replace(' ', 'T').slice(0, 16);
+    this.formGroup.controls.EndDate.setValue(formattedEndDate);
     this.formGroup.controls.EndDate.markAsDirty();
     this.saveChange();
   }
@@ -309,8 +313,12 @@ export class TaskModalPage extends PageBase {
       this.formGroup.controls.DurationPlan.setValue(0);
     }
 
-    const endDateValuePlan = new Date(startDatePlan.getTime() + durationPlan * 24 * 60 * 60 * 1000);
-    this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDateValuePlan));
+    const wholeDays = Math.floor(durationPlan);
+    const fractionalDay = durationPlan - wholeDays;
+    startDatePlan.setDate(startDatePlan.getDate() + wholeDays);
+    startDatePlan.setHours(startDatePlan.getHours() + fractionalDay * 24);
+    const formattedEndDatePlan = startDatePlan.toLocaleString('sv-SE', { hour12: false }).replace(' ', 'T').slice(0, 16);
+    this.formGroup.controls.EndDatePlan.setValue(formattedEndDatePlan);
     this.formGroup.controls.EndDatePlan.markAsDirty();
     this.saveChange();
   }
