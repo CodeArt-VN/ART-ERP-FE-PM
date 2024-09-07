@@ -171,8 +171,8 @@ export class SpaceDetailPage extends PageBase {
   }
 
   doReorder(ev, groups, nameGroup) {
-    groups = ev.detail.complete(groups);
     groups = groups.filter((f) => f.value.Type == nameGroup);
+    groups = ev.detail.complete(groups);
     for (let i = 0; i < groups.length; i++) {
       const g = groups[i];
       g.controls.Sort.setValue(i + 1);
