@@ -13,10 +13,11 @@ import { DynamicScriptLoaderService } from 'src/app/services/custom.service';
 
 declare var kanban: any;
 @Component({
-  encapsulation: ViewEncapsulation.None,
-  selector: 'app-board',
-  templateUrl: 'board.component.html',
-  styleUrls: ['board.component.scss'],
+    encapsulation: ViewEncapsulation.None,
+    selector: 'app-board',
+    templateUrl: 'board.component.html',
+    styleUrls: ['board.component.scss'],
+    standalone: false
 })
 export class BoardComponent implements OnInit {
   @ViewChild('groupPopover') groupPopover;

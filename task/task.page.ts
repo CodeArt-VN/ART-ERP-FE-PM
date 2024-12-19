@@ -19,10 +19,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, Validators } from '@angular/forms';
 
 @Component({
-  encapsulation: ViewEncapsulation.None,
-  selector: 'app-task',
-  templateUrl: 'task.page.html',
-  styleUrls: ['task.page.scss'],
+    encapsulation: ViewEncapsulation.None,
+    selector: 'app-task',
+    templateUrl: 'task.page.html',
+    styleUrls: ['task.page.scss'],
+    standalone: false
 })
 export class TaskPage extends PageBase {
   /*

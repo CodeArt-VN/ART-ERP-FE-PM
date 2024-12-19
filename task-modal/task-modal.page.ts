@@ -11,9 +11,10 @@ import { lib } from 'src/app/services/static/global-functions';
 import { PM_Space, PM_Task } from 'src/app/models/model-list-interface';
 
 @Component({
-  selector: 'app-task-modal',
-  templateUrl: './task-modal.page.html',
-  styleUrls: ['./task-modal.page.scss'],
+    selector: 'app-task-modal',
+    templateUrl: './task-modal.page.html',
+    styleUrls: ['./task-modal.page.scss'],
+    standalone: false
 })
 export class TaskModalPage extends PageBase {
   parentTask = null;

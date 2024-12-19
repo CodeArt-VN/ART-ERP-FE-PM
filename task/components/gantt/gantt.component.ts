@@ -20,10 +20,11 @@ import { thirdPartyLibs } from 'src/app/services/static/thirdPartyLibs';
 declare var gantt: any;
 
 @Component({
-  encapsulation: ViewEncapsulation.None,
-  selector: 'app-gantt',
-  templateUrl: 'gantt.component.html',
-  styleUrls: ['gantt.component.scss'],
+    encapsulation: ViewEncapsulation.None,
+    selector: 'app-gantt',
+    templateUrl: 'gantt.component.html',
+    styleUrls: ['gantt.component.scss'],
+    standalone: false
 })
 export class GanttComponent implements OnInit {
   @ViewChild('gantt_here', { static: true }) ganttContainer!: ElementRef;

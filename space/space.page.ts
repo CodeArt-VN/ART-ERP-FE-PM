@@ -8,10 +8,11 @@ import {
 } from 'src/app/services/static/services.service';
 
 @Component({
-  encapsulation: ViewEncapsulation.None,
-  selector: 'app-space',
-  templateUrl: 'space.page.html',
-  styleUrls: ['space.page.scss'],
+    encapsulation: ViewEncapsulation.None,
+    selector: 'app-space',
+    templateUrl: 'space.page.html',
+    styleUrls: ['space.page.scss'],
+    standalone: false
 })
 export class SpacePage extends PageBase {
   constructor(

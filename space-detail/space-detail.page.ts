@@ -16,10 +16,11 @@ import { SpaceStatusModalPage } from '../space-status-modal/space-status-modal.p
 import { lib } from 'src/app/services/static/global-functions';
 
 @Component({
-  encapsulation: ViewEncapsulation.None,
-  selector: 'app-space-detail',
-  templateUrl: 'space-detail.page.html',
-  styleUrls: ['space-detail.page.scss'],
+    encapsulation: ViewEncapsulation.None,
+    selector: 'app-space-detail',
+    templateUrl: 'space-detail.page.html',
+    styleUrls: ['space-detail.page.scss'],
+    standalone: false
 })
 export class SpaceDetailPage extends PageBase {
   groupStatus = [

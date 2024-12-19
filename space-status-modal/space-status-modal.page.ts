@@ -15,9 +15,10 @@ import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms'
 import { CommonService } from 'src/app/services/core/common.service';
 
 @Component({
-  selector: 'app-space-status-modal',
-  templateUrl: './space-status-modal.page.html',
-  styleUrls: ['./space-status-modal.page.scss'],
+    selector: 'app-space-status-modal',
+    templateUrl: './space-status-modal.page.html',
+    styleUrls: ['./space-status-modal.page.scss'],
+    standalone: false
 })
 export class SpaceStatusModalPage extends PageBase {
   constructor(
