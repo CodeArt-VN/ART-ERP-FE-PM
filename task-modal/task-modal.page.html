@@ -38,15 +38,25 @@
             <!-- Type -->
             <app-form-control
               [field]="{id:'Type', label: 'Type', type : 'ng-select', dataSource: formDataSources.Type, bindValue:'Code', bindLabel:'Name', form : formGroup }"
-              (change)="changeType()"
-            >
+              (change)="changeType()">
+              <ng-template input-control-template ng-label-tmp let-i="item" let-search="searchTerm">
+                <ion-icon *ngIf="i.Icon" [name]="i.Icon" slot="start" [color]="i.Color"></ion-icon>
+                <ion-text [color]="i.Color">{{ i[bindLabel ? bindLabel : 'Name'] | translate }}</ion-text>
+              </ng-template>
+              <ng-template input-control-template ng-option-tmp let-i="item" let-search="searchTerm">
+                <ng-container class="option" *ngIf="i">
+                  <ion-icon *ngIf="i.Icon" [name]="i.Icon" slot="start"></ion-icon>
+                  <ion-text [color]="i.Color || 'dark'" [ngOptionHighlight]="search">{{
+                    i[bindLabel ? bindLabel : 'Name'] | translate
+                    }}</ion-text>
+                </ng-container>
+              </ng-template>
+
             </app-form-control>
 
             <!-- Status -->
-            <app-form-control
-              [field]="{id:'Status', label: 'Status', type : 'ng-select', dataSource: formDataSources.Status, bindValue:'Code', bindLabel:'Name', form : formGroup }"
-              (change)="saveChange()"
-            >
+            <app-form-control [field]="{id:'Status', label: 'Status', type : 'ng-select', dataSource: formDataSources.Status, bindValue:'Code', bindLabel:'Name', form : formGroup ,
+              treeConfig:{searchFnDefault:true,isTree:true, isCollapsed:true}}" (change)="saveChange()">
             </app-form-control>
 
             <!-- StartDate -->
@@ -111,8 +121,21 @@
             <!-- Priority -->
             <app-form-control
               [field]="{id:'Priority', label: 'Priority', type : 'ng-select', dataSource: formDataSources.Priority, bindValue:'Code', bindLabel:'Name', form : formGroup }"
-              (change)="saveChange()"
-            >
+              (change)="saveChange()">
+              <ng-template input-control-template ng-label-tmp let-i="item" let-search="searchTerm">
+                <ion-icon *ngIf="i.Icon" [name]="i.Icon" slot="start" [color]="i.Color"></ion-icon>
+                <ion-text [color]="i.Color">{{ i[bindLabel ? bindLabel : 'Name'] | translate }}</ion-text>
+              </ng-template>
+              <ng-template input-control-template ng-option-tmp let-i="item" let-search="searchTerm">
+                <ng-container *ngIf="i">
+                  <ion-icon *ngIf="i.Icon" [name]="i.Icon" slot="start"></ion-icon>
+                  <ion-text [color]="i.Color || 'dark'" [ngOptionHighlight]="search">{{
+                    i[bindLabel ? bindLabel : 'Name'] | translate
+                    }}</ion-text>
+                </ng-container>
+              </ng-template>
+
+
             </app-form-control>
 
             <!-- StartDatePlan -->
