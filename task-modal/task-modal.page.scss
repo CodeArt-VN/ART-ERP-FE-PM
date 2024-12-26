@@ -90,3 +90,21 @@ form {
 ::ng-deep ion-header.padding-header > ion-toolbar {
   --padding-start: 0px !important;
 }
+
+::ng-deep {
+  .flex-left>ion-icon {
+    padding-right: 10px;
+
+  }
+
+  .ng-value>ion-icon {
+    padding-right: 10px;
+
+  }
+
+  .option>ion-icon {
+    padding-right: 10px;
+
+  }
+
+}

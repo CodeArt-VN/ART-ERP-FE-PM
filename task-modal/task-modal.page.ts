@@ -163,6 +163,24 @@ export class TaskModalPage extends PageBase {
       if(this.item.IDOwner) this.formGroup.controls.IDOwner.markAsDirty();
       if(this.item.Priority) this.formGroup.controls.Priority.markAsDirty();
     }
+    let listType = [...new Set(this.formDataSources.Status.map(o => o.Type))].map(o => {
+      return {
+        Id: lib.generateUID(),
+        Code: o,
+        Name: o,
+      }
+    });
+    listType.forEach(x => {
+      this.formDataSources.Status.map(o => {
+        if (o.Type == x.Code) o.IDParent = x.Id
+      })
+    });
+    this.formDataSources.Status = [...this.formDataSources.Status, ...listType]
+
+    lib.buildFlatTree(this.formDataSources.Status, []).then((resp: any) => {
+      this.formDataSources.Status = [...resp];
+      this.formDataSources.Status.filter(o=>!o.IDParent).forEach(x=> x.disabled = true) ;
+    });
   }
 
   getTypeDataSourceByParentTaskType() {
