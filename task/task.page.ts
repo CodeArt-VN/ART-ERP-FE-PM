@@ -222,6 +222,7 @@ Segment change:
 
     this.query.AllChildren = true;
     if (this.space.Id) {
+      this.pageConfig.ShowAdd=true;
       delete this.query.Id;
       delete this.query.IDSpace;
       if (this.id) this.query.Id = this.id;
@@ -229,6 +230,8 @@ Segment change:
 
       super.loadData(event);
     } else {
+      this.pageConfig.ShowAdd=false;
+
       this.loadedData(event);
     }
   }
@@ -891,9 +894,10 @@ Segment change:
         this.id = event.Id;
         this.space.Id = event.IDSpace;
       }
+      this.pageConfig.ShowAdd = true;
       this.nav();
       this.refresh();
-    }
+    }else this.pageConfig.ShowAdd = false;  
   }
 
   add() {
