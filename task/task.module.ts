@@ -9,15 +9,7 @@ import { TaskModalPage } from '../task-modal/task-modal.page';
 import { TaskComponentsModule } from './components/task-components.module';
 
 @NgModule({
-  imports: [
-    IonicModule,
-    CommonModule,
-    FormsModule,
-    ShareModule,
-    ReactiveFormsModule,
-    TaskComponentsModule,
-    RouterModule.forChild([{ path: '', component: TaskPage }]),
-  ],
-  declarations: [TaskPage, TaskModalPage],
+	imports: [IonicModule, CommonModule, FormsModule, ShareModule, ReactiveFormsModule, TaskComponentsModule, RouterModule.forChild([{ path: '', component: TaskPage }])],
+	declarations: [TaskPage, TaskModalPage],
 })
 export class TaskPageModule {}

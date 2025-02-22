@@ -252,95 +252,140 @@ Segment change:
 			promises.push(this.spaceStatusProvider.read({ IDSpace: this.space.Id }));
 		}
 
-		Promise.all(promises).then((values: any) => {
-			if (values[0].data) {
-				this.viewConfig = values[0].data[0];
-
-				if (this.viewConfig) {
-					this.viewConfig.ViewConfig = JSON.parse(values[0].data[0].ViewConfig);
-				}
-			}
-			let indexPromises = 1;
-			this.items.forEach((i) => {
-				i._isRoot = i.IDParent == null || i.Id == this.id;
-				i._Type = this.typeList.find((d) => d.Code == i.Type);
-
-				if (i._isRoot) {
-					this.getAllChildrenHasOwner(i);
-				}
-			});
-
-			if (this.items.length) {
-				this.linksData = values[indexPromises].data;
-				indexPromises++;
-			}
-
-			if (this.groupByConfig?.SpaceView) {
-				this.space.spaceList = values[indexPromises].data;
-				indexPromises++;
-			}
-
-			if (this.space.Id) {
-				this.space.activeSpace = this.space.spaceList.find((d) => d.Id == this.space.Id);
-				if (this.space.activeSpace) {
-					this.space.Name = this.space.activeSpace.Name;
-					const viewConfig = JSON.parse(this.space.activeSpace.ViewConfig) || {};
-					this.view.viewList = viewConfig.Views.filter((view) => view.Layout.View.IsActive).map((view) => ({
-						Type: view.Layout.View.Type,
-						Name: view.Layout.View.Name,
-						From: 'Space',
-						Sort: view.Sort,
-					}));
+		Promise.all(promises)
+			.then((values: any) => {
+				if (values[0].data) {
+					this.viewConfig = values[0].data[0];
 
 					if (this.viewConfig) {
-						let addViewConfig = this.viewConfig.ViewConfig.Views.map((item: any) => {
-							return {
-								Type: item.Layout.View.Type || '',
-								Name: item.Layout.View.Name || '',
-								From: 'View',
-								Sort: item.Sort,
-							};
-						});
-
-						this.view.viewList = [...this.view.viewList, ...addViewConfig];
+						this.viewConfig.ViewConfig = JSON.parse(values[0].data[0].ViewConfig);
 					}
-					let defaultView = this.view.viewList.find((d) => d.Default);
-					if (!defaultView && this.view.viewList.length) defaultView = this.view.viewList[0];
+				}
+				let indexPromises = 1;
+				this.items.forEach((i) => {
+					i._isRoot = i.IDParent == null || i.Id == this.id;
+					i._Type = this.typeList.find((d) => d.Code == i.Type);
 
-					if (!this.view.activeView.Name) {
-						if (defaultView) {
-							this.view.activeView.Name = defaultView?.Name;
-						} else {
-							this.env.showMessage('No view found, please check space config', 'warning');
+					if (i._isRoot) {
+						this.getAllChildrenHasOwner(i);
+					}
+				});
+
+				if (this.items.length) {
+					this.linksData = values[indexPromises].data;
+					indexPromises++;
+				}
+
+				if (this.groupByConfig?.SpaceView) {
+					this.space.spaceList = values[indexPromises].data;
+					indexPromises++;
+				}
+
+				if (this.space.Id) {
+					this.space.activeSpace = this.space.spaceList.find((d) => d.Id == this.space.Id);
+					if (this.space.activeSpace) {
+						this.space.Name = this.space.activeSpace.Name;
+						const viewConfig = JSON.parse(this.space.activeSpace.ViewConfig) || {};
+						this.view.viewList = viewConfig.Views.filter((view) => view.Layout.View.IsActive).map((view) => ({
+							Type: view.Layout.View.Type,
+							Name: view.Layout.View.Name,
+							From: 'Space',
+							Sort: view.Sort,
+						}));
+
+						if (this.viewConfig) {
+							let addViewConfig = this.viewConfig.ViewConfig.Views.map((item: any) => {
+								return {
+									Type: item.Layout.View.Type || '',
+									Name: item.Layout.View.Name || '',
+									From: 'View',
+									Sort: item.Sort,
+								};
+							});
+
+							this.view.viewList = [...this.view.viewList, ...addViewConfig];
 						}
-					}
+						let defaultView = this.view.viewList.find((d) => d.Default);
+						if (!defaultView && this.view.viewList.length) defaultView = this.view.viewList[0];
 
-					//get status list in space
-					this.space.statusList = values[indexPromises].data;
-
-					// Check is 'view' or 'space'
-					if (this.view.activeView.From == '') {
-						this.view.activeView = this.view.viewList.find((d) => d.Name == this.view.activeView.Name);
-						if (!this.view.activeView) {
-							this.env.showMessage('View not found!', 'warning');
-							this.pageConfig.showSpinner = false;
-							return;
+						if (!this.view.activeView.Name) {
+							if (defaultView) {
+								this.view.activeView.Name = defaultView?.Name;
+							} else {
+								this.env.showMessage('No view found, please check space config', 'warning');
+							}
 						}
-					}
-					if (this.viewConfig) {
-						let activeView = this.viewConfig.ViewConfig.Views.find((d) => {
-							return d.Layout.View.Name == this.view.activeView.Name && d.Layout.View.Type == this.view.activeView.Type && d.Sort[0] == this.view.activeView.Sort[0];
-						});
 
-						if (activeView) {
-							let groupByInBoard: any = {
-								IDProject: parseInt(this.id),
-								ViewConfig: '',
-								ActiveView: this.view.activeView,
-							};
-							groupByInBoard.ViewConfig = this.viewConfig.ViewConfig.Views;
-							groupByInBoard.Id = this.viewConfig.Id;
-							this.groupByConfig = groupByInBoard;
+						//get status list in space
+						this.space.statusList = values[indexPromises].data;
+
+						// Check is 'view' or 'space'
+						if (this.view.activeView.From == '') {
+							this.view.activeView = this.view.viewList.find((d) => d.Name == this.view.activeView.Name);
+							if (!this.view.activeView) {
+								this.env.showMessage('View not found!', 'warning');
+								this.pageConfig.showSpinner = false;
+								return;
+							}
+						}
+						if (this.viewConfig) {
+							let activeView = this.viewConfig.ViewConfig.Views.find((d) => {
+								return (
+									d.Layout.View.Name == this.view.activeView.Name && d.Layout.View.Type == this.view.activeView.Type && d.Sort[0] == this.view.activeView.Sort[0]
+								);
+							});
+
+							if (activeView) {
+								let groupByInBoard: any = {
+									IDProject: parseInt(this.id),
+									ViewConfig: '',
+									ActiveView: this.view.activeView,
+								};
+								groupByInBoard.ViewConfig = this.viewConfig.ViewConfig.Views;
+								groupByInBoard.Id = this.viewConfig.Id;
+								this.groupByConfig = groupByInBoard;
+							} else {
+								const jsonSpace = JSON.parse(this.space.activeSpace.ViewConfig) || {};
+								let configSpace = jsonSpace.Views.map((item: any) => {
+									const fields = item.Fields ?? [{ Code: '', Name: '', Icon: '', Color: '', Sort: '' }];
+									return {
+										Layout: {
+											View: {
+												Name: item.Layout.View.Name,
+												Type: item.Layout.View.Type,
+												Icon: '',
+												Color: '',
+												IsPinned: item.Layout.View.IsPinned || false,
+												IsDefault: item.Layout.View.IsDefault || false,
+												IsActive: item.Layout.View.IsActive || false,
+											},
+											Card: {
+												IsStackFields: item?.Layout?.Card?.IsStackFields || false,
+												IsEmptyFields: item?.Layout?.Card?.IsEmptyFields || false,
+												IsCollapseEmptyColumns: item?.Layout?.Card?.IsCollapseEmptyColumns || false,
+												IsColorColumns: item?.Layout?.Card?.IsColorColumns || false,
+												Size: 'Medium',
+											},
+										},
+										Fields: fields,
+										GroupBy: {
+											Group1: { Code: item?.GroupBy?.Group1?.Code || '', Sort: item?.GroupBy?.Group1?.Sort || '' },
+											Group2: { Code: item?.GroupBy?.Group2?.Code || '', Sort: item?.GroupBy?.Group2?.Sort || '' },
+										},
+										Filter: [],
+										Sort: [item.Sort[0]],
+									};
+								});
+
+								let groupBySpace: any = {
+									Id: this.space.Id,
+									IDProject: parseInt(this.id),
+									SpaceView: this.view.activeView.Name,
+									ViewConfig: configSpace,
+									ActiveView: this.view.activeView,
+								};
+								this.groupByConfig = groupBySpace;
+							}
 						} else {
 							const jsonSpace = JSON.parse(this.space.activeSpace.ViewConfig) || {};
 							let configSpace = jsonSpace.Views.map((item: any) => {
@@ -384,69 +429,27 @@ Segment change:
 							this.groupByConfig = groupBySpace;
 						}
 					} else {
-						const jsonSpace = JSON.parse(this.space.activeSpace.ViewConfig) || {};
-						let configSpace = jsonSpace.Views.map((item: any) => {
-							const fields = item.Fields ?? [{ Code: '', Name: '', Icon: '', Color: '', Sort: '' }];
-							return {
-								Layout: {
-									View: {
-										Name: item.Layout.View.Name,
-										Type: item.Layout.View.Type,
-										Icon: '',
-										Color: '',
-										IsPinned: item.Layout.View.IsPinned || false,
-										IsDefault: item.Layout.View.IsDefault || false,
-										IsActive: item.Layout.View.IsActive || false,
-									},
-									Card: {
-										IsStackFields: item?.Layout?.Card?.IsStackFields || false,
-										IsEmptyFields: item?.Layout?.Card?.IsEmptyFields || false,
-										IsCollapseEmptyColumns: item?.Layout?.Card?.IsCollapseEmptyColumns || false,
-										IsColorColumns: item?.Layout?.Card?.IsColorColumns || false,
-										Size: 'Medium',
-									},
-								},
-								Fields: fields,
-								GroupBy: {
-									Group1: { Code: item?.GroupBy?.Group1?.Code || '', Sort: item?.GroupBy?.Group1?.Sort || '' },
-									Group2: { Code: item?.GroupBy?.Group2?.Code || '', Sort: item?.GroupBy?.Group2?.Sort || '' },
-								},
-								Filter: [],
-								Sort: [item.Sort[0]],
-							};
-						});
-
-						let groupBySpace: any = {
-							Id: this.space.Id,
-							IDProject: parseInt(this.id),
-							SpaceView: this.view.activeView.Name,
-							ViewConfig: configSpace,
-							ActiveView: this.view.activeView,
-						};
-						this.groupByConfig = groupBySpace;
+						this.env.showMessage('Space not found!', 'warning');
 					}
+					const activeViewIndex = this.view.viewList.findIndex((d) => d.Name === this.view.activeView.Name);
+					this.activeViewIndex = activeViewIndex;
 				} else {
-					this.env.showMessage('Space not found!', 'warning');
+					this.view.viewList = [];
 				}
-				const activeViewIndex = this.view.viewList.findIndex((d) => d.Name === this.view.activeView.Name);
-				this.activeViewIndex = activeViewIndex;
-			} else {
-				this.view.viewList = [];
-			}
 
-			let selectedSpaceTask = this.spaceTreeList.find((d) => d.Id == this.id);
-			if (!selectedSpaceTask) selectedSpaceTask = this.spaceTreeList.find((d) => d.IDSpace == this.space.Id);
-			if (selectedSpaceTask != this.selectedSpaceTask) this.selectedSpaceTask = selectedSpaceTask;
+				let selectedSpaceTask = this.spaceTreeList.find((d) => d.Id == this.id);
+				if (!selectedSpaceTask) selectedSpaceTask = this.spaceTreeList.find((d) => d.IDSpace == this.space.Id);
+				if (selectedSpaceTask != this.selectedSpaceTask) this.selectedSpaceTask = selectedSpaceTask;
 
-			this.isSegmentActive = false;
-			setTimeout(() => {
-				this.isSegmentActive = true;
-			}, 50);
-			//super.loadedData(event, ignoredFromGroup);
-		}).finally(() => {
-      
-      super.loadedData(event, ignoredFromGroup);
-    });
+				this.isSegmentActive = false;
+				setTimeout(() => {
+					this.isSegmentActive = true;
+				}, 50);
+				//super.loadedData(event, ignoredFromGroup);
+			})
+			.finally(() => {
+				super.loadedData(event, ignoredFromGroup);
+			});
 	}
 
 	getAllChildrenHasOwner(item) {

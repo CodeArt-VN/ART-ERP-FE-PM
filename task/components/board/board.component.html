@@ -1,173 +1,150 @@
 <ion-content appScrollbarTheme class="scrollx">
-  <ion-toolbar>
-    <ion-button size="small" shape="round" (click)="presentGroupPopover($event)">
-      <ion-icon slot="start" name="layers"></ion-icon>
-      Group : &nbsp;
-      <span *ngIf="group1Selected && group2Selected ">
-        {{ getGroupName(group1Selected, 1) }} / {{ getGroupName(group2Selected, 2) }}
-      </span>
-      <span *ngIf="group1Selected && !group2Selected">
-        {{ getGroupName(group1Selected, 1) }}
-      </span>
-      <span *ngIf="!group1Selected && group2Selected">
-        {{ getGroupName(group2Selected, 2) }}
-      </span>
-    </ion-button>
-  </ion-toolbar>
-  <div id="kanban_here" style="height: calc(100% - 56px)"></div>
+	<ion-toolbar>
+		<ion-button size="small" shape="round" (click)="presentGroupPopover($event)">
+			<ion-icon slot="start" name="layers"></ion-icon>
+			Group : &nbsp;
+			<span *ngIf="group1Selected && group2Selected"> {{ getGroupName(group1Selected, 1) }} / {{ getGroupName(group2Selected, 2) }} </span>
+			<span *ngIf="group1Selected && !group2Selected">
+				{{ getGroupName(group1Selected, 1) }}
+			</span>
+			<span *ngIf="!group1Selected && group2Selected">
+				{{ getGroupName(group2Selected, 2) }}
+			</span>
+		</ion-button>
+	</ion-toolbar>
+	<div id="kanban_here" style="height: calc(100% - 56px)"></div>
 
-  <ion-popover class="w300" #groupPopover [isOpen]="isGroupPopoverOpen" (didDismiss)="isGroupPopoverOpen = false">
-    <ng-template>
-      <ion-content scroll-y="false">
-        <ion-list lines="none">
-          <ion-item>
-            <ion-label>
-              <h3>Group by</h3>
-            </ion-label>
-          </ion-item>
-          <ion-item>
-            <div class="c-group">
-              <div class="c-control">
-                <ng-select
-                  appendTo="#ng-select-holder"
-                  [(ngModel)]="group1Selected"
-                  class="c-input"
-                  [items]="groupBy.level1.list"
-                  [clearable]="false"
-                  [virtualScroll]="true"
-                  bindLabel="Name"
-                  bindValue="Code"
-                  (change)="saveGroupBy()"
-                >
-                  <ng-template ng-label-tmp let-i="item">
-                    <div *ngIf="i">
-                      <div>
-                        <ion-icon [color]="i.Color" [name]="i.Icon" slot="start"></ion-icon> &nbsp;
-                        <ion-text>{{ i.Name }}</ion-text>
-                      </div>
-                    </div>
-                  </ng-template>
-                  <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
-                    <div *ngIf="i">
-                      <div>
-                        <ion-icon [color]="i.Color" [name]="i.Icon" slot="start"></ion-icon> &nbsp;
-                        <ion-text [ngOptionHighlight]="search">{{ i.Name }}</ion-text>
-                        &nbsp; &nbsp;
-                        <ion-icon
-                          name="checkmark-outline"
-                          slot="end"
-                          color="primary"
-                          *ngIf="group1Selected?.Code == i.Code"
-                        ></ion-icon>
-                      </div>
-                    </div>
-                  </ng-template>
-                </ng-select>
-              </div>
-              <div class="c-control group-by">
-                <ng-select
-                  appendTo="#ng-select-holder"
-                  [(ngModel)]="group1Order"
-                  class="c-input"
-                  [items]="groupBy.level1.order"
-                  [clearable]="false"
-                  [virtualScroll]="true"
-                  bindLabel="Name"
-                  bindValue="Code"
-                  (change)="saveGroupBy()"
-                >
-                  <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
-                    <div *ngIf="i">
-                      <div>
-                        <ion-text [color]="i.Color" [ngOptionHighlight]="search">{{ i.Name }}</ion-text>
-                        &nbsp;
-                        <ion-icon
-                          name="checkmark-outline"
-                          slot="end"
-                          color="primary"
-                          *ngIf="statusOrder?.Code == i.Code"
-                        ></ion-icon>
-                      </div>
-                    </div>
-                  </ng-template>
-                </ng-select>
-              </div>
-              <ion-icon (click)="deleteGroup('status')" class="min-btn" name="trash-outline"></ion-icon>
-            </div>
-          </ion-item>
-          <ion-item>
-            <div class="c-group">
-              <div class="c-control">
-                <ng-select
-                  appendTo="#ng-select-holder"
-                  [(ngModel)]="group2Selected"
-                  class="c-input"
-                  [items]="groupBy.level2.list"
-                  [clearable]="false"
-                  [virtualScroll]="true"
-                  bindLabel="Name"
-                  bindValue="Code"
-                  (change)="saveGroupBy()"
-                >
-                
-                  <ng-template ng-label-tmp let-i="item">
-                    <div *ngIf="i">
-                      <div>
-                        <ion-icon [color]="i.Color" [name]="i.Icon" slot="start"></ion-icon> &nbsp;
-                        <ion-text>{{ i.Name }}</ion-text>
-                      </div>
-                    </div>
-                  </ng-template>
-                  <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
-                    <div *ngIf="i">
-                      <div>
-                        <ion-icon [color]="i.Color" [name]="i.Icon" slot="start"></ion-icon> &nbsp;
-                        <ion-text [ngOptionHighlight]="search">{{ i.Name }}</ion-text>
-                        &nbsp; &nbsp;
-                        <ion-icon
-                          name="checkmark-outline"
-                          slot="end"
-                          color="primary"
-                          *ngIf="prioritySelected?.Code == i.Code"
-                        ></ion-icon>
-                      </div>
-                    </div>
-                  </ng-template>
-                </ng-select>
-              </div>
-              <div class="c-control group-by">
-                <ng-select
-                  appendTo="#ng-select-holder"
-                  [(ngModel)]="group2Order"
-                  class="c-input"
-                  [items]="groupBy.level2.order"
-                  [clearable]="false"
-                  [virtualScroll]="true"
-                  bindLabel="Name"
-                  bindValue="Code"
-                  (change)="saveGroupBy()"
-                >
-                  <ng-template ng-option-tmp let-i="item" let-search="searchTerm">
-                    <div *ngIf="i">
-                      <div>
-                        <ion-text [ngOptionHighlight]="search">{{ i.Name }}</ion-text>
-                        &nbsp;
-                        <ion-icon
-                          name="checkmark-outline"
-                          slot="end"
-                          color="primary"
-                          *ngIf="priorityOrder?.Code == i.Code"
-                        ></ion-icon>
-                      </div>
-                    </div>
-                  </ng-template>
-                </ng-select>
-              </div>
-              <ion-icon (click)="deleteGroup('priority')" class="min-btn" name="trash-outline"></ion-icon>
-            </div>
-          </ion-item>
-        </ion-list>
-      </ion-content>
-    </ng-template>
-  </ion-popover>
+	<ion-popover class="w300" #groupPopover [isOpen]="isGroupPopoverOpen" (didDismiss)="isGroupPopoverOpen = false">
+		<ng-template>
+			<ion-content scroll-y="false">
+				<ion-list lines="none">
+					<ion-item>
+						<ion-label>
+							<h3>Group by</h3>
+						</ion-label>
+					</ion-item>
+					<ion-item>
+						<div class="c-group">
+							<div class="c-control">
+								<ng-select
+									appendTo="#ng-select-holder"
+									[(ngModel)]="group1Selected"
+									class="c-input"
+									[items]="groupBy.level1.list"
+									[clearable]="false"
+									[virtualScroll]="true"
+									bindLabel="Name"
+									bindValue="Code"
+									(change)="saveGroupBy()"
+								>
+									<ng-template ng-label-tmp let-i="item">
+										<div *ngIf="i">
+											<div>
+												<ion-icon [color]="i.Color" [name]="i.Icon" slot="start"></ion-icon> &nbsp;
+												<ion-text>{{ i.Name }}</ion-text>
+											</div>
+										</div>
+									</ng-template>
+									<ng-template ng-option-tmp let-i="item" let-search="searchTerm">
+										<div *ngIf="i">
+											<div>
+												<ion-icon [color]="i.Color" [name]="i.Icon" slot="start"></ion-icon> &nbsp;
+												<ion-text [ngOptionHighlight]="search">{{ i.Name }}</ion-text>
+												&nbsp; &nbsp;
+												<ion-icon name="checkmark-outline" slot="end" color="primary" *ngIf="group1Selected?.Code == i.Code"></ion-icon>
+											</div>
+										</div>
+									</ng-template>
+								</ng-select>
+							</div>
+							<div class="c-control group-by">
+								<ng-select
+									appendTo="#ng-select-holder"
+									[(ngModel)]="group1Order"
+									class="c-input"
+									[items]="groupBy.level1.order"
+									[clearable]="false"
+									[virtualScroll]="true"
+									bindLabel="Name"
+									bindValue="Code"
+									(change)="saveGroupBy()"
+								>
+									<ng-template ng-option-tmp let-i="item" let-search="searchTerm">
+										<div *ngIf="i">
+											<div>
+												<ion-text [color]="i.Color" [ngOptionHighlight]="search">{{ i.Name }}</ion-text>
+												&nbsp;
+												<ion-icon name="checkmark-outline" slot="end" color="primary" *ngIf="statusOrder?.Code == i.Code"></ion-icon>
+											</div>
+										</div>
+									</ng-template>
+								</ng-select>
+							</div>
+							<ion-icon (click)="deleteGroup('status')" class="min-btn" name="trash-outline"></ion-icon>
+						</div>
+					</ion-item>
+					<ion-item>
+						<div class="c-group">
+							<div class="c-control">
+								<ng-select
+									appendTo="#ng-select-holder"
+									[(ngModel)]="group2Selected"
+									class="c-input"
+									[items]="groupBy.level2.list"
+									[clearable]="false"
+									[virtualScroll]="true"
+									bindLabel="Name"
+									bindValue="Code"
+									(change)="saveGroupBy()"
+								>
+									<ng-template ng-label-tmp let-i="item">
+										<div *ngIf="i">
+											<div>
+												<ion-icon [color]="i.Color" [name]="i.Icon" slot="start"></ion-icon> &nbsp;
+												<ion-text>{{ i.Name }}</ion-text>
+											</div>
+										</div>
+									</ng-template>
+									<ng-template ng-option-tmp let-i="item" let-search="searchTerm">
+										<div *ngIf="i">
+											<div>
+												<ion-icon [color]="i.Color" [name]="i.Icon" slot="start"></ion-icon> &nbsp;
+												<ion-text [ngOptionHighlight]="search">{{ i.Name }}</ion-text>
+												&nbsp; &nbsp;
+												<ion-icon name="checkmark-outline" slot="end" color="primary" *ngIf="prioritySelected?.Code == i.Code"></ion-icon>
+											</div>
+										</div>
+									</ng-template>
+								</ng-select>
+							</div>
+							<div class="c-control group-by">
+								<ng-select
+									appendTo="#ng-select-holder"
+									[(ngModel)]="group2Order"
+									class="c-input"
+									[items]="groupBy.level2.order"
+									[clearable]="false"
+									[virtualScroll]="true"
+									bindLabel="Name"
+									bindValue="Code"
+									(change)="saveGroupBy()"
+								>
+									<ng-template ng-option-tmp let-i="item" let-search="searchTerm">
+										<div *ngIf="i">
+											<div>
+												<ion-text [ngOptionHighlight]="search">{{ i.Name }}</ion-text>
+												&nbsp;
+												<ion-icon name="checkmark-outline" slot="end" color="primary" *ngIf="priorityOrder?.Code == i.Code"></ion-icon>
+											</div>
+										</div>
+									</ng-template>
+								</ng-select>
+							</div>
+							<ion-icon (click)="deleteGroup('priority')" class="min-btn" name="trash-outline"></ion-icon>
+						</div>
+					</ion-item>
+				</ion-list>
+			</ion-content>
+		</ng-template>
+	</ion-popover>
 </ion-content>

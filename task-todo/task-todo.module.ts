@@ -7,14 +7,7 @@ import { TaskTodoPage } from './task-todo.page';
 import { ShareModule } from 'src/app/share.module';
 
 @NgModule({
-  imports: [
-    IonicModule,
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    ShareModule,
-    RouterModule.forChild([{ path: '', component: TaskTodoPage }]),
-  ],
-  declarations: [TaskTodoPage],
+	imports: [IonicModule, CommonModule, FormsModule, ReactiveFormsModule, ShareModule, RouterModule.forChild([{ path: '', component: TaskTodoPage }])],
+	declarations: [TaskTodoPage],
 })
 export class TaskTodoPageModule {}

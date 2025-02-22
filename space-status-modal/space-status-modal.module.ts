@@ -7,22 +7,14 @@ import { ShareModule } from 'src/app/share.module';
 import { SpaceStatusModalPage } from './space-status-modal.page';
 
 const routes: Routes = [
-  {
-    path: '',
-    component: SpaceStatusModalPage,
-  },
+	{
+		path: '',
+		component: SpaceStatusModalPage,
+	},
 ];
 
 @NgModule({
-  imports: [
-    CommonModule,
-    FormsModule,
-    ShareModule,
-    IonicModule,
-    ReactiveFormsModule,
-    ShareModule,
-    RouterModule.forChild(routes),
-  ],
-  declarations: [SpaceStatusModalPage],
+	imports: [CommonModule, FormsModule, ShareModule, IonicModule, ReactiveFormsModule, ShareModule, RouterModule.forChild(routes)],
+	declarations: [SpaceStatusModalPage],
 })
 export class SpaceStatusModalPageModule {}

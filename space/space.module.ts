@@ -7,13 +7,7 @@ import { ShareModule } from 'src/app/share.module';
 import { SpacePage } from './space.page';
 
 @NgModule({
-  imports: [
-    IonicModule,
-    CommonModule,
-    FormsModule,
-    ShareModule,
-    RouterModule.forChild([{ path: '', component: SpacePage }]),
-  ],
-  declarations: [SpacePage],
+	imports: [IonicModule, CommonModule, FormsModule, ShareModule, RouterModule.forChild([{ path: '', component: SpacePage }])],
+	declarations: [SpacePage],
 })
 export class SpacePageModule {}
