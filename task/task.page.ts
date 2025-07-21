@@ -10,6 +10,7 @@ import { environment } from 'src/environments/environment';
 import { lib } from 'src/app/services/static/global-functions';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, Validators } from '@angular/forms';
+import { AdvanceFilterModalComponent } from 'src/app/modals/advance-filter-modal/advance-filter-modal.component';
 
 @Component({
 	encapsulation: ViewEncapsulation.None,
@@ -115,6 +116,8 @@ Segment change:
 		},
 	];
 
+	itemsOrginal: any[] = []; // Original items data source, used to reset filter
+
 	constructor(
 		public pageProvider: PM_TaskProvider,
 		public spaceProvider: PM_SpaceProvider,
@@ -164,8 +167,11 @@ Segment change:
 				Type_in: '',
 			};
 			query.Type_in = JSON.stringify(this.typeList.map((e) => e.Code).filter((d) => d != 'Task' && d != 'Todo' && d != 'Milestone'));
-
-			Promise.all([this.spaceProvider.read(), this.pageProvider.read(query), this.schemaService.getAnItem(34)]).then((values: any) => {
+			Promise.all([this.spaceProvider.read(), 
+				this.pageProvider.read(query), 
+				this.pageProvider.commonService.connect('GET', 'BI/Schema/GetSchemaByCode', { Code: 'PM_Task', Type: 'DBTable' }).toPromise(),
+				
+			]).then((values: any) => {
 				this.space.spaceList = values[0].data;
 				let taskList = values[1].data;
 				let viewData = values[2]?.Fields || [];
@@ -233,6 +239,10 @@ Segment change:
 		// - Call Segment change to default view
 
 		//loaded View config
+		if(this.itemsOrginal.length == 0 || (this.items && this.itemsOrginal && this.items.length > this.itemsOrginal.length)) {
+			this.itemsOrginal = JSON.parse(JSON.stringify(this.items));
+		}
+		
 		this.id = this.id == 'null' ? null : this.id;
 		let promises = [this.viewProvider.read({ IDProject: this.id })]; //
 		if (this.items.length) {
@@ -372,7 +382,7 @@ Segment change:
 											Group1: { Code: item?.GroupBy?.Group1?.Code || '', Sort: item?.GroupBy?.Group1?.Sort || '' },
 											Group2: { Code: item?.GroupBy?.Group2?.Code || '', Sort: item?.GroupBy?.Group2?.Sort || '' },
 										},
-										Filter: [],
+										Filter: [item?.Filter],
 										Sort: [item.Sort[0]],
 									};
 								});
@@ -414,7 +424,7 @@ Segment change:
 										Group1: { Code: item?.GroupBy?.Group1?.Code || '', Sort: item?.GroupBy?.Group1?.Sort || '' },
 										Group2: { Code: item?.GroupBy?.Group2?.Code || '', Sort: item?.GroupBy?.Group2?.Sort || '' },
 									},
-									Filter: [],
+									Filter: [item?.Filter],
 									Sort: [item.Sort[0]],
 								};
 							});
@@ -440,6 +450,8 @@ Segment change:
 				let selectedSpaceTask = this.spaceTreeList.find((d) => d.Id == this.id);
 				if (!selectedSpaceTask) selectedSpaceTask = this.spaceTreeList.find((d) => d.IDSpace == this.space.Id);
 				if (selectedSpaceTask != this.selectedSpaceTask) this.selectedSpaceTask = selectedSpaceTask;
+				// check Filter view active
+				this.checkedLoadDataFilter();
 
 				this.isSegmentActive = false;
 				setTimeout(() => {
@@ -549,7 +561,7 @@ Segment change:
 							Group1: { Code: item?.GroupBy?.Group1?.Code || '', Sort: item?.GroupBy?.Group1?.Sort || '' },
 							Group2: { Code: item?.GroupBy?.Group2?.Code || '', Sort: item?.GroupBy?.Group2?.Sort || '' },
 						},
-						Filter: [],
+						Filter: [item?.Filter],
 						Sort: [item.Sort[0]],
 					};
 				});
@@ -590,7 +602,7 @@ Segment change:
 						Group1: { Code: item?.GroupBy?.Group1?.Code || '', Sort: item?.GroupBy?.Group1?.Sort || '' },
 						Group2: { Code: item?.GroupBy?.Group2?.Code || '', Sort: item?.GroupBy?.Group2?.Sort || '' },
 					},
-					Filter: [],
+					Filter: [item?.Filter],
 					Sort: [item.Sort[0]],
 				};
 			});
@@ -604,6 +616,8 @@ Segment change:
 			};
 			this.groupByConfig = groupBySpace;
 		}
+		// check Filter view active
+		this.checkedLoadDataFilter();
 	}
 
 	customizeView(type) {
@@ -894,6 +908,8 @@ Segment change:
 	}
 
 	selectSpaceTask(event) {
+		// off toogle
+		this.pageConfig.isShowFeature = false;
 		if (this.selectedSpaceTask) {
 			if (event.Type == 'Space') {
 				this.space.Id = event.IDSpace;
@@ -1024,6 +1040,172 @@ Segment change:
 	autoCalculateLink() {
 		this.env.publishEvent({ Code: 'app:autoCalculateLink' });
 	}
+	
+	async showFilterAdvanced() {
+		let filterConfig = null;
+		let activeViewConfig;
+		if (this.viewConfig) {
+			activeViewConfig = this.viewConfig.ViewConfig.Views.find((d) =>
+				d.Layout.View.Name === this.view.activeView.Name &&
+				d.Layout.View.Type === this.view.activeView.Type &&
+				d.Sort[0] === this.view.activeView.Sort[0]
+			);
+		}
+		if (!activeViewConfig && this.space.activeSpace) {
+			const spaceConfig = JSON.parse(this.space.activeSpace.ViewConfig);
+			activeViewConfig = spaceConfig.Views.find((d) =>
+				d.Layout.View.Name === this.view.activeView.Name &&
+				d.Layout.View.Type === this.view.activeView.Type &&
+				d.Sort[0] === this.view.activeView.Sort[0]
+			);
+		}
+		if (activeViewConfig && Array.isArray(activeViewConfig.Filter) && activeViewConfig.Filter.length > 0) {
+			filterConfig = activeViewConfig.Filter[0];
+		}
+
+		//get advance config 
+		if (!filterConfig) {
+			let start = new Date();
+			start.setHours(0, 0, 0, 0);
+			let end = new Date();
+			end.setHours(23, 59, 59, 999);
+			filterConfig = {
+				Schema: { Type: 'DBTable', Code: 'PM_Task' },
+				TimeFrame: {
+					Dimension: 'StartDate',
+					From: { Type: 'Absolute', IsPastDate: false, Period: 'Day', Amount: 0, Value: start.toISOString() },
+					To: { Type: 'Absolute', IsPastDate: false, Period: 'Day', Amount: 0, Value: end.toISOString() },
+				},
+				CompareTo: { Type: 'Relative', IsPastDate: true, Period: 'Day', Amount: 0 },
+				Interval: {},
+				CompareBy: [],
+				MeasureBy: [],
+				Transform: {
+					Filter: {
+						Dimension: 'logical',
+						Operator: 'AND',
+						Value: null,
+						Logicals: [
+							{ Dimension: 'IDOwner', Operator: '=', Value: this.id },
+							//{ Dimension: 'IDSpace', Operator: '=', Value: this.space.Id },
+							{ Dimension: 'IsDeleted', Operator: '=', Value: false },
+							{ Dimension: 'IsDisabled', Operator: '=', Value: false },
+						],
+					},
+				},
+			};
+		}
+		// Remove IDSpace from Logicals
+		if (filterConfig?.Transform?.Filter?.Logicals) {
+			filterConfig.Transform.Filter.Logicals = filterConfig.Transform.Filter.Logicals.filter(
+				(logical) => !(logical.Dimension === 'IDSpace')
+			);
+		}
+
+		const modal = await this.modalController.create({
+			component: AdvanceFilterModalComponent,
+			cssClass: 'modal90',
+			componentProps: {
+				_AdvanceConfig: filterConfig,
+				schemaType: 'DBTable',
+				selectedSchema: this.schemaPage,
+				confirmButtonText: 'Filter',
+				renderGroup: { Filter: ['TimeFrame', 'Transform'] },
+			},
+		});
+		await modal.present();
+		const { data } = await modal.onWillDismiss();
+		if (data && data.data) {
+			if (data.isApplyFilter) {
+            	// add lại IDSpace vào query._AdvanceConfig
+				let advanceConfig = JSON.parse(JSON.stringify(data.data));
+				if (advanceConfig?.Transform?.Filter?.Logicals) {
+					const existIDSpace = advanceConfig.Transform.Filter.Logicals.some(
+						(logical) => logical.Dimension === 'IDSpace'
+					);
+					if (!existIDSpace) {
+						advanceConfig.Transform.Filter.Logicals.push({
+							Dimension: 'IDSpace',
+							Operator: '=',
+							Value: this.space.Id,
+						});
+					}
+				}
+				this.query._AdvanceConfig = advanceConfig;
+				this.saveView(this.editView);
+			}
+		}
+
+	}
+
+
+	filterByAdvanceConfig(data) {
+		// data input là danh sách các task đã được lọc theo advance config
+		// tìm tất cả các task cha của các task này và đưa vào items
+		const resultItems = [];
+
+		data.forEach((task) => {
+			this.getParent(task.IDParent, resultItems);
+			if (!resultItems.some(d => d.Id === task.Id)) {
+				resultItems.push(task);
+			}
+		});
+
+		this.items = resultItems;
+	}
+
+
+	private getParent(Id: number, result = []) {
+		let parent = this.itemsOrginal.find((d) => d.Id == Id);
+		if (parent) {
+			result.unshift(parent);
+			if (parent.IDParent) {
+				this.getParent(parent.IDParent, result);
+			}
+		}
+		return result;
+	}
+
+	checkedLoadDataFilter() {
+		// check Filter của view đang active
+		let activeViewConfig;
+		if (this.viewConfig) {
+			activeViewConfig = this.viewConfig.ViewConfig.Views.find((d) =>
+				d.Layout.View.Name === this.view.activeView.Name &&
+				d.Layout.View.Type === this.view.activeView.Type &&
+				d.Sort[0] === this.view.activeView.Sort[0]
+			);
+		}
+		if (!activeViewConfig && this.space.activeSpace) {
+			
+			const spaceConfig = JSON.parse(this.space.activeSpace.ViewConfig);
+			activeViewConfig = spaceConfig.Views.find((d) => d.Layout.View.Name === this.view.activeView.Name);
+		}
+
+		if (activeViewConfig && Array.isArray(activeViewConfig.Filter) && activeViewConfig.Filter.length > 0) {
+			let query = this.query;
+			
+			query._AdvanceConfig = activeViewConfig.Filter[0];
+			query.Skip = this.items.length;
+			this.pageProvider
+				.read(query, this.pageConfig.forceLoadData)
+				.then((result: any) => {
+					if (result.data.length > 0) {
+						this.filterByAdvanceConfig(result.data);
+					}
+				})
+				.catch((err) => {
+					if (err.message != null) {
+						this.env.showMessage(err.message, 'danger');
+					} else {
+						this.env.showMessage('Cannot extract data', 'danger');
+					}
+				});
+		} else {
+			this.items = this.itemsOrginal;
+		}
+	}
+
 
 	saveView(i) {
 		//config template
@@ -1040,10 +1222,10 @@ Segment change:
 			},
 			Fields: [{ Code: '', Name: '', Icon: '', Color: '', Sort: '' }], // Fields enable
 			GroupBy: { Group1: { Code: '', Sort: '' }, Group2: null },
-			Filter: [],
+			Filter: [this.query._AdvanceConfig],
 			Sort: [],
-		};
 
+		};
 		if (!i._formGroup.valid) {
 			this.env.showMessage('Please recheck information highlighted in red above', 'warning');
 		} else {

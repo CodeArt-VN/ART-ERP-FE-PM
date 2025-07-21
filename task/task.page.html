@@ -92,7 +92,18 @@
 					[field]="{id:'ViewType', type : 'ng-select', label: 'View type', form : editView._formGroup , dataSource: viewTypeDataSource,  bindLabel: 'Name',  bindValue: 'Code'}"
 					(change)="saveView(editView)"
 				></app-form-control>
-
+				<ng-container *ngIf="editView._formGroup?.controls.ViewType.value == 'Gantt'">
+					<ion-list lines="none">
+						<ion-list-header>
+							<ion-label>
+								<h3>{{ 'Gantt settings' | translate }}</h3>
+							</ion-label>
+						</ion-list-header>
+						<ion-button (click)="showFilterAdvanced()" title="{{'show-filter' | translate}}">
+								<ion-icon slot="icon-only" [name]="isFiltered? 'funnel':'funnel-outline'"></ion-icon>
+						</ion-button>
+					</ion-list>
+				</ng-container>
 				<ng-container *ngIf="editView._formGroup?.controls.ViewType.value == 'Board'">
 					<ion-list lines="none" *ngFor="let i of groupValue">
 						<ion-list-header>

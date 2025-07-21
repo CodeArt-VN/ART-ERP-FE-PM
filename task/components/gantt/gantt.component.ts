@@ -21,7 +21,8 @@ export class GanttComponent implements OnInit {
 	@ViewChild('gantt_here', { static: true }) ganttContainer!: ElementRef;
 	ganttEvents = [];
 
-	isGanttLoaded = false;
+	isGanttLoaded = false; // gantt loaded
+	isDataReady = false; // input data
 
 	@Input() items: any;
 	@Input() linksData: Link[] = [];
@@ -37,7 +38,7 @@ export class GanttComponent implements OnInit {
 		public alertCtrl: AlertController,
 		public loadingController: LoadingController,
 		public env: EnvService,
-		public navCtrl: NavController,
+		public navCtrl: NavController, 
 		public location: Location,
 		public dynamicScriptLoaderService: DynamicScriptLoaderService
 	) {
@@ -60,7 +61,10 @@ export class GanttComponent implements OnInit {
 	}
 
 	ngOnChanges() {
-		if (this.isGanttLoaded) this.loadGantt();
+		this.isDataReady = this.items.length > 0;
+		if (this.isGanttLoaded && this.isDataReady) {
+			this.loadGantt();
+		}
 	}
 
 	ionViewDidEnter() {
@@ -329,9 +333,12 @@ export class GanttComponent implements OnInit {
 				}
 			})
 		);
-
-		this.loadGantt();
+		
 		this.isGanttLoaded = true;
+		if (this.isDataReady) {
+			this.loadGantt();
+		}
+		
 	}
 
 	clearGanttEvents() {
