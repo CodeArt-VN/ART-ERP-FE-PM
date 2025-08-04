@@ -448,7 +448,6 @@ Segment change:
 					this.isSegmentActive = true;
 				}, 50);
 
-				
 				//loaded View config
 				if (this.view.activeView.Type === 'Gantt') {
 					this.loadDataCheckFilter();
@@ -1024,7 +1023,7 @@ Segment change:
 		// Check IDOwner filter in the active view
 		if (activeViewConfig && activeViewConfig.Filter && activeViewConfig.Filter.length > 0) {
 			const filter = activeViewConfig.Filter[0];
-			if (filter.Transform && filter.Transform.Filter && filter.Transform.Filter.Logicals) {
+			if (filter && filter.Transform && filter.Transform.Filter && filter.Transform.Filter.Logicals) {
 				const idOwnerFilter = filter.Transform.Filter.Logicals.find(logical => logical.Dimension === 'IDOwner');
 				if (idOwnerFilter && idOwnerFilter.Value) {
 					try {
