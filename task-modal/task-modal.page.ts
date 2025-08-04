@@ -114,7 +114,7 @@ export class TaskModalPage extends PageBase {
 				IDSpace: this.space?.Id,
 				Type_in: JSON.stringify(this.getParentTaskTypeByTaskType(this.item?.Type)),
 				Id_ne: this.formGroup.controls.Id.value,
-				NoNested: true,
+				//NoNested: true,
 				AllParent: true,
 			});
 		}, true);
@@ -156,7 +156,11 @@ export class TaskModalPage extends PageBase {
 			if (this.item.Duration) this.formGroup.controls.Duration.markAsDirty();
 			if (this.item.DurationPlan) this.formGroup.controls.DurationPlan.markAsDirty();
 			if (this.item.Deadline) this.formGroup.controls.Deadline.markAsDirty();
-			if (this.item.IDOwner) this.formGroup.controls.IDOwner.markAsDirty();
+			
+			if (this.item.IDOwner || this.item._Staff) {
+				this.formGroup.controls.IDOwner.setValue(this.item._Staff.Id);
+				this.formGroup.controls.IDOwner.markAsDirty();
+			}
 			if (this.item.Priority) this.formGroup.controls.Priority.markAsDirty();
 		}
 		let listType = [...new Set(this.formDataSources.Status.map((o) => o.Type))].map((o) => {

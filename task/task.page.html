@@ -92,7 +92,7 @@
 					[field]="{id:'ViewType', type : 'ng-select', label: 'View type', form : editView._formGroup , dataSource: viewTypeDataSource,  bindLabel: 'Name',  bindValue: 'Code'}"
 					(change)="saveView(editView)"
 				></app-form-control>
-				<ng-container *ngIf="editView._formGroup?.controls.ViewType.value == 'Gantt'">
+				<ng-container *ngIf="editView._formGroup?.controls.ViewType.value == 'Gantt' && isViewCreated">
 					<ion-list lines="none">
 						<ion-list-header>
 							<ion-label>

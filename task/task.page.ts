@@ -2,7 +2,7 @@ import { Component, Type, ViewEncapsulation } from '@angular/core';
 import { NavController, ModalController, AlertController, LoadingController, PopoverController } from '@ionic/angular';
 import { EnvService } from 'src/app/services/core/env.service';
 import { PageBase } from 'src/app/page-base';
-import { PM_SpaceProvider, PM_SpaceStatusProvider, PM_TaskLinkProvider, PM_TaskProvider, PM_ViewProvider, SYS_SchemaProvider } from 'src/app/services/static/services.service';
+import { PM_SpaceProvider, PM_SpaceStatusProvider, PM_TaskLinkProvider, PM_TaskProvider, PM_ViewProvider, SYS_SchemaProvider, HRM_StaffProvider } from 'src/app/services/static/services.service';
 import { Location } from '@angular/common';
 import { TaskModalPage } from '../task-modal/task-modal.page';
 
@@ -117,6 +117,8 @@ Segment change:
 	];
 
 	itemsOrginal: any[] = []; // Original items data source, used to reset filter
+	isViewCreated: boolean = false; // Track if a view has been created
+	isFiltered: boolean = false; // Track if the current view is filtered
 
 	constructor(
 		public pageProvider: PM_TaskProvider,
@@ -125,6 +127,7 @@ Segment change:
 		public viewProvider: PM_ViewProvider,
 		public taskLinkService: PM_TaskLinkProvider,
 		public schemaService: SYS_SchemaProvider,
+		public staffProvider: HRM_StaffProvider,
 		public navCtrl: NavController,
 		public route: ActivatedRoute,
 		public modalController: ModalController,
@@ -238,10 +241,6 @@ Segment change:
 		// - Get views/ default view from space
 		// - Call Segment change to default view
 
-		//loaded View config
-		if(this.itemsOrginal.length == 0 || (this.items && this.itemsOrginal && this.items.length > this.itemsOrginal.length)) {
-			this.itemsOrginal = JSON.parse(JSON.stringify(this.items));
-		}
 		
 		this.id = this.id == 'null' ? null : this.id;
 		let promises = [this.viewProvider.read({ IDProject: this.id })]; //
@@ -272,14 +271,7 @@ Segment change:
 					}
 				}
 				let indexPromises = 1;
-				this.items.forEach((i) => {
-					i._isRoot = i.IDParent == null || i.Id == this.id;
-					i._Type = this.typeList.find((d) => d.Code == i.Type);
-
-					if (i._isRoot) {
-						this.getAllChildrenHasOwner(i);
-					}
-				});
+				this.processMemberData();
 
 				if (this.items.length) {
 					this.linksData = values[indexPromises].data;
@@ -447,11 +439,14 @@ Segment change:
 					this.view.viewList = [];
 				}
 
+				//loaded View config
+				if (this.view.activeView.Type === 'Gantt') {
+					this.loadOriginalDataForGantt();
+				}
+
 				let selectedSpaceTask = this.spaceTreeList.find((d) => d.Id == this.id);
 				if (!selectedSpaceTask) selectedSpaceTask = this.spaceTreeList.find((d) => d.IDSpace == this.space.Id);
 				if (selectedSpaceTask != this.selectedSpaceTask) this.selectedSpaceTask = selectedSpaceTask;
-				// check Filter view active
-				this.checkedLoadDataFilter();
 
 				this.isSegmentActive = false;
 				setTimeout(() => {
@@ -462,6 +457,17 @@ Segment change:
 			.finally(() => {
 				super.loadedData(event, ignoredFromGroup);
 			});
+	}
+
+	loadOriginalDataForGantt() {
+		let query = { ...this.query };
+		delete query._AdvanceConfig;
+		delete query.Skip;
+		
+		this.pageProvider.read(query, true).then((result: any) => {
+			this.itemsOrginal = JSON.parse(JSON.stringify(result.data));
+			this.checkedLoadDataFilter();
+		});
 	}
 
 	getAllChildrenHasOwner(item) {
@@ -492,6 +498,22 @@ Segment change:
 		}
 	}
 
+	processMemberData() {
+		if (!this.typeList || this.typeList.length === 0) {
+			setTimeout(() => this.processMemberData(), 100);
+			return;
+		}
+		
+		this.items.forEach((i) => {
+			i._isRoot = i.IDParent == null || i.Id == this.id;
+			i._Type = this.typeList.find((d) => d.Code == i.Type);
+
+			if (i._isRoot) {
+				this.getAllChildrenHasOwner(i);
+			}
+		});
+	}
+
 	segmentChanged(event: any) {
 		if (this.pageConfig.isShowFeature) {
 			this.toggleFeature();
@@ -508,16 +530,24 @@ Segment change:
 			};
 
 			this.nav();
+			// Set isViewCreated
+			this.isViewCreated = true;
 		} else {
 			setTimeout(() => {
 				this.view.activeView.Name = this.view.activeView.Name;
 			}, 1);
+			// Set isViewCreated
+			this.isViewCreated = false;
 		}
 
 		this.isSegmentActive = false;
 		setTimeout(() => {
 			this.isSegmentActive = true;
 		}, 50);
+
+		if (this.view.activeView.Type === 'Gantt') {
+			this.loadOriginalDataForGantt();
+		}
 
 		if (this.viewConfig) {
 			let activeView = this.viewConfig.ViewConfig.Views.find((d) => {
@@ -617,7 +647,12 @@ Segment change:
 			this.groupByConfig = groupBySpace;
 		}
 		// check Filter view active
-		this.checkedLoadDataFilter();
+		//to do check segment set status gọi api load lại data gốc case ko filter (truong hop init lân dau check isChangeSegment neu ko filter thì bỏ qua vì loadData đã có data gốc )
+		//
+		//isChangeSegment
+		if (this.view.activeView.Type !== 'Gantt') {
+			this.checkedLoadDataFilter();
+		}
 	}
 
 	customizeView(type) {
@@ -626,6 +661,10 @@ Segment change:
 		if (this.pageConfig.isShowFeature) {
 			if (type == 'add') {
 				// add
+				// Clear Advanced Filter when creating a new view
+				this.query._AdvanceConfig = null;
+				this.isViewCreated = false;
+				
 				const groupValue = this.groupValue.map((group) => {
 					if (group.Name == 'Hidden') {
 						//Hidden
@@ -983,12 +1022,55 @@ Segment change:
 		this.openTaskModalOnKanban(event, parent);
 	}
 
+	async setStaffIsFilter(task) {
+		// Get active view
+		let activeViewConfig;
+		if (this.viewConfig) {
+			activeViewConfig = this.viewConfig.ViewConfig.Views.find((d) =>
+				d.Layout.View.Name === this.view.activeView.Name &&
+				d.Layout.View.Type === this.view.activeView.Type &&
+				d.Sort[0] === this.view.activeView.Sort[0]
+			);
+		}
+		if (!activeViewConfig && this.space.activeSpace) {
+			const spaceConfig = JSON.parse(this.space.activeSpace.ViewConfig);
+			activeViewConfig = spaceConfig.Views.find((d) =>
+				d.Layout.View.Name === this.view.activeView.Name &&
+				d.Layout.View.Type === this.view.activeView.Type &&
+				d.Sort[0] === this.view.activeView.Sort[0]
+			);
+		}
+
+		// Check IDOwner filter in the active view
+		if (activeViewConfig && activeViewConfig.Filter && activeViewConfig.Filter.length > 0) {
+			const filter = activeViewConfig.Filter[0];
+			if (filter.Transform && filter.Transform.Filter && filter.Transform.Filter.Logicals) {
+				const idOwnerFilter = filter.Transform.Filter.Logicals.find(logical => logical.Dimension === 'IDOwner');
+				if (idOwnerFilter && idOwnerFilter.Value) {
+					try {
+						const staffResult: any = await this.staffProvider.read({ Id: idOwnerFilter.Value });
+						if (staffResult && staffResult.data && staffResult.data.length > 0) {
+							task._Staff = staffResult.data[0];
+						}
+					} catch (error) {
+						console.log('Error', error);
+					}
+				}
+			}
+		}
+	}
+
 	async openTaskModalOnKanban(task, parentTask = null) {
 		const space = this.space;
 		if (task.Id) task = this.items.find((d) => d.Id == task.Id);
 		if (!task) {
 			this.env.showMessage('Task not found!', 'warning');
 			return;
+		}
+
+		// Check if new task and isFilter
+		if (task.Id === 0) {
+			await this.setStaffIsFilter(task);
 		}
 
 		const modal = await this.modalController.create({
@@ -1017,6 +1099,11 @@ Segment change:
 		if (!task) {
 			this.env.showMessage('Task not found!', 'warning');
 			return;
+		}
+
+		// Check if new task and isFilter
+		if (taskId === 0) {
+			await this.setStaffIsFilter(task);
 		}
 
 		const modal = await this.modalController.create({
@@ -1063,8 +1150,11 @@ Segment change:
 			filterConfig = activeViewConfig.Filter[0];
 		}
 
-		//get advance config 
-		if (!filterConfig) {
+		// Check check filter
+		const isNewlyCreatedView = !this.isViewCreated || (activeViewConfig && (!activeViewConfig.Filter || activeViewConfig.Filter.length === 0));
+
+		// Only create default filter config if this is not a newly created view
+		if (!filterConfig && !isNewlyCreatedView) {
 			let start = new Date();
 			start.setHours(0, 0, 0, 0);
 			let end = new Date();
@@ -1132,6 +1222,7 @@ Segment change:
 					}
 				}
 				this.query._AdvanceConfig = advanceConfig;
+				this.isFiltered = true;
 				this.saveView(this.editView);
 			}
 		}
@@ -1185,13 +1276,29 @@ Segment change:
 		if (activeViewConfig && Array.isArray(activeViewConfig.Filter) && activeViewConfig.Filter.length > 0) {
 			let query = this.query;
 			
-			query._AdvanceConfig = activeViewConfig.Filter[0];
-			query.Skip = this.items.length;
+			if(activeViewConfig.Filter[0]) {
+				query._AdvanceConfig = activeViewConfig.Filter[0];
+			}else {
+				delete query._AdvanceConfig;
+			}
+			delete query.Skip;
 			this.pageProvider
 				.read(query, this.pageConfig.forceLoadData)
 				.then((result: any) => {
 					if (result.data.length > 0) {
-						this.filterByAdvanceConfig(result.data);
+						//case no setting
+						if(activeViewConfig.Filter[0] == null) {
+							this.items = [];
+							this.isFiltered = false;
+						}else {
+							this.filterByAdvanceConfig(result.data);
+							this.processMemberData();
+							this.isFiltered = true;
+						}
+						
+					} else {
+						this.items = [];
+						this.isFiltered = true;
 					}
 				})
 				.catch((err) => {
@@ -1203,6 +1310,8 @@ Segment change:
 				});
 		} else {
 			this.items = this.itemsOrginal;
+			this.processMemberData();
+			this.isFiltered = false;
 		}
 	}
 
@@ -1307,7 +1416,10 @@ Segment change:
 							this.editView.Id = result.Id;
 							this.env.showMessage('View saved', 'success');
 							this.submitAttempt = false;
+							this.isViewCreated = true;
 							this.loadedData();
+							// Nav
+							this.navToNewView(config.Layout.View.Name, config.Layout.View.Type, config.Sort[0]);
 						})
 						.catch((err) => {
 							this.env.showMessage('Cannot save, please try again', 'danger');
@@ -1359,13 +1471,37 @@ Segment change:
 
 							this.env.showMessage('View saved', 'success');
 							this.submitAttempt = false;
+							this.isViewCreated = true;
 							this.loadedData();
+							// Nav
+							this.navToNewView(config.Layout.View.Name, config.Layout.View.Type, config.Sort[0]);
 						})
 						.catch((err) => {
 							this.env.showMessage('Cannot save, please try again', 'danger');
 							this.submitAttempt = false;
 						});
 				}
+			}
+		}
+	}
+
+	navToNewView(viewName: string, viewType: string, sortValue: number) {
+		if (this.pageConfig.isShowFeature) {
+			this.toggleFeature();
+		}
+		// Find the new view
+		if (this.view.viewList && this.view.viewList.length > 0) {
+			const newViewIndex = this.view.viewList.findIndex(view => 
+				view.Name === viewName && 
+				view.Type === viewType && 
+				view.Sort === sortValue
+			);
+			
+			if (newViewIndex !== -1) {
+				// Update segmentChanged
+				this.activeViewIndex = newViewIndex;
+				this.view.activeView = this.view.viewList[newViewIndex];
+				this.segmentChanged({ detail: { value: newViewIndex } });
 			}
 		}
 	}
