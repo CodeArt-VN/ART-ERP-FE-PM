@@ -38,7 +38,7 @@ export class GanttComponent implements OnInit {
 		public alertCtrl: AlertController,
 		public loadingController: LoadingController,
 		public env: EnvService,
-		public navCtrl: NavController, 
+		public navCtrl: NavController,
 		public location: Location,
 		public dynamicScriptLoaderService: DynamicScriptLoaderService
 	) {
@@ -333,12 +333,13 @@ export class GanttComponent implements OnInit {
 				}
 			})
 		);
-		
+
 		this.isGanttLoaded = true;
+		// Thêm dòng này để cập nhật lại layout và scrollbar
+
 		if (this.isDataReady) {
 			this.loadGantt();
 		}
-		
 	}
 
 	clearGanttEvents() {
@@ -362,11 +363,13 @@ export class GanttComponent implements OnInit {
 
 	loadGantt() {
 		let data: Task[] = this.items.map((task: any) => {
+			let start = task.StartDate != null ? task.StartDate.split('T')[0] + ' ' + task.StartDate.split('T')[1].substring(0, 5) : null;
+			let end = task.EndDate != null ? task.EndDate.split('T')[0] + ' ' + task.EndDate.split('T')[1].substring(0, 5) : null;
 			return {
 				id: task.Id,
 				text: task.Name,
-				start_date: task.StartDate.substring(0, 10),
-				end_date: task.EndDate?.substring(0, 10),
+				start_date: start, //.substring(0, 10)
+				end_date: end, //substring(0, 10)
 				type:
 					task.Type === 'Task' || task.Type === 'Todo' ? gantt.config.types.task : task.Type === 'Milestone' ? gantt.config.types.milestone : gantt.config.types.project,
 				duration: task.Duration,
@@ -406,7 +409,7 @@ export class GanttComponent implements OnInit {
 		});
 
 		gantt.refreshData();
-
+		gantt.setSizes();
 		//gantt.render();
 	}
 
