@@ -116,9 +116,9 @@ Segment change:
 		},
 	];
 
-	itemsOrginal: any[] = []; // Original items data source, used to reset filter
-	isViewCreated: boolean = false; // Track if a view has been created
-	isFiltered: boolean = false; // Track if the current view is filtered
+	itemsOrginal: any[] = []; // Original items data source, used filter parent and child
+	isViewCreated: boolean = false; // Track a view created
+	isFiltered: boolean = false; // Track a view filtered
 
 	constructor(
 		public pageProvider: PM_TaskProvider,
