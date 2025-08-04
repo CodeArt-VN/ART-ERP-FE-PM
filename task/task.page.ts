@@ -1294,11 +1294,13 @@ Segment change:
 							this.filterByAdvanceConfig(result.data);
 							this.processMemberData();
 							this.isFiltered = true;
+							this.isViewCreated = true;
 						}
 						
 					} else {
 						this.items = [];
 						this.isFiltered = true;
+						this.isViewCreated = true;
 					}
 				})
 				.catch((err) => {

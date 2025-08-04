@@ -22,10 +22,10 @@ export class TaskModalPage extends PageBase {
 	typeList = [];
 
 	formDataSources: any = {
-		Type: null,
-		Status: null,
+		Type: [],
+		Status: [],
 		IDParent: null,
-		Priority: null,
+		Priority: [],
 		IDSpace: null,
 	};
 

@@ -227,7 +227,7 @@ export class GanttComponent implements OnInit {
 			],
 		};
 		gantt.config.date_format = '%Y-%m-%d %H:%i';
-		gantt.config.work_time = true;
+		//gantt.config.work_time = true;
 		gantt.config.auto_scheduling = true;
 		gantt.config.auto_scheduling_use_progress = true; //When the config is enabled, completed tasks will be excluded from the critical path and auto scheduling
 
