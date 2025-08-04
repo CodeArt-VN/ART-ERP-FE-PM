@@ -116,7 +116,6 @@ Segment change:
 		},
 	];
 
-	itemsOrginal: any[] = []; // Original items data source, used filter parent and child
 	isViewCreated: boolean = false; // Track a view created
 	isFiltered: boolean = false; // Track a view filtered
 
@@ -439,10 +438,6 @@ Segment change:
 					this.view.viewList = [];
 				}
 
-				//loaded View config
-				if (this.view.activeView.Type === 'Gantt') {
-					this.loadOriginalDataForGantt();
-				}
 
 				let selectedSpaceTask = this.spaceTreeList.find((d) => d.Id == this.id);
 				if (!selectedSpaceTask) selectedSpaceTask = this.spaceTreeList.find((d) => d.IDSpace == this.space.Id);
@@ -452,28 +447,22 @@ Segment change:
 				setTimeout(() => {
 					this.isSegmentActive = true;
 				}, 50);
-				//super.loadedData(event, ignoredFromGroup);
+
+				
+				//loaded View config
+				if (this.view.activeView.Type === 'Gantt') {
+					this.loadDataCheckFilter();
+				}
+
 			})
 			.finally(() => {
 				super.loadedData(event, ignoredFromGroup);
 			});
 	}
 
-	loadOriginalDataForGantt() {
-		let query = { ...this.query };
-		delete query._AdvanceConfig;
-		delete query.Skip;
-		
-		this.pageProvider.read(query, true).then((result: any) => {
-			this.itemsOrginal = JSON.parse(JSON.stringify(result.data));
-			this.checkedLoadDataFilter();
-		});
-	}
+
 
 	getAllChildrenHasOwner(item) {
-		// Set item._members list
-		// Check if item has _Staff then pushOwner to list
-		// Recursively call this function for each children
 		item._members = [];
 		this.pushOwner(item, item._members, true);
 
@@ -545,9 +534,6 @@ Segment change:
 			this.isSegmentActive = true;
 		}, 50);
 
-		if (this.view.activeView.Type === 'Gantt') {
-			this.loadOriginalDataForGantt();
-		}
 
 		if (this.viewConfig) {
 			let activeView = this.viewConfig.ViewConfig.Views.find((d) => {
@@ -646,13 +632,7 @@ Segment change:
 			};
 			this.groupByConfig = groupBySpace;
 		}
-		// check Filter view active
-		//to do check segment set status gọi api load lại data gốc case ko filter (truong hop init lân dau check isChangeSegment neu ko filter thì bỏ qua vì loadData đã có data gốc )
-		//
-		//isChangeSegment
-		if (this.view.activeView.Type !== 'Gantt') {
-			this.checkedLoadDataFilter();
-		}
+		this.loadDataCheckFilter();
 	}
 
 	customizeView(type) {
@@ -1229,36 +1209,8 @@ Segment change:
 
 	}
 
-
-	filterByAdvanceConfig(data) {
-		// data input là danh sách các task đã được lọc theo advance config
-		// tìm tất cả các task cha của các task này và đưa vào items
-		const resultItems = [];
-
-		data.forEach((task) => {
-			this.getParent(task.IDParent, resultItems);
-			if (!resultItems.some(d => d.Id === task.Id)) {
-				resultItems.push(task);
-			}
-		});
-
-		this.items = resultItems;
-	}
-
-
-	private getParent(Id: number, result = []) {
-		let parent = this.itemsOrginal.find((d) => d.Id == Id);
-		if (parent) {
-			result.unshift(parent);
-			if (parent.IDParent) {
-				this.getParent(parent.IDParent, result);
-			}
-		}
-		return result;
-	}
-
-	checkedLoadDataFilter() {
-		// check Filter của view đang active
+	loadDataCheckFilter() {
+		// Check Filter của view đang active
 		let activeViewConfig;
 		if (this.viewConfig) {
 			activeViewConfig = this.viewConfig.ViewConfig.Views.find((d) =>
@@ -1268,35 +1220,30 @@ Segment change:
 			);
 		}
 		if (!activeViewConfig && this.space.activeSpace) {
-			
 			const spaceConfig = JSON.parse(this.space.activeSpace.ViewConfig);
 			activeViewConfig = spaceConfig.Views.find((d) => d.Layout.View.Name === this.view.activeView.Name);
 		}
 
-		if (activeViewConfig && Array.isArray(activeViewConfig.Filter) && activeViewConfig.Filter.length > 0) {
-			let query = this.query;
-			
-			if(activeViewConfig.Filter[0]) {
-				query._AdvanceConfig = activeViewConfig.Filter[0];
-			}else {
-				delete query._AdvanceConfig;
-			}
-			delete query.Skip;
-			this.pageProvider
-				.read(query, this.pageConfig.forceLoadData)
+		let isFilter = activeViewConfig && 
+			Array.isArray(activeViewConfig.Filter) && 
+			activeViewConfig.Filter.length > 0 && 
+			activeViewConfig.Filter[0] !== null;
+
+		if (isFilter) {
+			let filterQuery = { ...this.query };
+			filterQuery._AdvanceConfig = activeViewConfig.Filter[0];
+
+			this.env
+				.showLoading(
+					'Please wait for a few moments',
+					this.pageProvider.read(filterQuery, this.pageConfig.forceLoadData)
+				)
 				.then((result: any) => {
 					if (result.data.length > 0) {
-						//case no setting
-						if(activeViewConfig.Filter[0] == null) {
-							this.items = [];
-							this.isFiltered = false;
-						}else {
-							this.filterByAdvanceConfig(result.data);
-							this.processMemberData();
-							this.isFiltered = true;
-							this.isViewCreated = true;
-						}
-						
+						this.items = result.data;
+						this.processMemberData();
+						this.isFiltered = true;
+						this.isViewCreated = true;
 					} else {
 						this.items = [];
 						this.isFiltered = true;
@@ -1311,9 +1258,26 @@ Segment change:
 					}
 				});
 		} else {
-			this.items = this.itemsOrginal;
-			this.processMemberData();
-			this.isFiltered = false;
+			let query = { ...this.query };
+			delete query._AdvanceConfig;
+			this.env
+				.showLoading(
+					'Please wait for a few moments',
+					this.pageProvider.read(query, true)
+				)
+				.then((result: any) => {
+
+					this.items = result.data;
+					this.processMemberData();
+					this.isFiltered = false;
+				})
+				.catch((err) => {
+					if (err.message != null) {
+						this.env.showMessage(err.message, 'danger');
+					} else {
+						this.env.showMessage('Cannot extract data', 'danger');
+					}
+				});
 		}
 	}
 
