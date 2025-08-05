@@ -236,6 +236,9 @@ export class GanttComponent implements OnInit {
 			useKey: false,
 		};
 
+		gantt.config.order_branch = true;
+		gantt.config.order_branch_free = false;
+
 		gantt.templates.timeline_cell_class = function (task, date) {
 			if (!gantt.isWorkTime(date)) return 'week_end';
 			return '';
@@ -334,6 +337,54 @@ export class GanttComponent implements OnInit {
 			})
 		);
 
+		// onBeforeTaskMove
+		gantt.attachEvent('onBeforeTaskMove', (id, parent, index) => {
+			const task = gantt.getTask(id);
+			const parentTask = gantt.getTask(parent);
+
+			if (!parentTask) {
+				this.env.showMessage('Cannot save, please try again', 'danger');
+			}
+			const taskType = task.type;
+			const parentType = parentTask.type;
+
+			const allowedParent = this.getParentTaskTypeByTaskType(taskType);
+			console.log(allowedParent);
+			if (!allowedParent.includes(parentType)) {
+				this.env.showMessage('Cannot save, because the current task is not satisfied', 'danger');
+				return false;
+			}
+			return true;
+		});
+
+		// onAfterTaskMove
+		gantt.attachEvent('onAfterTaskMove', (id, parent, index) => {
+			const task = gantt.getTask(id);
+			console.log('Moved Task:', task);
+			console.log('New Parent:', parent, 'New Index:', index);
+			let updateDTO = {
+				Id: id,
+				IDParent: parent,
+			};
+			return new Promise((resolve, reject) => {
+				if (this.submitAttempt == false) {
+					this.submitAttempt = true;
+					this.pageProvider
+						.save(updateDTO)
+						.then((savedItem: any) => {
+							this.env.showMessage('Saving completed!', 'success');
+							this.submitAttempt = false;
+							return true;
+						})
+						.catch((err) => {
+							this.env.showMessage('Cannot save, please try again', 'danger');
+							this.submitAttempt = false;
+							return false;
+						});
+				}
+			});
+		});
+
 		this.isGanttLoaded = true;
 		// Thêm dòng này để cập nhật lại layout và scrollbar
 
@@ -417,6 +468,37 @@ export class GanttComponent implements OnInit {
 	onOpenTask(task) {
 		this.openTask.emit(task);
 	}
+
+	getParentTaskTypeByTaskType(type) {
+		let parentTypes = ['folder', 'project', 'list', 'backlog', 'task'];
+
+		switch (type) {
+			case 'project':
+				parentTypes = ['folder', 'project'];
+				break;
+			case 'folder':
+				parentTypes = ['folder', 'project'];
+				break;
+			case 'list':
+				parentTypes = ['folder', 'project'];
+				break;
+			case 'backlog':
+				parentTypes = ['folder', 'project', 'list'];
+				break;
+			case 'task':
+				parentTypes = ['folder', 'project', 'list', 'backlog'];
+				break;
+			case 'todo':
+				parentTypes = ['folder', 'project', 'list', 'backlog', 'task'];
+				break;
+			case 'milestone':
+				parentTypes = ['folder', 'project', 'list', 'backlog', 'task'];
+				break;
+		}
+
+		return parentTypes;
+	}
+
 
 	autoCalculateLink() {
 		let currentLinks: any[] = gantt.getLinks();
@@ -511,6 +593,7 @@ export class GanttComponent implements OnInit {
 		_task.EndDate = task.end_date;
 		_task.Progress = task.progress;
 		_task.Duration = task.duration;
+		if (task?.parent) _task.IDParent = task?.parent;
 
 		return new Promise((resolve, reject) => {
 			if (this.submitAttempt == false) {
