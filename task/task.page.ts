@@ -117,7 +117,6 @@ Segment change:
 	];
 
 	isViewCreated: boolean = false; // Track a view created
-	isFiltered: boolean = false; // Track a view filtered
 
 	constructor(
 		public pageProvider: PM_TaskProvider,
@@ -1129,11 +1128,8 @@ Segment change:
 			filterConfig = activeViewConfig.Filter[0];
 		}
 
-		// Check check filter
-		const isNewlyCreatedView = !this.isViewCreated || (activeViewConfig && (!activeViewConfig.Filter || activeViewConfig.Filter.length === 0));
-
-		// Only create default filter config if this is not a newly created view
-		if (!filterConfig && !isNewlyCreatedView) {
+		// Only create default filter config
+		if (!filterConfig) {
 			let start = new Date();
 			start.setHours(0, 0, 0, 0);
 			let end = new Date();
@@ -1201,7 +1197,6 @@ Segment change:
 					}
 				}
 				this.query._AdvanceConfig = advanceConfig;
-				this.isFiltered = true;
 				this.saveView(this.editView);
 			}
 		}
@@ -1241,11 +1236,9 @@ Segment change:
 					if (result.data.length > 0) {
 						this.items = result.data;
 						this.processMemberData();
-						this.isFiltered = true;
 						this.isViewCreated = true;
 					} else {
 						this.items = [];
-						this.isFiltered = true;
 						this.isViewCreated = true;
 					}
 				})
@@ -1265,10 +1258,8 @@ Segment change:
 					this.pageProvider.read(query, true)
 				)
 				.then((result: any) => {
-
 					this.items = result.data;
 					this.processMemberData();
-					this.isFiltered = false;
 				})
 				.catch((err) => {
 					if (err.message != null) {
