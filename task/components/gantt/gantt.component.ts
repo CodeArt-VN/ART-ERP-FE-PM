@@ -554,8 +554,6 @@ export class GanttComponent implements OnInit {
 		if (this.isMovingTask) {
 			const _task = gantt.getTask(task.id);
 			const parentTask = gantt.getTask(task.parent);
-			console.log('Moved Task:', _task);
-			console.log('New Parent:', task.parent);
 			if (!parentTask) {
 				this.env.showMessage('Cannot save, please try again', 'danger');
 			}
@@ -563,7 +561,6 @@ export class GanttComponent implements OnInit {
 			const parentType = parentTask._task.Type;
 
 			const allowedParent = this.getParentTaskTypeByTaskType(taskType);
-			console.log(allowedParent);
 			if (!allowedParent.includes(parentType.toLowerCase())) {
 				this.env.showMessage('Cannot save, because the current task is not satisfied', 'danger');
 				gantt.moveTask(task.id, this.previousIndex!, this.previousParent!);
@@ -572,9 +569,6 @@ export class GanttComponent implements OnInit {
 					Id: task.id,
 					IDParent: parentTask.id,
 				};
-				console.log('Lưuuuuuuuuuuuuuuuuuuuuu!!!!!!!!!!');
-				console.log('New Parent:', parent);
-
 				return new Promise((resolve, reject) => {
 					if (this.submitAttempt == false) {
 						this.submitAttempt = true;
