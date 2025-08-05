@@ -23,7 +23,9 @@ export class GanttComponent implements OnInit {
 
 	isGanttLoaded = false; // gantt loaded
 	isDataReady = false; // input data
-
+	isMovingTask = false;
+	previousParent = null;
+	previousIndex = null;
 	@Input() items: any;
 	@Input() linksData: Link[] = [];
 	@Input() listParent: any[] = [];
@@ -38,7 +40,7 @@ export class GanttComponent implements OnInit {
 		public alertCtrl: AlertController,
 		public loadingController: LoadingController,
 		public env: EnvService,
-		public navCtrl: NavController, 
+		public navCtrl: NavController,
 		public location: Location,
 		public dynamicScriptLoaderService: DynamicScriptLoaderService
 	) {
@@ -227,7 +229,7 @@ export class GanttComponent implements OnInit {
 			],
 		};
 		gantt.config.date_format = '%Y-%m-%d %H:%i';
-		gantt.config.work_time = true;
+		//gantt.config.work_time = true;
 		gantt.config.auto_scheduling = true;
 		gantt.config.auto_scheduling_use_progress = true; //When the config is enabled, completed tasks will be excluded from the critical path and auto scheduling
 
@@ -235,6 +237,9 @@ export class GanttComponent implements OnInit {
 			ignore: '.gantt_task_line, .gantt_task_link',
 			useKey: false,
 		};
+
+		gantt.config.order_branch = true;
+		gantt.config.order_branch_free = true;
 
 		gantt.templates.timeline_cell_class = function (task, date) {
 			if (!gantt.isWorkTime(date)) return 'week_end';
@@ -333,12 +338,23 @@ export class GanttComponent implements OnInit {
 				}
 			})
 		);
-		
+
+		// onBeforeTaskMove
+		gantt.attachEvent('onBeforeTaskMove', (id, parent, index) => {
+			const task = gantt.getTask(id);
+			this.previousParent = task.parent;
+			this.previousIndex = gantt.getTaskIndex(id);
+			this.isMovingTask = true;
+			return true;
+		});
+
+
 		this.isGanttLoaded = true;
+		// Thêm dòng này để cập nhật lại layout và scrollbar
+
 		if (this.isDataReady) {
 			this.loadGantt();
 		}
-		
 	}
 
 	clearGanttEvents() {
@@ -362,11 +378,13 @@ export class GanttComponent implements OnInit {
 
 	loadGantt() {
 		let data: Task[] = this.items.map((task: any) => {
+			let start = task.StartDate != null ? task.StartDate.split('T')[0] + ' ' + task.StartDate.split('T')[1].substring(0, 5) : null;
+			let end = task.EndDate != null ? task.EndDate.split('T')[0] + ' ' + task.EndDate.split('T')[1].substring(0, 5) : null;
 			return {
 				id: task.Id,
 				text: task.Name,
-				start_date: task.StartDate.substring(0, 10),
-				end_date: task.EndDate?.substring(0, 10),
+				start_date: start, //.substring(0, 10)
+				end_date: end, //substring(0, 10)
 				type:
 					task.Type === 'Task' || task.Type === 'Todo' ? gantt.config.types.task : task.Type === 'Milestone' ? gantt.config.types.milestone : gantt.config.types.project,
 				duration: task.Duration,
@@ -406,13 +424,43 @@ export class GanttComponent implements OnInit {
 		});
 
 		gantt.refreshData();
-
+		gantt.setSizes();
 		//gantt.render();
 	}
 
 	@Output() openTask = new EventEmitter();
 	onOpenTask(task) {
 		this.openTask.emit(task);
+	}
+
+	getParentTaskTypeByTaskType(type) {
+		let parentTypes = ['folder', 'project', 'list', 'backlog', 'task'];
+
+		switch (type) {
+			case 'project':
+				parentTypes = ['folder', 'project'];
+				break;
+			case 'folder':
+				parentTypes = ['folder', 'project'];
+				break;
+			case 'list':
+				parentTypes = ['folder', 'project'];
+				break;
+			case 'backlog':
+				parentTypes = ['folder', 'project', 'list'];
+				break;
+			case 'task':
+				parentTypes = ['folder', 'project', 'list', 'backlog'];
+				break;
+			case 'todo':
+				parentTypes = ['folder', 'project', 'list', 'backlog', 'task'];
+				break;
+			case 'milestone':
+				parentTypes = ['folder', 'project', 'list', 'backlog', 'task'];
+				break;
+		}
+
+		return parentTypes;
 	}
 
 	autoCalculateLink() {
@@ -503,29 +551,68 @@ export class GanttComponent implements OnInit {
 	}
 
 	updateTask(task: Task): Promise<void> {
-		let _task = this.items.find((d) => d.Id == task.id);
-		_task.StartDate = task.start_date;
-		_task.EndDate = task.end_date;
-		_task.Progress = task.progress;
-		_task.Duration = task.duration;
-
-		return new Promise((resolve, reject) => {
-			if (this.submitAttempt == false) {
-				this.submitAttempt = true;
-				this.pageProvider
-					.save(_task)
-					.then((savedItem: any) => {
-						this.env.showMessage('Saving completed!', 'success');
-						resolve(savedItem.Id);
-						this.submitAttempt = false;
-					})
-					.catch((err) => {
-						this.env.showMessage('Cannot save, please try again', 'danger');
-						this.submitAttempt = false;
-						reject(err);
-					});
+		if (this.isMovingTask) {
+			const _task = gantt.getTask(task.id);
+			const parentTask = gantt.getTask(task.parent);
+			if (!parentTask) {
+				this.env.showMessage('Cannot save, please try again', 'danger');
 			}
-		});
+			const taskType = _task._task.Type;
+			const parentType = parentTask._task.Type;
+
+			const allowedParent = this.getParentTaskTypeByTaskType(taskType);
+			if (!allowedParent.includes(parentType.toLowerCase())) {
+				this.env.showMessage('Cannot save, because the current task is not satisfied', 'danger');
+				gantt.moveTask(task.id, this.previousIndex!, this.previousParent!);
+			} else {
+				let updateDTO = {
+					Id: task.id,
+					IDParent: parentTask.id,
+				};
+				return new Promise((resolve, reject) => {
+					if (this.submitAttempt == false) {
+						this.submitAttempt = true;
+						this.pageProvider
+							.save(updateDTO)
+							.then((savedItem: any) => {
+								this.env.showMessage('Saving completed!', 'success');
+								this.submitAttempt = false;
+								resolve(savedItem.Id);
+							})
+							.catch((err) => {
+								this.env.showMessage('Cannot save, please try again', 'danger');
+								this.submitAttempt = false;
+								reject(err);
+							});
+					}
+				});
+			}
+			this.isMovingTask = false;
+		} else {
+			let _task = this.items.find((d) => d.Id == task.id);
+			_task.StartDate = task.start_date;
+			_task.EndDate = task.end_date;
+			_task.Progress = task.progress;
+			_task.Duration = task.duration;
+
+			return new Promise((resolve, reject) => {
+				if (this.submitAttempt == false) {
+					this.submitAttempt = true;
+					this.pageProvider
+						.save(_task)
+						.then((savedItem: any) => {
+							this.env.showMessage('Saving completed!', 'success');
+							resolve(savedItem.Id);
+							this.submitAttempt = false;
+						})
+						.catch((err) => {
+							this.env.showMessage('Cannot save, please try again', 'danger');
+							this.submitAttempt = false;
+							reject(err);
+						});
+				}
+			});
+		}
 	}
 
 	createLink(link: Link): Promise<Link> {

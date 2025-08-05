@@ -22,10 +22,10 @@ export class TaskModalPage extends PageBase {
 	typeList = [];
 
 	formDataSources: any = {
-		Type: null,
-		Status: null,
+		Type: [],
+		Status: [],
 		IDParent: null,
-		Priority: null,
+		Priority: [],
 		IDSpace: null,
 	};
 
@@ -114,7 +114,7 @@ export class TaskModalPage extends PageBase {
 				IDSpace: this.space?.Id,
 				Type_in: JSON.stringify(this.getParentTaskTypeByTaskType(this.item?.Type)),
 				Id_ne: this.formGroup.controls.Id.value,
-				NoNested: true,
+				//NoNested: true,
 				AllParent: true,
 			});
 		}, true);
@@ -156,7 +156,11 @@ export class TaskModalPage extends PageBase {
 			if (this.item.Duration) this.formGroup.controls.Duration.markAsDirty();
 			if (this.item.DurationPlan) this.formGroup.controls.DurationPlan.markAsDirty();
 			if (this.item.Deadline) this.formGroup.controls.Deadline.markAsDirty();
-			if (this.item.IDOwner) this.formGroup.controls.IDOwner.markAsDirty();
+			
+			if (this.item.IDOwner || this.item._Staff) {
+				this.formGroup.controls.IDOwner.setValue(this.item._Staff.Id);
+				this.formGroup.controls.IDOwner.markAsDirty();
+			}
 			if (this.item.Priority) this.formGroup.controls.Priority.markAsDirty();
 		}
 		let listType = [...new Set(this.formDataSources.Status.map((o) => o.Type))].map((o) => {
@@ -247,13 +251,23 @@ export class TaskModalPage extends PageBase {
 	changeStartDate() {
 		let startDate = new Date(this.formGroup.controls.StartDate.value);
 		let endDate = new Date(this.formGroup.controls.EndDate.value);
-		const duration = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-		this.formGroup.controls.Duration.setValue(duration);
-		this.formGroup.controls.Duration.markAsDirty();
+		let duration = this.formGroup.controls.Duration.value;
+		if (!endDate && duration && duration > 0) {
+			let endDateValue = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
+			this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDateValue, 'yyyy-mm-ddThh:MM:ss'));
+			this.formGroup.controls.EndDate.markAsDirty();
+		}
+		if (endDate && (duration != null || duration != undefined) && endDate < startDate) {
+			let endDateValue = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
+			this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDateValue, 'yyyy-mm-ddThh:MM:ss'));
+			this.formGroup.controls.EndDate.markAsDirty();
+		}
+		if (endDate && endDate > startDate) {
+			const duration = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+			this.formGroup.controls.Duration.setValue(duration);
+			this.formGroup.controls.Duration.markAsDirty();
+		}
 
-		let endDateValue = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
-		this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDateValue));
-		this.formGroup.controls.EndDate.markAsDirty();
 		this.saveChange();
 	}
 
@@ -282,7 +296,7 @@ export class TaskModalPage extends PageBase {
 		}
 
 		const endDateValue = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
-		this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDateValue));
+		this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDateValue, 'yyyy-mm-ddThh:MM:ss'));
 		this.formGroup.controls.EndDate.markAsDirty();
 		this.saveChange();
 	}
@@ -290,13 +304,22 @@ export class TaskModalPage extends PageBase {
 	changeStartDatePlan() {
 		let startDatePlan = new Date(this.formGroup.controls.StartDatePlan.value);
 		let endDatePlan = new Date(this.formGroup.controls.EndDatePlan.value);
-		const durationPlan = (endDatePlan.getTime() - startDatePlan.getTime()) / (1000 * 60 * 60 * 24);
-		this.formGroup.controls.DurationPlan.setValue(durationPlan);
-		this.formGroup.controls.DurationPlan.markAsDirty();
-
-		let endDateValuePlan = new Date(startDatePlan.getTime() + durationPlan * 24 * 60 * 60 * 1000);
-		this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDateValuePlan));
-		this.formGroup.controls.EndDatePlan.markAsDirty();
+		let durationPlan = this.formGroup.controls.DurationPlan.value;
+		if (!endDatePlan && durationPlan && durationPlan > 0) {
+			let endDateValue = new Date(startDatePlan.getTime() + durationPlan * 24 * 60 * 60 * 1000);
+			this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDateValue, 'yyyy-mm-ddThh:MM:ss'));
+			this.formGroup.controls.EndDatePlan.markAsDirty();
+		}
+		if (endDatePlan && (durationPlan != null || durationPlan != undefined) && endDatePlan < startDatePlan) {
+			let endDateValue = new Date(startDatePlan.getTime() + durationPlan * 24 * 60 * 60 * 1000);
+			this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDateValue, 'yyyy-mm-ddThh:MM:ss'));
+			this.formGroup.controls.EndDatePlan.markAsDirty();
+		}
+		if (endDatePlan && endDatePlan > startDatePlan) {
+			const duration = (endDatePlan.getTime() - startDatePlan.getTime()) / (1000 * 60 * 60 * 24);
+			this.formGroup.controls.DurationPlan.setValue(duration);
+			this.formGroup.controls.DurationPlan.markAsDirty();
+		}
 		this.saveChange();
 	}
 
@@ -305,7 +328,7 @@ export class TaskModalPage extends PageBase {
 		let endDatePlan = new Date(this.formGroup.controls.EndDatePlan.value);
 		if (endDatePlan < startDatePlan) {
 			endDatePlan = new Date(startDatePlan);
-			this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDatePlan));
+			this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDatePlan, 'yyyy-mm-ddThh:MM:ss'));
 		}
 
 		const durationPlan = (endDatePlan.getTime() - startDatePlan.getTime()) / (1000 * 60 * 60 * 24);
@@ -325,7 +348,7 @@ export class TaskModalPage extends PageBase {
 		}
 
 		const endDateValuePlan = new Date(startDatePlan.getTime() + durationPlan * 24 * 60 * 60 * 1000);
-		this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDateValuePlan));
+		this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDateValuePlan, 'yyyy-mm-ddThh:MM:ss'));
 		this.formGroup.controls.EndDatePlan.markAsDirty();
 		this.saveChange();
 	}
