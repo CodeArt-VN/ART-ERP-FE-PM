@@ -348,7 +348,6 @@ export class GanttComponent implements OnInit {
 			return true;
 		});
 
-
 		this.isGanttLoaded = true;
 		// Thêm dòng này để cập nhật lại layout và scrollbar
 
@@ -590,28 +589,30 @@ export class GanttComponent implements OnInit {
 			this.isMovingTask = false;
 		} else {
 			let _task = this.items.find((d) => d.Id == task.id);
-			_task.StartDate = task.start_date;
-			_task.EndDate = task.end_date;
-			_task.Progress = task.progress;
-			_task.Duration = task.duration;
+			if (_task) {
+				_task.StartDate = task.start_date;
+				_task.EndDate = task.end_date;
+				_task.Progress = task.progress;
+				_task.Duration = task.duration;
 
-			return new Promise((resolve, reject) => {
-				if (this.submitAttempt == false) {
-					this.submitAttempt = true;
-					this.pageProvider
-						.save(_task)
-						.then((savedItem: any) => {
-							this.env.showMessage('Saving completed!', 'success');
-							resolve(savedItem.Id);
-							this.submitAttempt = false;
-						})
-						.catch((err) => {
-							this.env.showMessage('Cannot save, please try again', 'danger');
-							this.submitAttempt = false;
-							reject(err);
-						});
-				}
-			});
+				return new Promise((resolve, reject) => {
+					if (this.submitAttempt == false) {
+						this.submitAttempt = true;
+						this.pageProvider
+							.save(_task)
+							.then((savedItem: any) => {
+								this.env.showMessage('Saving completed!', 'success');
+								resolve(savedItem.Id);
+								this.submitAttempt = false;
+							})
+							.catch((err) => {
+								this.env.showMessage('Cannot save, please try again', 'danger');
+								this.submitAttempt = false;
+								reject(err);
+							});
+					}
+				});
+			}
 		}
 	}
 

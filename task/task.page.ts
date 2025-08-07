@@ -260,7 +260,7 @@ Segment change:
 		}
 
 		Promise.all(promises)
-			.then((values: any) => {
+			.then(async(values: any) => {
 				if (values[0].data) {
 					this.viewConfig = values[0].data[0];
 
@@ -449,12 +449,13 @@ Segment change:
 
 				//loaded View config
 				if (this.view.activeView.Type === 'Gantt') {
-					this.loadDataCheckFilter();
+					await this.loadDataCheckFilter();
 				}
 
 			})
 			.finally(() => {
 				super.loadedData(event, ignoredFromGroup);
+				console.log('final: ' ,this.items.map(d=> d.Id));
 			});
 	}
 
