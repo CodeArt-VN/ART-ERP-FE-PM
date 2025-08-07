@@ -1204,7 +1204,7 @@ Segment change:
 
 	}
 
-	loadDataCheckFilter() {
+	loadDataCheckFilter(isScrollLoad = false) {
 		// Check Filter của view đang active
 		let activeViewConfig;
 		if (this.viewConfig) {
@@ -1224,54 +1224,53 @@ Segment change:
 			activeViewConfig.Filter.length > 0 && 
 			activeViewConfig.Filter[0] !== null;
 
-		if (isFilter) {
-			let filterQuery = { ...this.query };
-			filterQuery._AdvanceConfig = activeViewConfig.Filter[0];
-
-			this.env
-				.showLoading(
-					'Please wait for a few moments',
-					this.pageProvider.read(filterQuery, this.pageConfig.forceLoadData)
-				)
-				.then((result: any) => {
-					if (result.data.length > 0) {
-						this.items = result.data;
-						this.processMemberData();
-						this.isViewCreated = true;
-					} else {
-						this.items = [];
-						this.isViewCreated = true;
-					}
-				})
-				.catch((err) => {
-					if (err.message != null) {
-						this.env.showMessage(err.message, 'danger');
-					} else {
-						this.env.showMessage('Cannot extract data', 'danger');
-					}
-				});
+		
+		let query = { ...this.query };
+		if (isScrollLoad) {
+			query.Skip = this.items.length;
+			query.Take = 20;
 		} else {
-			let query = { ...this.query };
-			delete query._AdvanceConfig;
-			this.env
-				.showLoading(
-					'Please wait for a few moments',
-					this.pageProvider.read(query, true)
-				)
-				.then((result: any) => {
-					this.items = result.data;
-					this.processMemberData();
-				})
-				.catch((err) => {
-					if (err.message != null) {
-						this.env.showMessage(err.message, 'danger');
-					} else {
-						this.env.showMessage('Cannot extract data', 'danger');
-					}
-				});
+			query.Skip = 0;
+			query.Take = 100;
 		}
-	}
 
+		if (isFilter) {
+			query._AdvanceConfig = activeViewConfig.Filter[0];
+		} else {
+			delete query._AdvanceConfig;
+		}
+
+		this.env
+			.showLoading(
+				'Please wait for a few moments',
+				this.pageProvider.read(query, this.pageConfig.forceLoadData)
+			)
+			.then((result: any) => {
+				if (result.data.length > 0) {
+					if (isScrollLoad) {
+						// Append data khi scroll
+						this.items = [...this.items, ...result.data];
+					} else {
+						// Replace data khi load lần đầu
+						this.items = result.data;
+					}
+					this.processMemberData();
+					this.isViewCreated = true;
+				} else {
+					if (!isScrollLoad) {
+						this.items = [];
+					}
+					this.isViewCreated = true;
+				}
+			})
+			.catch((err) => {
+				if (err.message != null) {
+					this.env.showMessage(err.message, 'danger');
+				} else {
+					this.env.showMessage('Cannot extract data', 'danger');
+				}
+			});
+	}
 
 	saveView(i) {
 		//config template

@@ -142,7 +142,7 @@
 				(openTask)="onKanbanOpenTask($event)"
 			></app-board>
 
-			<app-gantt *ngIf="view.activeView?.Type == 'Gantt'" [items]="items" [linksData]="linksData" (openTask)="onGanttOpenTask($event)"></app-gantt>
+			<app-gantt *ngIf="view.activeView?.Type == 'Gantt'" [items]="items" [linksData]="linksData" (openTask)="onGanttOpenTask($event)" (loadDataGantt)="loadDataCheckFilter(true)"></app-gantt>
 		</ng-container>
 	</div>
 </ion-content>
