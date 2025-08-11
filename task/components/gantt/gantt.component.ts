@@ -444,9 +444,11 @@ export class GanttComponent implements OnInit {
 						const clientHeight = scrollableElement.clientHeight;
 						const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
 						if (isAtBottom && !this.loadMorePending) {
-							this.loadMorePending = true;
-							this.loadDataGantt.emit();
-							setTimeout(() => this.loadMorePending = false, 1000);
+							if (!(scrollTop == 0 && clientHeight == 0)) {
+								this.loadMorePending = true;
+								this.loadDataGantt.emit();
+								setTimeout(() => this.loadMorePending = false, 1000);
+							}
 						}
 					})
 				);
