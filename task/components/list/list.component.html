@@ -1,0 +1,74 @@
+<ion-content appScrollbarTheme class="left scrollx" [ngClass]="{withFeature: pageConfig.isShowFeature}"
+	forceOverscroll="false">
+	<div class="safe-max-width">
+		<app-data-table class="box-shadow responsive" [rows]="itemsState" [trackBy]="'Id'"
+			[(selectedRows)]="selectedItems" [showSpinner]="page.showSpinner" [showFilter]="page.isShowSearch"
+			[(query)]="query" (dataInfinite)="loadData($event)" (filter)="onDatatableFilter($event)"
+			(sort)="onSort($event)" (selectedRowsChange)="showCommandBySelectedRows($event)">
+			<datatable-column [checkbox]="true" name=""></datatable-column>
+
+			<datatable-column class="col-name" name="Name" property="Name">
+				<ng-template datatable-header-template>
+					<ion-icon class="min-btn" [name]="!isAllRowOpened? 'add-circle-outline':'remove-circle-outline'"
+						(click)="toggleRowAll()"></ion-icon>
+					<span (click)="toggleRowAll()">{{'Name' | translate}}</span>
+				</ng-template>
+				<ng-template let-i="row" datatable-cell-template>
+					<ng-container *ngFor="let w of i.levels; let k = index;"><span class="spacing"
+							*ngIf="k>0"></span></ng-container>
+					<ion-icon (click)="toggleRow(items, i, true);" class="min-btn clickable"
+						[name]="!i.showdetail? 'chevron-forward-outline':'chevron-down-outline'"
+						*ngIf="i.HasChild"></ion-icon>
+
+					<ion-text (click)="toggleRow(items, i, true);" class="clickable"
+						[ngClass]="i.HasChild? ('bold ') : ('')" [color]="i.Color">{{i.Name | translate}}</ion-text>
+
+				</ng-template>
+			</datatable-column>
+			<datatable-column class="col-code" name="Type" property="Type" filterControlType="ng-select-status"
+				[filterDataSource]="typeList">
+				<ng-template let-i="row" datatable-cell-template>
+					<ion-icon [name]="i.TypeIcon || 'flash'"></ion-icon>
+					<ion-text>{{i.TypeText | translate}}</ion-text>
+				</ng-template>
+			</datatable-column>
+			<datatable-column class="col-name" name="Owner" property="_Staff">
+				<ng-template let-i="row" datatable-cell-template>
+					<div (click)="nav('staff/'+i._Staff?.Id,'forward')" class="cell col-name">
+						<ion-avatar class="avatar" slot="start" >
+							<ion-img #img [src]="i.Avatar" (ionError)="img.src = 'assets/avartar-empty.jpg'"></ion-img>
+						</ion-avatar>
+						<div>
+							<span class="bold">{{i._Staff?.FullName}}</span>
+							<small *ngIf="i._Staff?.Code" class="no-warp"> {{i._Staff?.Code}}</small>
+							<br />
+							{{i.Email}}
+						</div>
+					</div>
+				</ng-template>
+			</datatable-column>
+			<datatable-column class="col-date" style="max-width: 300px" format="dd/MM/yyyy HH:mm:ss" name="Start date"
+				property="StartDate" filterControlType="date"></datatable-column>
+			<datatable-column class="col-date" format="dd/MM/yyyy HH:mm:ss" name="End date" property="EndDate"
+				filterControlType="date"></datatable-column>
+			<datatable-column class="col-number bold" format="1.2-2" name="Duration"
+				property="Duration"></datatable-column>
+
+			<datatable-column class="col-status" name="Status" property="Status" filterControlType="ng-select-status"
+				[filterDataSource]="statusList">
+				<ng-template let-i="row" datatable-cell-template>
+					<ion-badge [color]="i.StatusColor" [title]="i.StatusText"> {{i.StatusText | translate}} </ion-badge>
+				</ng-template>
+			</datatable-column>
+
+
+
+		</app-data-table>
+	</div>
+
+	<div class="ion-padding"></div>
+	<ion-infinite-scroll color="primary" threshold="30%" (ionInfinite)="loadData($event)"
+		[disabled]="!pageConfig.infiniteScroll || pageConfig.isEndOfData">
+		<ion-infinite-scroll-content loadingSpinner="dots"></ion-infinite-scroll-content>
+	</ion-infinite-scroll>
+</ion-content>

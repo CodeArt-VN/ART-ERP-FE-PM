@@ -2,7 +2,15 @@ import { Component, Type, ViewEncapsulation } from '@angular/core';
 import { NavController, ModalController, AlertController, LoadingController, PopoverController } from '@ionic/angular';
 import { EnvService } from 'src/app/services/core/env.service';
 import { PageBase } from 'src/app/page-base';
-import { PM_SpaceProvider, PM_SpaceStatusProvider, PM_TaskLinkProvider, PM_TaskProvider, PM_ViewProvider, SYS_SchemaProvider, HRM_StaffProvider } from 'src/app/services/static/services.service';
+import {
+	PM_SpaceProvider,
+	PM_SpaceStatusProvider,
+	PM_TaskLinkProvider,
+	PM_TaskProvider,
+	PM_ViewProvider,
+	SYS_SchemaProvider,
+	HRM_StaffProvider,
+} from 'src/app/services/static/services.service';
 import { Location } from '@angular/common';
 import { TaskModalPage } from '../task-modal/task-modal.page';
 
@@ -168,10 +176,10 @@ Segment change:
 				Type_in: '',
 			};
 			query.Type_in = JSON.stringify(this.typeList.map((e) => e.Code).filter((d) => d != 'Task' && d != 'Todo' && d != 'Milestone'));
-			Promise.all([this.spaceProvider.read(), 
-				this.pageProvider.read(query), 
+			Promise.all([
+				this.spaceProvider.read(),
+				this.pageProvider.read(query),
 				this.pageProvider.commonService.connect('GET', 'BI/Schema/GetSchemaByCode', { Code: 'PM_Task', Type: 'DBTable' }).toPromise(),
-				
 			]).then((values: any) => {
 				this.space.spaceList = values[0].data;
 				let taskList = values[1].data;
@@ -239,7 +247,6 @@ Segment change:
 		// - Get views/ default view from space
 		// - Call Segment change to default view
 
-		
 		this.id = this.id == 'null' ? null : this.id;
 		let promises = [this.viewProvider.read({ IDProject: this.id })]; //
 		if (this.items.length) {
@@ -260,7 +267,7 @@ Segment change:
 		}
 
 		Promise.all(promises)
-			.then(async(values: any) => {
+			.then(async (values: any) => {
 				if (values[0].data) {
 					this.viewConfig = values[0].data[0];
 
@@ -437,7 +444,6 @@ Segment change:
 					this.view.viewList = [];
 				}
 
-
 				let selectedSpaceTask = this.spaceTreeList.find((d) => d.Id == this.id);
 				if (!selectedSpaceTask) selectedSpaceTask = this.spaceTreeList.find((d) => d.IDSpace == this.space.Id);
 				if (selectedSpaceTask != this.selectedSpaceTask) this.selectedSpaceTask = selectedSpaceTask;
@@ -451,14 +457,11 @@ Segment change:
 				if (this.view.activeView.Type === 'Gantt') {
 					await this.loadDataCheckFilter();
 				}
-
 			})
 			.finally(() => {
 				super.loadedData(event, ignoredFromGroup);
 			});
 	}
-
-
 
 	getAllChildrenHasOwner(item) {
 		item._members = [];
@@ -490,7 +493,7 @@ Segment change:
 			setTimeout(() => this.processMemberData(), 100);
 			return;
 		}
-		
+
 		this.items.forEach((i) => {
 			i._isRoot = i.IDParent == null || i.Id == this.id;
 			i._Type = this.typeList.find((d) => d.Code == i.Type);
@@ -531,7 +534,6 @@ Segment change:
 		setTimeout(() => {
 			this.isSegmentActive = true;
 		}, 50);
-
 
 		if (this.viewConfig) {
 			let activeView = this.viewConfig.ViewConfig.Views.find((d) => {
@@ -642,7 +644,7 @@ Segment change:
 				// Clear Advanced Filter when creating a new view
 				this.query._AdvanceConfig = null;
 				this.isViewCreated = false;
-				
+
 				const groupValue = this.groupValue.map((group) => {
 					if (group.Name == 'Hidden') {
 						//Hidden
@@ -1004,18 +1006,14 @@ Segment change:
 		// Get active view
 		let activeViewConfig;
 		if (this.viewConfig) {
-			activeViewConfig = this.viewConfig.ViewConfig.Views.find((d) =>
-				d.Layout.View.Name === this.view.activeView.Name &&
-				d.Layout.View.Type === this.view.activeView.Type &&
-				d.Sort[0] === this.view.activeView.Sort[0]
+			activeViewConfig = this.viewConfig.ViewConfig.Views.find(
+				(d) => d.Layout.View.Name === this.view.activeView.Name && d.Layout.View.Type === this.view.activeView.Type && d.Sort[0] === this.view.activeView.Sort[0]
 			);
 		}
 		if (!activeViewConfig && this.space.activeSpace) {
 			const spaceConfig = JSON.parse(this.space.activeSpace.ViewConfig);
-			activeViewConfig = spaceConfig.Views.find((d) =>
-				d.Layout.View.Name === this.view.activeView.Name &&
-				d.Layout.View.Type === this.view.activeView.Type &&
-				d.Sort[0] === this.view.activeView.Sort[0]
+			activeViewConfig = spaceConfig.Views.find(
+				(d) => d.Layout.View.Name === this.view.activeView.Name && d.Layout.View.Type === this.view.activeView.Type && d.Sort[0] === this.view.activeView.Sort[0]
 			);
 		}
 
@@ -1023,7 +1021,7 @@ Segment change:
 		if (activeViewConfig && activeViewConfig.Filter && activeViewConfig.Filter.length > 0) {
 			const filter = activeViewConfig.Filter[0];
 			if (filter && filter.Transform && filter.Transform.Filter && filter.Transform.Filter.Logicals) {
-				const idOwnerFilter = filter.Transform.Filter.Logicals.find(logical => logical.Dimension === 'IDOwner');
+				const idOwnerFilter = filter.Transform.Filter.Logicals.find((logical) => logical.Dimension === 'IDOwner');
 				if (idOwnerFilter && idOwnerFilter.Value) {
 					try {
 						const staffResult: any = await this.staffProvider.read({ Id: idOwnerFilter.Value });
@@ -1105,23 +1103,19 @@ Segment change:
 	autoCalculateLink() {
 		this.env.publishEvent({ Code: 'app:autoCalculateLink' });
 	}
-	
+
 	async showFilterAdvanced() {
 		let filterConfig = null;
 		let activeViewConfig;
 		if (this.viewConfig) {
-			activeViewConfig = this.viewConfig.ViewConfig.Views.find((d) =>
-				d.Layout.View.Name === this.view.activeView.Name &&
-				d.Layout.View.Type === this.view.activeView.Type &&
-				d.Sort[0] === this.view.activeView.Sort[0]
+			activeViewConfig = this.viewConfig.ViewConfig.Views.find(
+				(d) => d.Layout.View.Name === this.view.activeView.Name && d.Layout.View.Type === this.view.activeView.Type && d.Sort[0] === this.view.activeView.Sort[0]
 			);
 		}
 		if (!activeViewConfig && this.space.activeSpace) {
 			const spaceConfig = JSON.parse(this.space.activeSpace.ViewConfig);
-			activeViewConfig = spaceConfig.Views.find((d) =>
-				d.Layout.View.Name === this.view.activeView.Name &&
-				d.Layout.View.Type === this.view.activeView.Type &&
-				d.Sort[0] === this.view.activeView.Sort[0]
+			activeViewConfig = spaceConfig.Views.find(
+				(d) => d.Layout.View.Name === this.view.activeView.Name && d.Layout.View.Type === this.view.activeView.Type && d.Sort[0] === this.view.activeView.Sort[0]
 			);
 		}
 		if (activeViewConfig && Array.isArray(activeViewConfig.Filter) && activeViewConfig.Filter.length > 0) {
@@ -1162,9 +1156,7 @@ Segment change:
 		}
 		// Remove IDSpace from Logicals
 		if (filterConfig?.Transform?.Filter?.Logicals) {
-			filterConfig.Transform.Filter.Logicals = filterConfig.Transform.Filter.Logicals.filter(
-				(logical) => !(logical.Dimension === 'IDSpace')
-			);
+			filterConfig.Transform.Filter.Logicals = filterConfig.Transform.Filter.Logicals.filter((logical) => !(logical.Dimension === 'IDSpace'));
 		}
 
 		const modal = await this.modalController.create({
@@ -1182,12 +1174,10 @@ Segment change:
 		const { data } = await modal.onWillDismiss();
 		if (data && data.data) {
 			if (data.isApplyFilter) {
-            	// add lại IDSpace vào query._AdvanceConfig
+				// add lại IDSpace vào query._AdvanceConfig
 				let advanceConfig = JSON.parse(JSON.stringify(data.data));
 				if (advanceConfig?.Transform?.Filter?.Logicals) {
-					const existIDSpace = advanceConfig.Transform.Filter.Logicals.some(
-						(logical) => logical.Dimension === 'IDSpace'
-					);
+					const existIDSpace = advanceConfig.Transform.Filter.Logicals.some((logical) => logical.Dimension === 'IDSpace');
 					if (!existIDSpace) {
 						advanceConfig.Transform.Filter.Logicals.push({
 							Dimension: 'IDSpace',
@@ -1200,17 +1190,14 @@ Segment change:
 				this.saveView(this.editView);
 			}
 		}
-
 	}
 
 	loadDataCheckFilter(isScrollLoad = false) {
 		// Check Filter của view đang active
 		let activeViewConfig;
 		if (this.viewConfig) {
-			activeViewConfig = this.viewConfig.ViewConfig.Views.find((d) =>
-				d.Layout.View.Name === this.view.activeView.Name &&
-				d.Layout.View.Type === this.view.activeView.Type &&
-				d.Sort[0] === this.view.activeView.Sort[0]
+			activeViewConfig = this.viewConfig.ViewConfig.Views.find(
+				(d) => d.Layout.View.Name === this.view.activeView.Name && d.Layout.View.Type === this.view.activeView.Type && d.Sort[0] === this.view.activeView.Sort[0]
 			);
 		}
 		if (!activeViewConfig && this.space.activeSpace) {
@@ -1218,57 +1205,62 @@ Segment change:
 			activeViewConfig = spaceConfig.Views.find((d) => d.Layout.View.Name === this.view.activeView.Name);
 		}
 
-		let isFilter = activeViewConfig && 
-			Array.isArray(activeViewConfig.Filter) && 
-			activeViewConfig.Filter.length > 0 && 
-			activeViewConfig.Filter[0] !== null;
+		let isFilter = activeViewConfig && Array.isArray(activeViewConfig.Filter) && activeViewConfig.Filter.length > 0 && activeViewConfig.Filter[0] !== null;
 
-		
-		let query = { ...this.query };
-		if (isScrollLoad) {
-			query.Skip = this.items.length;
-			query.Take = 20;
-		} else {
-			query.Skip = 0;
-			query.Take = 100;
-		}
+		if (this.pageProvider && !this.pageConfig.isEndOfData) {
+			let query = { ...this.query };
 
-		if (isFilter) {
-			query._AdvanceConfig = activeViewConfig.Filter[0];
-		} else {
-			delete query._AdvanceConfig;
-		}
+			if (isScrollLoad) {
+				query.Skip = this.items.length;
+				query.Take = 100;
+			} else {
+				query.Skip = 0;
+				query.Take = 100;
+				this.pageConfig.isEndOfData = false; // reset khi load mới
+			}
 
-		this.env
-			.showLoading(
-				'Please wait for a few moments',
-				this.pageProvider.read(query, this.pageConfig.forceLoadData)
-			)
-			.then((result: any) => {
-				if (result.data.length > 0) {
-					if (isScrollLoad) {
-						// Append data khi scroll
-						this.items = [...this.items, ...result.data];
+			if (isFilter) {
+				query._AdvanceConfig = activeViewConfig.Filter[0];
+			} else {
+				delete query._AdvanceConfig;
+			}
+
+			this.env
+				.showLoading('Please wait for a few moments', this.pageProvider.read(query, this.pageConfig.forceLoadData))
+				.then((result: any) => {
+					if (result.data.length == 0) {
+						this.pageConfig.isEndOfData = true;
+					}
+
+					if (result.data.length > 0) {
+						if (isScrollLoad) {
+							let firstRow = result.data[0];
+							//  block append trùng dữ liệu
+							if (this.items.findIndex((d) => d.Id == firstRow.Id) == -1) {
+								this.items = [...this.items, ...result.data];
+							}
+						} else {
+							this.items = result.data;
+						}
+						this.processMemberData();
 					} else {
-						// Replace data khi load lần đầu
-						this.items = result.data;
+						if (!isScrollLoad) {
+							this.items = [];
+						}
 					}
-					this.processMemberData();
+
 					this.isViewCreated = true;
-				} else {
-					if (!isScrollLoad) {
-						this.items = [];
+				})
+				.catch((err) => {
+					if (err.message != null) {
+						this.env.showMessage(err.message, 'danger');
+					} else {
+						this.env.showMessage('Cannot extract data', 'danger');
 					}
-					this.isViewCreated = true;
-				}
-			})
-			.catch((err) => {
-				if (err.message != null) {
-					this.env.showMessage(err.message, 'danger');
-				} else {
-					this.env.showMessage('Cannot extract data', 'danger');
-				}
-			});
+				});
+		} else {
+			this.isViewCreated = true;
+		}
 	}
 
 	saveView(i) {
@@ -1288,7 +1280,6 @@ Segment change:
 			GroupBy: { Group1: { Code: '', Sort: '' }, Group2: null },
 			Filter: [this.query._AdvanceConfig],
 			Sort: [],
-
 		};
 		if (!i._formGroup.valid) {
 			this.env.showMessage('Please recheck information highlighted in red above', 'warning');
@@ -1446,12 +1437,8 @@ Segment change:
 		}
 		// Find the new view
 		if (this.view.viewList && this.view.viewList.length > 0) {
-			const newViewIndex = this.view.viewList.findIndex(view => 
-				view.Name === viewName && 
-				view.Type === viewType && 
-				view.Sort === sortValue
-			);
-			
+			const newViewIndex = this.view.viewList.findIndex((view) => view.Name === viewName && view.Type === viewType && view.Sort === sortValue);
+
 			if (newViewIndex !== -1) {
 				// Update segmentChanged
 				this.activeViewIndex = newViewIndex;
