@@ -455,7 +455,6 @@ Segment change:
 			})
 			.finally(() => {
 				super.loadedData(event, ignoredFromGroup);
-				console.log('final: ' ,this.items.map(d=> d.Id));
 			});
 	}
 
