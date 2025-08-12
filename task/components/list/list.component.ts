@@ -1,4 +1,4 @@
-import { Component, Input, ViewEncapsulation } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewEncapsulation } from '@angular/core';
 import { NavController, ModalController, AlertController, LoadingController, PopoverController } from '@ionic/angular';
 import { EnvService } from 'src/app/services/core/env.service';
 import { BRA_BranchProvider, PM_TaskProvider } from 'src/app/services/static/services.service';
@@ -21,7 +21,7 @@ export class ListComponent extends PageBase {
 	
 	itemsState: any = [];
 	itemsView = [];
-	isAllRowOpened = false;
+	isAllRowOpened = true;
 
 	constructor(
 		public pageProvider: PM_TaskProvider,
@@ -36,7 +36,9 @@ export class ListComponent extends PageBase {
 	) {
 		super();
 	}
-
+	preLoadData(event?: any): void {
+		this.loadedData(event);
+	}
 
 	loadedData(event) {
 		this.items.forEach((i) => {
@@ -51,6 +53,10 @@ export class ListComponent extends PageBase {
 			this.itemsState = resp;
 		});
 		super.loadedData(event);
+	}
+	@Output() loadMoreDataList = new EventEmitter();
+	loadMoreData(e){
+		this.loadMoreDataList.emit();
 	}
 	
 	toggleRowAll() {
