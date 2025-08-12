@@ -132,7 +132,7 @@
 	</ion-fab>
 	<div class="row-full shadow full-screen" *ngIf="items.length && pageConfig.showSpinner==false">
 		<ng-container *ngIf="isSegmentActive">
-			<app-list *ngIf="view.activeView?.Type == 'List'" [items]="items" [statusList]="this.space.statusList" [typeList]="this.typeList" [page]="this.pageConfig" (loadMoreDataList)="loadData()"></app-list>
+			<app-list *ngIf="view.activeView?.Type == 'List'" [items]="items" [statusList]="this.space.statusList" [typeList]="this.typeList" [page]="this" (loadMoreDataList)="loadData()"></app-list>
 			<app-board
 				*ngIf="view.activeView?.Type == 'Board'"
 				[items]="items"
