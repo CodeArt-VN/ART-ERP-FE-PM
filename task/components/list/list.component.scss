@@ -1,0 +1,12 @@
+::ng-deep {
+
+    app-data-table .col-date {
+        max-width: 200px;
+    }
+
+    .col-name.cell ion-avatar {
+        height: calc(10 / 16 * 4rem);
+        width: calc(10 / 16 * 4rem);
+        margin-right: 8px;
+    }
+}

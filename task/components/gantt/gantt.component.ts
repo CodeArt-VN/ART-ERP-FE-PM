@@ -26,6 +26,7 @@ export class GanttComponent implements OnInit {
 	isMovingTask = false;
 	previousParent = null;
 	previousIndex = null;
+	loadMorePending = false;
 	@Input() items: any;
 	@Input() linksData: Link[] = [];
 	@Input() listParent: any[] = [];
@@ -340,16 +341,19 @@ export class GanttComponent implements OnInit {
 		);
 
 		// onBeforeTaskMove
-		gantt.attachEvent('onBeforeTaskMove', (id, parent, index) => {
-			const task = gantt.getTask(id);
-			this.previousParent = task.parent;
-			this.previousIndex = gantt.getTaskIndex(id);
-			this.isMovingTask = true;
-			return true;
-		});
-
+		this.ganttEvents.push(
+			gantt.attachEvent('onBeforeTaskMove', (id, parent, index) => {
+				const task = gantt.getTask(id);
+				this.previousParent = task.parent;
+				this.previousIndex = gantt.getTaskIndex(id);
+				this.isMovingTask = true;
+				return true;
+			})
+		);
 
 		this.isGanttLoaded = true;
+		// onScroll
+		this.attachGanttScroll();
 		// Thêm dòng này để cập nhật lại layout và scrollbar
 
 		if (this.isDataReady) {
@@ -427,6 +431,45 @@ export class GanttComponent implements OnInit {
 		gantt.setSizes();
 		//gantt.render();
 	}
+
+	attachGanttScroll() {
+		const scrollWhenReady = () => {
+			const hasData = this.items && this.items.length > 0;
+			const scrollableElement = document.querySelector('.gantt_ver_scroll');
+			if (hasData && scrollableElement) {
+				this.ganttEvents.push(
+					gantt.attachEvent("onGanttScroll", () => {
+						const scrollTop = scrollableElement.scrollTop;
+						const scrollHeight = scrollableElement.scrollHeight;
+						const clientHeight = scrollableElement.clientHeight;
+						const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+						if (isAtBottom && !this.loadMorePending) {
+							if (!(scrollTop == 0 && clientHeight == 0)) {
+								this.loadMorePending = true;
+								this.loadDataGantt.emit();
+								setTimeout(() => this.loadMorePending = false, 1000);
+							}
+						}
+					})
+				);
+				
+				return true;
+			}
+			
+			return false;
+		};
+
+		if (!scrollWhenReady()) {
+			const retrySetup = () => {
+				if (!scrollWhenReady()) {
+					setTimeout(retrySetup, 500);
+				}
+			};
+			
+			setTimeout(retrySetup, 1000);
+		}
+	}
+
 
 	@Output() openTask = new EventEmitter();
 	onOpenTask(task) {
@@ -590,28 +633,30 @@ export class GanttComponent implements OnInit {
 			this.isMovingTask = false;
 		} else {
 			let _task = this.items.find((d) => d.Id == task.id);
-			_task.StartDate = task.start_date;
-			_task.EndDate = task.end_date;
-			_task.Progress = task.progress;
-			_task.Duration = task.duration;
+			if (_task) {
+				_task.StartDate = task.start_date;
+				_task.EndDate = task.end_date;
+				_task.Progress = task.progress;
+				_task.Duration = task.duration;
 
-			return new Promise((resolve, reject) => {
-				if (this.submitAttempt == false) {
-					this.submitAttempt = true;
-					this.pageProvider
-						.save(_task)
-						.then((savedItem: any) => {
-							this.env.showMessage('Saving completed!', 'success');
-							resolve(savedItem.Id);
-							this.submitAttempt = false;
-						})
-						.catch((err) => {
-							this.env.showMessage('Cannot save, please try again', 'danger');
-							this.submitAttempt = false;
-							reject(err);
-						});
-				}
-			});
+				return new Promise((resolve, reject) => {
+					if (this.submitAttempt == false) {
+						this.submitAttempt = true;
+						this.pageProvider
+							.save(_task)
+							.then((savedItem: any) => {
+								this.env.showMessage('Saving completed!', 'success');
+								resolve(savedItem.Id);
+								this.submitAttempt = false;
+							})
+							.catch((err) => {
+								this.env.showMessage('Cannot save, please try again', 'danger');
+								this.submitAttempt = false;
+								reject(err);
+							});
+					}
+				});
+			}
 		}
 	}
 
