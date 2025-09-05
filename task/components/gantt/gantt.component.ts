@@ -5,7 +5,7 @@ import { AlertController, LoadingController, ModalController, NavController, Pop
 import { EnvService } from 'src/app/services/core/env.service';
 import { BRA_BranchProvider, PM_TaskLinkProvider, PM_TaskProvider } from 'src/app/services/static/services.service';
 import { Link, Task } from '../../../_models/task';
-import { DynamicScriptLoaderService } from 'src/app/services/custom.service';
+import { DynamicScriptLoaderService } from 'src/app/services/custom/custom.service';
 import { thirdPartyLibs } from 'src/app/services/static/thirdPartyLibs';
 
 declare var gantt: any;

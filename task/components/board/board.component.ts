@@ -3,7 +3,7 @@ import { NavController, ModalController, AlertController, LoadingController, Pop
 import { EnvService } from 'src/app/services/core/env.service';
 import { BRA_BranchProvider, PM_SpaceProvider, PM_TaskLinkProvider, PM_TaskProvider, PM_ViewProvider } from 'src/app/services/static/services.service';
 import { Location } from '@angular/common';
-import { DynamicScriptLoaderService } from 'src/app/services/custom.service';
+import { DynamicScriptLoaderService } from 'src/app/services/custom/custom.service';
 
 declare var kanban: any;
 @Component({
