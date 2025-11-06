@@ -642,7 +642,7 @@ Segment change:
 			if (type == 'add') {
 				// add
 				// Clear Advanced Filter when creating a new view
-				this.query._AdvanceConfig = null;
+				this.query._AdvanceConfig = {};
 				this.isViewCreated = false;
 
 				const groupValue = this.groupValue.map((group) => {
@@ -1105,7 +1105,7 @@ Segment change:
 	}
 
 	async showFilterAdvanced() {
-		let filterConfig = null;
+		let filterConfig:any = {};
 		let activeViewConfig;
 		if (this.viewConfig) {
 			activeViewConfig = this.viewConfig.ViewConfig.Views.find(
@@ -1118,12 +1118,12 @@ Segment change:
 				(d) => d.Layout.View.Name === this.view.activeView.Name && d.Layout.View.Type === this.view.activeView.Type && d.Sort[0] === this.view.activeView.Sort[0]
 			);
 		}
-		if (activeViewConfig && Array.isArray(activeViewConfig.Filter) && activeViewConfig.Filter.length > 0) {
+		if (activeViewConfig && Array.isArray(activeViewConfig.Filter) && activeViewConfig.Filter.length > 0 && Object.keys(activeViewConfig.Filter[0]).length > 0) {
 			filterConfig = activeViewConfig.Filter[0];
 		}
 
 		// Only create default filter config
-		if (!filterConfig) {
+		if (Object.keys(filterConfig).length === 0) {
 			let start = new Date();
 			start.setHours(0, 0, 0, 0);
 			let end = new Date();
@@ -1205,25 +1205,26 @@ Segment change:
 			activeViewConfig = spaceConfig.Views.find((d) => d.Layout.View.Name === this.view.activeView.Name);
 		}
 
-		let isFilter = activeViewConfig && Array.isArray(activeViewConfig.Filter) && activeViewConfig.Filter.length > 0 && activeViewConfig.Filter[0] !== null;
+		let isFilter = activeViewConfig && Array.isArray(activeViewConfig.Filter) && activeViewConfig.Filter.length > 0 && activeViewConfig.Filter[0] &&
+    	Object.keys(activeViewConfig.Filter[0]).length > 0;
 
+		let query = { ...this.query };
+
+		if (isScrollLoad) {
+			query.Skip = this.items.length;
+			query.Take = 200;
+		} else {
+			query.Skip = 0;
+			query.Take = 200;
+			this.pageConfig.isEndOfData = false; // reset khi load mới
+		}
+
+		if (isFilter && activeViewConfig?.Layout?.View?.Type == 'Gantt') {
+			query._AdvanceConfig = activeViewConfig.Filter[0];
+		} else {
+			delete query._AdvanceConfig;
+		}
 		if (this.pageProvider && !this.pageConfig.isEndOfData) {
-			let query = { ...this.query };
-
-			if (isScrollLoad) {
-				query.Skip = this.items.length;
-				query.Take = 100;
-			} else {
-				query.Skip = 0;
-				query.Take = 100;
-				this.pageConfig.isEndOfData = false; // reset khi load mới
-			}
-
-			if (isFilter) {
-				query._AdvanceConfig = activeViewConfig.Filter[0];
-			} else {
-				delete query._AdvanceConfig;
-			}
 
 			this.env
 				.showLoading('Please wait for a few moments', this.pageProvider.read(query, this.pageConfig.forceLoadData))
