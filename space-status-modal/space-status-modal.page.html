@@ -36,11 +36,13 @@
 
 					<app-form-control [field]="{id: 'Sort', type: 'number', form: formGroup }"></app-form-control>
 					<app-form-control [field]="{id: 'Remark', type: 'textarea', form: formGroup }"></app-form-control>
-					<div class="c-control ion-text-right">
-						<ion-button (click)="saveStatus()">{{'Save' | translate}}</ion-button>
-					</div>
 				</ion-col>
 			</ion-row>
 		</ion-grid>
 	</form>
 </ion-content>
+<ion-footer>
+	<ion-toolbar>
+		<ion-button slot="end" (click)="saveStatus()">{{'Save' | translate}}</ion-button>
+	</ion-toolbar>
+</ion-footer>
