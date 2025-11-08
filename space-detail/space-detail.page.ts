@@ -230,7 +230,8 @@ export class SpaceDetailPage extends PageBase {
 							Size: 'Medium',
 						},
 					},
-					Fields: [{ Code: '', Name: '', Icon: '', Color: '', Sort: '' }],
+					//Fields: [{ Code: '', Name: '', Icon: '', Color: '', Sort: '' }],
+					Fields: [], // Fields enable
 					GroupBy: { Group1: { Code: '', Sort: '' }, Group2: null },
 					Filter: [],
 					Sort: [index + 1],

@@ -146,3 +146,20 @@
 .wx-icon.wxi-dots-h {
 	display: none !important;
 }
+
+.wx-footer.stack-fields .wx-date-value {
+	display: block;
+	white-space: normal;
+	overflow-wrap: break-word;
+	word-break: break-word;
+	max-width: 100%;
+}
+
+
+.wx-footer.no-stack-fields .wx-date-value {
+	display: inline-block;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 100%;
+}
