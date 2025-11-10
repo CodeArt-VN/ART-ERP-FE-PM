@@ -89,10 +89,10 @@ export class BoardComponent implements OnInit {
 	ngOnInit(): void {
 		this.groupBy.level1.list = this.viewList;
 		this.groupBy.level2.list = this.viewList;
-		this.items = this.items.filter((task: any) => task.Type == 'Task' || task.Type == 'Todo');
 	}
 
 	ngAfterViewInit() {
+		this.items = this.items.filter((task: any) => task.Type == 'Task' || task.Type == 'Todo');
 		this.loadKanbanLibrary();
 	}
 
