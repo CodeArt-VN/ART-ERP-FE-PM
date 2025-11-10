@@ -7,7 +7,7 @@
 			(sort)="onSort($event)" (selectedRowsChange)="showCommandBySelectedRows($event)">
 			<datatable-column [checkbox]="true" name=""></datatable-column>
 
-			<datatable-column class="col-name" name="Name" property="Name">
+			<datatable-column class="col-name" name="Name" property="Type" [filterDataSource]="typeList">
 				<ng-template datatable-header-template>
 					<ion-icon class="min-btn" [name]="!isAllRowOpened? 'add-circle-outline':'remove-circle-outline'"
 						(click)="toggleRowAll()"></ion-icon>
@@ -16,20 +16,13 @@
 				<ng-template let-i="row" datatable-cell-template>
 					<ng-container *ngFor="let w of i.levels; let k = index;"><span class="spacing"
 							*ngIf="k>0"></span></ng-container>
-					<ion-icon (click)="toggleRow(items, i, true);" class="min-btn clickable"
+					<ion-icon (click)="toggleRow(itemsState, i, true);" class="min-btn clickable"
 						[name]="!i.showdetail? 'chevron-forward-outline':'chevron-down-outline'"
 						*ngIf="i.HasChild"></ion-icon>
-
-					<ion-text (click)="toggleRow(items, i, true);" class="clickable"
+					<ion-icon [name]="i.TypeIcon || 'flash'"></ion-icon>
+					<ion-text (click)="toggleRow(itemsState, i, true);" class="clickable"
 						[ngClass]="i.HasChild? ('bold ') : ('')" [color]="i.Color">{{i.Name | translate}}</ion-text>
 
-				</ng-template>
-			</datatable-column>
-			<datatable-column class="col-code" name="Type" property="Type" filterControlType="ng-select-status"
-				[filterDataSource]="typeList">
-				<ng-template let-i="row" datatable-cell-template>
-					<ion-icon [name]="i.TypeIcon || 'flash'"></ion-icon>
-					<ion-text>{{i.TypeText | translate}}</ion-text>
 				</ng-template>
 			</datatable-column>
 			<datatable-column class="col-name" name="Owner" property="_Staff">
