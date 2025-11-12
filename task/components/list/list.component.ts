@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, ViewEncapsulation } from '@angular/core';
+import { Component, EventEmitter, Input, Output, SimpleChanges, ViewEncapsulation } from '@angular/core';
 import { NavController, ModalController, AlertController, LoadingController, PopoverController } from '@ionic/angular';
 import { EnvService } from 'src/app/services/core/env.service';
 import { BRA_BranchProvider, PM_TaskProvider } from 'src/app/services/static/services.service';
@@ -36,6 +36,13 @@ export class ListComponent extends PageBase {
 	) {
 		super();
 	}
+
+	ngOnChanges(changes: SimpleChanges) {
+		if (changes['items'] && this.items && this.items.length) {
+			this.loadedData(null);
+		}
+	}
+
 	preLoadData(event?: any): void {
 		this.loadedData(event);
 	}
@@ -49,14 +56,15 @@ export class ListComponent extends PageBase {
 			i.TypeText = lib.getAttrib(i.Type, this.typeList, 'Name', '--', 'Code');
 			i.TypeIcon = lib.getAttrib(i.Type, this.typeList, 'Icon', 'flash', 'Code');
 		});
+		this.itemsState = [];
 		this.buildFlatTree(this.items, this.itemsState, this.isAllRowOpened).then((resp: any) => {
 			this.itemsState = resp;
 		});
 		super.loadedData(event);
 	}
 	@Output() loadMoreDataList = new EventEmitter();
-	loadMoreData(e){
-		this.loadMoreDataList.emit();
+	loadMoreData(event: any){
+		this.loadMoreDataList.emit(event);
 	}
 	
 	toggleRowAll() {
