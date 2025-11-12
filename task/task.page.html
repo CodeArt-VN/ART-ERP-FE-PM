@@ -135,7 +135,7 @@
 			<app-list *ngIf="view.activeView?.Type == 'List'" [items]="items" [statusList]="this.space.statusList" [typeList]="this.typeList" [page]="this" (loadMoreDataList)="loadDataCheckFilter(true, $event)"></app-list>
 			<app-board
 				*ngIf="view.activeView?.Type == 'Board'"
-				[items]="items"
+				[_items]="items"
 				[statusList]="this.space.statusList"
 				[groupByConfig]="this.groupByConfig"
 				[viewList]="this.statusGroupBy"

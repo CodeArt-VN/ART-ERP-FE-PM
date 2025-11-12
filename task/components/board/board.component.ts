@@ -65,7 +65,10 @@ export class BoardComponent implements OnInit {
 		],
 	};
 
-	@Input() items: any;
+	items: any = [];
+	@Input() set _items(val: any) {
+		this.items = val?.filter((task: any) => task.Type === 'Task' || task.Type === 'Todo') || [];
+	}
 	@Input() groupByConfig: any;
 	@Input() statusList: any;
 	@Input() viewList: any;
@@ -102,9 +105,7 @@ export class BoardComponent implements OnInit {
 	}
 	loadKanbanLibrary() {
 		Promise.all([this.env.getType('TaskPriority'), this.env.getType('TaskType')]).then((values: any) => {
-			this.items = this.items.filter((task: any) => task.Type == 'Task' || task.Type == 'Todo');
 			let priorityData = values[0];
-
 			priorityData.forEach((i) => {
 				i.Code = parseInt(i.Code);
 			});
@@ -438,7 +439,7 @@ export class BoardComponent implements OnInit {
 		if (!this.group1Selected) {
 			return;
 		}
-		let data: any[] = this.items.map((task: any) => {
+		const cards = this.items.map((task: any) => {
 			return {
 				task,
 				id: task.Id,
@@ -454,7 +455,6 @@ export class BoardComponent implements OnInit {
 				column_custom_key: task[this.group1Selected],
 			};
 		});
-		const cards = data;
 
 		//columns
 		let columns;
@@ -510,7 +510,7 @@ export class BoardComponent implements OnInit {
 		//collapsed columns
 		if (viewConfig.Layout.Card.IsCollapseEmptyColumns) {
 			columns.forEach((column: any) => {
-				const hasTasks = data.some((i) => i.column_custom_key == column.id);
+				const hasTasks = cards.some((i) => i.column_custom_key == column.id);
 				if (!hasTasks) {
 					column.collapsed = true;
 				}
@@ -557,7 +557,7 @@ export class BoardComponent implements OnInit {
 
 		//collapsed rows
 		rows.forEach((row: any) => {
-			const hasTasks = data.some((i) => i.row_custom_key == row.id);
+			const hasTasks = cards.some((i) => i.row_custom_key == row.id);
 			if (!hasTasks) {
 				row.collapsed = true;
 			}
