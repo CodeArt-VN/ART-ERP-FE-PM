@@ -92,7 +92,6 @@ export class BoardComponent implements OnInit {
 	}
 
 	ngAfterViewInit() {
-		this.items = this.items.filter((task: any) => task.Type == 'Task' || task.Type == 'Todo');
 		this.loadKanbanLibrary();
 	}
 
@@ -103,6 +102,7 @@ export class BoardComponent implements OnInit {
 	}
 	loadKanbanLibrary() {
 		Promise.all([this.env.getType('TaskPriority'), this.env.getType('TaskType')]).then((values: any) => {
+			this.items = this.items.filter((task: any) => task.Type == 'Task' || task.Type == 'Todo');
 			let priorityData = values[0];
 
 			priorityData.forEach((i) => {

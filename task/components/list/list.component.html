@@ -27,22 +27,15 @@
 			</datatable-column>
 			<datatable-column class="col-name" name="Owner" property="_Staff">
 				<ng-template let-i="row" datatable-cell-template>
-					<div (click)="nav('staff/'+i._Staff?.Id,'forward')" class="cell col-name">
-						<ion-avatar class="avatar" slot="start" >
-							<ion-img #img [src]="i.Avatar" (ionError)="img.src = 'assets/avartar-empty.jpg'"></ion-img>
-						</ion-avatar>
-						<div>
-							<span class="bold">{{i._Staff?.FullName}}</span>
-							<small *ngIf="i._Staff?.Code" class="no-warp"> {{i._Staff?.Code}}</small>
-							<br />
-							{{i.Email}}
-						</div>
-					</div>
+					<ng-container *ngFor="let w of i.levels; let k = index;"><span class="spacing-name"
+							*ngIf="k>0"></span></ng-container>
+					<span class="bold">{{i._Staff?.FullName}}</span>
+					<small *ngIf="i._Staff?.Code" class="no-warp"> {{i._Staff?.Code}}</small>
 				</ng-template>
 			</datatable-column>
-			<datatable-column class="col-date" style="max-width: 300px" format="dd/MM/yyyy HH:mm:ss" name="Start date"
+			<datatable-column class="col-date" format="dd/MM/yy HH:mm" name="Start date"
 				property="StartDate" filterControlType="date"></datatable-column>
-			<datatable-column class="col-date" format="dd/MM/yyyy HH:mm:ss" name="End date" property="EndDate"
+			<datatable-column class="col-date" format="dd/MM/yy HH:mm" name="End date" property="EndDate"
 				filterControlType="date"></datatable-column>
 			<datatable-column class="col-number bold" format="1.2-2" name="Duration"
 				property="Duration"></datatable-column>
@@ -61,7 +54,7 @@
 
 	<div class="ion-padding"></div>
 	<ion-infinite-scroll color="primary" threshold="30%" (ionInfinite)="loadMoreData($event)"
-		[disabled]="!pageConfig.infiniteScroll || pageConfig.isEndOfData">
+		[disabled]="!page.pageConfig.infiniteScroll || page.pageConfig.isEndOfData">
 		<ion-infinite-scroll-content loadingSpinner="dots"></ion-infinite-scroll-content>
 	</ion-infinite-scroll>
 </ion-content>

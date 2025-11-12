@@ -1194,7 +1194,13 @@ Segment change:
 		}
 	}
 
-	loadDataCheckFilter(isScrollLoad = false) {
+	submitAttempt = false; 
+	loadDataCheckFilter(isScrollLoad = false, event = null) {
+		if (this.submitAttempt) {
+			return;
+		}
+		this.submitAttempt = true;
+		this.pageConfig.showSpinner = false;
 		// Check Filter của view đang active
 		let activeViewConfig;
 		if (this.viewConfig) {
@@ -1264,9 +1270,14 @@ Segment change:
 					} else {
 						this.env.showMessage('Cannot extract data', 'danger');
 					}
+				})
+				.finally(() => {
+					this.submitAttempt = false;
+					event?.target?.complete();
 				});
 		} else {
 			this.isViewCreated = true;
+			this.submitAttempt = false;
 		}
 	}
 
