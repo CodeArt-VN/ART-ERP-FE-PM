@@ -949,7 +949,7 @@ Segment change:
 		this.openTaskModal();
 	}
 
-	onGanttOpenTask(event) {
+	onOpenTask(event) {
 		let parent = this.items.find((d) => d.Id == event.IDParent);
 		this.openTaskModal(event.Id, parent);
 	}
@@ -999,11 +999,6 @@ Segment change:
 		this.saveView(this.editView);
 	}
 
-	onKanbanOpenTask(event) {
-		let parent = this.items.find((d) => d.Id == event.IDParent);
-		this.openTaskModalOnKanban(event, parent);
-	}
-
 	async setStaffIsFilter(task) {
 		// Get active view
 		let activeViewConfig;
@@ -1035,37 +1030,6 @@ Segment change:
 					}
 				}
 			}
-		}
-	}
-
-	async openTaskModalOnKanban(task, parentTask = null) {
-		const space = this.space;
-		if (task.Id) task = this.items.find((d) => d.Id == task.Id);
-		if (!task) {
-			this.env.showMessage('Task not found!', 'warning');
-			return;
-		}
-
-		// Check if new task and isFilter
-		if (task.Id === 0) {
-			await this.setStaffIsFilter(task);
-		}
-
-		const modal = await this.modalController.create({
-			component: TaskModalPage,
-			componentProps: {
-				item: task,
-				space: space,
-				parentTask: parentTask,
-			},
-			cssClass: 'modal90',
-		});
-
-		await modal.present();
-		const { data, role } = await modal.onWillDismiss();
-		if (role == 'confirm') {
-			//Process data
-			this.setFormValues(data);
 		}
 	}
 
