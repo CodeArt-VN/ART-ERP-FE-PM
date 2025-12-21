@@ -43,20 +43,12 @@
 </ion-content>
 <ion-footer collapse="fade">
 	<ion-toolbar>
-		<div slot="start">
-			<ion-button [strong]="true" *ngIf="!item.Id" (click)="saveChange()">
-				{{'Save and apply' | translate}}
-			</ion-button>
-        </div>
-		
-		<div slot="end">
-			<ion-button [strong]="true" (click)="saveStatus()">
-				{{'Save' | translate}}
-			</ion-button>
-            <ion-button fill="outline" color="warning" (click)="closeModal()" >
-                {{'Cancel' | translate}}
-            </ion-button>
-        </div>
+		<div slot="start"></div>
 
+		<div slot="end">
+			<ion-button fill="outline" color="warning" (click)="closeModal()"> {{'Cancel' | translate}} </ion-button>
+			<ion-button [strong]="true" (click)="saveStatus()"> {{'Save' | translate}} </ion-button>
+			<ion-button [strong]="true" *ngIf="!item.Id" (click)="saveChange()"> {{'Save and apply' | translate}} </ion-button>
+		</div>
 	</ion-toolbar>
 </ion-footer>
