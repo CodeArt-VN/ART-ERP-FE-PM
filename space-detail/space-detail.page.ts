@@ -278,7 +278,7 @@ export class SpaceDetailPage extends PageBase {
 			componentProps: {
 				item: item,
 			},
-			cssClass: 'my-custom-class',
+			cssClass: 'modal90vh',
 		});
 		await modal.present();
 		const { data, role } = await modal.onWillDismiss();

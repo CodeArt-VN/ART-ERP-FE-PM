@@ -74,4 +74,10 @@ export class ListComponent extends PageBase {
 			this.toggleRow(this.itemsState, i, true);
 		});
 	}
+
+	@Output() openTask = new EventEmitter();
+	onOpenTask(task) {
+		this.openTask.emit(task);
+	}
+
 }

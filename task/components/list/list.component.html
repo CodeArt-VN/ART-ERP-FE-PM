@@ -20,7 +20,7 @@
 						[name]="!i.showdetail? 'chevron-forward-outline':'chevron-down-outline'"
 						*ngIf="i.HasChild"></ion-icon>
 					<ion-icon [name]="i.TypeIcon || 'flash'"></ion-icon> &nbsp;
-					<ion-text (click)="toggleRow(itemsState, i, true);" class="clickable"
+					<ion-text (click)="onOpenTask(i);" class="clickable"
 						[ngClass]="i.HasChild? ('bold ') : ('')" [color]="i.Color">{{i.Name | translate}}</ion-text>
 
 				</ng-template>

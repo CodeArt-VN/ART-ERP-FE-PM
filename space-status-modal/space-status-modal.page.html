@@ -1,4 +1,4 @@
-<ion-header>
+<ion-header collapse="fade">
 	<ion-toolbar>
 		<ion-title>{{item.Id !=0 ? item.Name: 'Add Status'| translate}}</ion-title>
 		<ion-buttons slot="primary">
@@ -8,7 +8,7 @@
 		</ion-buttons>
 	</ion-toolbar>
 </ion-header>
-<ion-content appScrollbarTheme class="ion-padding" fullscreen>
+<ion-content appScrollbarTheme class="ion-padding">
 	<form [formGroup]="formGroup">
 		<ion-grid fixed>
 			<ion-row>
@@ -41,8 +41,22 @@
 		</ion-grid>
 	</form>
 </ion-content>
-<ion-footer>
+<ion-footer collapse="fade">
 	<ion-toolbar>
-		<ion-button slot="end" (click)="saveStatus()">{{'Save' | translate}}</ion-button>
+		<div slot="start">
+			<ion-button [strong]="true" *ngIf="!item.Id" (click)="saveChange()">
+				{{'Save and apply' | translate}}
+			</ion-button>
+        </div>
+		
+		<div slot="end">
+			<ion-button [strong]="true" (click)="saveStatus()">
+				{{'Save' | translate}}
+			</ion-button>
+            <ion-button fill="outline" color="warning" (click)="closeModal()" >
+                {{'Cancel' | translate}}
+            </ion-button>
+        </div>
+
 	</ion-toolbar>
 </ion-footer>
