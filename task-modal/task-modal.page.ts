@@ -103,7 +103,7 @@ export class TaskModalPage extends PageBase {
 		this.formDataSources.IDSpace = [this.space];
 
 		this.formDataSources.IDOwner = this.buildSelectDataSource((term) => {
-			return this.staffProvider.search({ Take: 20, Skip: 0, Term: term });
+			return this.staffProvider.search({ Take: 20, Skip: 0, Keyword: term });
 		});
 
 		this.formDataSources.IDParent = this.buildSelectDataSource((term) => {
