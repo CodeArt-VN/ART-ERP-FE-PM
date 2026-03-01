@@ -1,7 +1,7 @@
 <ion-content appScrollbarTheme class="scrollx" [ngClass]="{withFeature: page.pageConfig.isShowFeature}"
 	forceOverscroll="false">
 	<div class="safe-max-width">
-		<app-data-table class="box-shadow responsive" [rows]="itemsState" [trackBy]="'Id'"
+		<app-data-table class="box-shadow responsive padding-number-right" [rows]="itemsState" [trackBy]="'Id'"
 			[(selectedRows)]="page.selectedItems" [showSpinner]="page.showSpinner" [showFilter]="page.pageConfig.isShowSearch"
 			[(query)]="query" (dataInfinite)="loadMoreData($event)" (filter)="onDatatableFilter($event)"
 			(sort)="onSort($event)" (selectedRowsChange)="showCommandBySelectedRows($event)">
