@@ -119,7 +119,7 @@
 							
 								<ion-reorder *ngIf="i.Name !== 'Layout' && g.Enable" slot="start"></ion-reorder>
 								<span class="icon-status">
-									<ion-icon class="menu-icon" [color]="g.Color" [name]="g.Icon || 'pricetag-outline'"></ion-icon>
+									<ion-icon class="menu-icon" [color]="$any(g).Color" [name]="$any(g).Icon || 'pricetag-outline'"></ion-icon>
 								</span>
 								<ion-label><h3>{{ g.Name | translate }}</h3></ion-label>
 								<ion-toggle slot="end" [checked]="g.Enable" (ionChange)="viewEnable(g)"></ion-toggle>

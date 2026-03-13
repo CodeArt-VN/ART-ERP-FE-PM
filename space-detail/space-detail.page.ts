@@ -262,7 +262,7 @@ export class SpaceDetailPage extends PageBase {
 		this.saveChange();
 	}
 
-	async showModalStauts(formGroup, name) {
+	async showModalStauts(formGroup, name = null) {
 		let item = {
 			Id: 0,
 			IDSpace: this.item.Id,

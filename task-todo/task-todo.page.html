@@ -77,7 +77,7 @@
 								<div class="table-contain">
 									<section class="table">
 										<ion-reorder-group [disabled]="isDisabled" (ionItemReorder)="doReorder($event, formGroup.get('ListPriorityHigh')['controls'])">
-											<ng-container *ngFor="let g of  formGroup.controls.ListPriorityHigh.controls; let idx = index;">
+											<ng-container *ngFor="let g of  $any(formGroup.get('ListPriorityHigh')).controls; let idx = index;">
 												<ng-container [formGroup]="g">
 													<div class="row">
 														<div class="col-id cell">{{idx+1}}</div>
@@ -110,7 +110,7 @@
 								<div class="table-contain">
 									<section class="table">
 										<ion-reorder-group [disabled]="isDisabled" (ionItemReorder)="doReorder($event, formGroup.get('ListPriorityMedium')['controls'])">
-											<ng-container *ngFor="let g of formGroup.controls.ListPriorityMedium.controls; let idx = index;">
+											<ng-container *ngFor="let g of $any(formGroup.get('ListPriorityMedium')).controls; let idx = index;">
 												<ng-container [formGroup]="g">
 													<div class="row">
 														<div class="col-id cell">{{idx+1}}</div>
@@ -145,7 +145,7 @@
 								<div class="table-contain">
 									<section class="table">
 										<ion-reorder-group [disabled]="isDisabled" (ionItemReorder)="doReorder($event, formGroup.get('ListPriorityLow')['controls'])">
-											<ng-container *ngFor="let g of formGroup.controls.ListPriorityLow.controls; let idx = index;">
+											<ng-container *ngFor="let g of $any(formGroup.get('ListPriorityLow')).controls; let idx = index;">
 												<ng-container [formGroup]="g">
 													<div class="row">
 														<div class="col-id cell">{{idx+1}}</div>
@@ -178,7 +178,7 @@
 								<div class="table-contain">
 									<section class="table">
 										<ion-reorder-group [disabled]="isDisabled" (ionItemReorder)="doReorder($event, formGroup.get('ListPriorityNot')['controls'])">
-											<ng-container *ngFor="let g of formGroup.controls.ListPriorityNot.controls; let idx = index;">
+											<ng-container *ngFor="let g of $any(formGroup.get('ListPriorityNot')).controls; let idx = index;">
 												<ng-container [formGroup]="g">
 													<div class="row">
 														<div class="col-id cell">{{idx+1}}</div>
@@ -214,7 +214,7 @@
 								<div class="table-contain">
 									<section class="table">
 										<ion-reorder-group [disabled]="isDisabled" (ionItemReorder)="doReorder($event, formGroup.get('ListPriorityHigh')['controls'])">
-											<ng-container *ngFor="let g of formGroup.controls.ListPriorityHigh.controls; let idx = index;">
+											<ng-container *ngFor="let g of $any(formGroup.get('ListPriorityHigh')).controls; let idx = index;">
 												<ng-container [formGroup]="g">
 													<div class="row">
 														<div class="col-id cell">{{idx+1}}</div>
@@ -245,7 +245,7 @@
 								<div class="table-contain">
 									<section class="table">
 										<ion-reorder-group [disabled]="isDisabled" (ionItemReorder)="doReorder($event, formGroup.get('ListPriorityMedium')['controls'])">
-											<ng-container *ngFor="let g of formGroup.controls.ListPriorityMedium.controls; let idx = index;">
+											<ng-container *ngFor="let g of $any(formGroup.get('ListPriorityMedium')).controls; let idx = index;">
 												<ng-container [formGroup]="g">
 													<div class="row">
 														<div class="col-id cell">{{idx+1}}</div>
@@ -276,7 +276,7 @@
 								<div class="table-contain">
 									<section class="table">
 										<ion-reorder-group [disabled]="isDisabled" (ionItemReorder)="doReorder($event, formGroup.get('ListPriorityLow')['controls'])">
-											<ng-container *ngFor="let g of formGroup.controls.ListPriorityLow.controls; let idx = index;">
+											<ng-container *ngFor="let g of $any(formGroup.get('ListPriorityLow')).controls; let idx = index;">
 												<ng-container [formGroup]="g">
 													<div class="row">
 														<div class="col-id cell">{{idx+1}}</div>
@@ -307,7 +307,7 @@
 								<div class="table-contain">
 									<section class="table">
 										<ion-reorder-group [disabled]="isDisabled" (ionItemReorder)="doReorder($event, formGroup.get('ListPriorityNot')['controls'])">
-											<ng-container *ngFor="let g of formGroup.controls.ListPriorityNot.controls; let idx = index;">
+											<ng-container *ngFor="let g of $any(formGroup.get('ListPriorityNot')).controls; let idx = index;">
 												<ng-container [formGroup]="g">
 													<div class="row">
 														<div class="col-id cell">{{idx+1}}</div>

@@ -362,4 +362,7 @@ export class TaskModalPage extends PageBase {
 	async saveChange() {
 		this.saveChange2();
 	}
+
+	//TODO: Remove empty functions
+	bindLabel = 'Name';
 }

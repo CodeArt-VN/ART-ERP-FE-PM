@@ -703,4 +703,9 @@ export class BoardComponent implements OnInit {
 
 		return colorMap[colorName] || null;
 	}
+
+	//TODO: Remove empty functions
+	statusOrder: any;
+	prioritySelected: any;
+	priorityOrder: any;
 }
