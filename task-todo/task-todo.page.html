@@ -1,5 +1,5 @@
 <ion-header [translucent]="true">
-	<app-toolbar pageTitle="{{'Help' | translate}}" [pageConfig]="pageConfig" [selectedItems]="selectedItems" [query]="query" [page]="this">
+	<app-toolbar [page]="this">
 		<ion-buttons slot="end" [ngClass]="{'ion-hide-md-down' : !pageConfig.isSubActive}">
 			<ion-button (click)="toggleGroup4Column()" title="{{'List 4 column' | translate}}">
 				<ion-icon slot="icon-only" name="star-outline"></ion-icon>
