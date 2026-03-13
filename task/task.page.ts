@@ -152,12 +152,14 @@ Segment change:
 		// - Get task id
 		// - Get active segment view
 		//   naviagte: /task/:id/:space/:view
-		this.route.paramMap.subscribe((param) => {
-			this.id = param.get('id') != 'null' ? parseInt(param.get('id')) : null;
-			this.space.Id = param.get('space') != 'null' ? parseInt(param.get('space')) : null;
-			this.view.activeView.Name = param.get('view') != 'null' ? param.get('view') : null;
-			if (this.space.activeSpace) this.refresh();
-		});
+		this.subscriptions.push(
+			this.route.paramMap.subscribe((param) => {
+				this.id = param.get('id') != 'null' ? parseInt(param.get('id')) : null;
+				this.space.Id = param.get('space') != 'null' ? parseInt(param.get('space')) : null;
+				this.view.activeView.Name = param.get('view') != 'null' ? param.get('view') : null;
+				if (this.space.activeSpace) this.refresh();
+			})
+		);
 	}
 
 	preLoadData(event?: any): void {
