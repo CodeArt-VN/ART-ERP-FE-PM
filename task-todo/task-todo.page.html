@@ -1,4 +1,4 @@
-<ion-header>
+<ion-header [translucent]="true">
 	<app-toolbar pageTitle="{{'Help' | translate}}" [pageConfig]="pageConfig" [selectedItems]="selectedItems" [query]="query" [page]="this">
 		<ion-buttons slot="end" [ngClass]="{'ion-hide-md-down' : !pageConfig.isSubActive}">
 			<ion-button (click)="toggleGroup4Column()" title="{{'List 4 column' | translate}}">
@@ -28,7 +28,7 @@
 		</ion-list>
 	</app-toolbar>
 </ion-header>
-<ion-content appScrollbarTheme appPrintFix class="A4 left" [ngClass]="{withFeature: pageConfig.isShowFeature}">
+<ion-content [fullscreen]="true" appScrollbarTheme appPrintFix class="A4 left" [ngClass]="{withFeature: pageConfig.isShowFeature}">
 	<ion-fab
 		*ngIf="pageConfig.isShowFeature"
 		[ngClass]="{withSearch: pageConfig.isShowSearch, 'ion-hide-md-down' : pageConfig.isSubActive}"

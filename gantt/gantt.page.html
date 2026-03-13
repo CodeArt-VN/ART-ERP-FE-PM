@@ -1,4 +1,4 @@
-<ion-header>
+<ion-header [translucent]="true">
 	<app-list-toolbar
 		pageTitle="Danh sách"
 		[pageConfig]="pageConfig"
@@ -16,6 +16,6 @@
 	></app-list-toolbar>
 </ion-header>
 
-<ion-content appScrollbarTheme class="scrollx">
+<ion-content [fullscreen]="true" appScrollbarTheme class="scrollx">
 	<div #gantt_here class="gantt-chart"></div>
 </ion-content>

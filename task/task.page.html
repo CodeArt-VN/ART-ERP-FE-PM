@@ -1,4 +1,4 @@
-<ion-header>
+<ion-header [translucent]="true">
 	<app-toolbar [page]="this">
 		<ng-select
 			style="min-width: 260px"
@@ -48,7 +48,7 @@
 	</ion-toolbar>
 </ion-header>
 
-<ion-content appScrollbarTheme>
+<ion-content [fullscreen]="true" appScrollbarTheme>
 	<app-page-message
 		message="{{'No data to show...' | translate}}"
 		subMessage="{{'Please select space to begin' | translate}}"
