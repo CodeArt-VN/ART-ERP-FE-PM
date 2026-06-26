@@ -25,6 +25,7 @@ export class BoardComponent implements OnInit {
 	board;
 
 	dataSources: any = {};
+	statusTypeOrder = ['Active', 'Done', 'Closed'];
 
 	groupBy = {
 		level1: {
@@ -111,7 +112,7 @@ export class BoardComponent implements OnInit {
 			});
 			this.dataSources.Priority = priorityData;
 			this.dataSources.Type = values[1];
-			this.dataSources.Status = this.statusList;
+			this.dataSources.Status = this.sortSpaceStatus(this.statusList || []);
 
 			if (typeof kanban !== 'undefined') {
 				setTimeout(() => {
@@ -578,6 +579,16 @@ export class BoardComponent implements OnInit {
 			columns,
 			cards,
 			rows,
+		});
+	}
+
+	sortSpaceStatus(statusList: any[] = []) {
+		return [...statusList].sort((a, b) => {
+			const aTypeIndex = this.statusTypeOrder.indexOf(a.Type);
+			const bTypeIndex = this.statusTypeOrder.indexOf(b.Type);
+			const typeCompare = (aTypeIndex == -1 ? this.statusTypeOrder.length : aTypeIndex) - (bTypeIndex == -1 ? this.statusTypeOrder.length : bTypeIndex);
+			if (typeCompare) return typeCompare;
+			return (a.Sort || 0) - (b.Sort || 0);
 		});
 	}
 

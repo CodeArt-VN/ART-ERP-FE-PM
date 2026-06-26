@@ -131,7 +131,8 @@ export class SpaceDetailPage extends PageBase {
 	private patchSpaceStatusValue() {
 		this.formGroup.controls.SpaceStatus = new FormArray([]);
 		if (this.item.SpaceStatus?.length) {
-			for (let i of this.item.SpaceStatus) {
+			const statusList = [...this.item.SpaceStatus].sort((a, b) => this.compareSpaceStatus(a, b));
+			for (let i of statusList) {
 				this.addSpaceStatusValue(i);
 			}
 		}
@@ -174,6 +175,15 @@ export class SpaceDetailPage extends PageBase {
 			g.controls.Sort.markAsDirty();
 		}
 		this.saveChange();
+	}
+
+	private compareSpaceStatus(a, b) {
+		const statusTypeOrder = this.groupStatus.map((i) => i.Name);
+		const aTypeIndex = statusTypeOrder.indexOf(a.Type);
+		const bTypeIndex = statusTypeOrder.indexOf(b.Type);
+		const typeCompare = (aTypeIndex == -1 ? statusTypeOrder.length : aTypeIndex) - (bTypeIndex == -1 ? statusTypeOrder.length : bTypeIndex);
+		if (typeCompare) return typeCompare;
+		return (a.Sort || 0) - (b.Sort || 0);
 	}
 
 	viewEnable(itemView, i) {
@@ -323,7 +333,7 @@ export class SpaceDetailPage extends PageBase {
 	}
 
 	filterStatusType(item, statusType) {
-		return item.filter((f) => f.value.Type == statusType);
+		return item.filter((f) => f.value.Type == statusType).sort((a, b) => (a.value.Sort || 0) - (b.value.Sort || 0));
 	}
 
 	resetViewConfig() {
