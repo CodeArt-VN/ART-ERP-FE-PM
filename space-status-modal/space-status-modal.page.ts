@@ -14,6 +14,8 @@ import { CommonService } from 'src/app/services/core/common.service';
 	standalone: false,
 })
 export class SpaceStatusModalPage extends PageBase {
+	applyStatus: (item: any) => void;
+
 	constructor(
 		public pageProvider: PM_SpaceStatusProvider,
 		public popoverCtrl: PopoverController,
@@ -53,5 +55,34 @@ export class SpaceStatusModalPage extends PageBase {
 		}
 
 		return this.modalController.dismiss(this.formGroup.getRawValue(), 'confirm');
+	}
+
+	saveAndApplyStatus() {
+		if (!this.formGroup.valid) {
+			this.env.showMessage('Please recheck information highlighted in red above', 'warning');
+			return;
+		}
+
+		if (this.submitAttempt) return;
+		this.submitAttempt = true;
+
+		const submitItem = this.formGroup.getRawValue();
+		this.pageProvider
+			.save(submitItem, this.pageConfig.isForceCreate)
+			.then((savedItem: any) => {
+				this.item = savedItem;
+				this.id = savedItem.Id;
+				this.formGroup.patchValue(savedItem);
+				this.formGroup.markAsPristine();
+				this.applyStatus?.(savedItem);
+				this.env.showMessage('Saving completed!', 'success');
+				this.submitAttempt = false;
+				this.cdr.detectChanges();
+			})
+			.catch((err) => {
+				this.env.showMessage('Cannot save, please try again', 'danger');
+				this.cdr.detectChanges();
+				this.submitAttempt = false;
+			});
 	}
 }
