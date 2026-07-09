@@ -269,13 +269,13 @@ export class BoardComponent implements OnInit {
 				};
 
 				const fieldsHtml = generateFieldsHtml(viewConfig.Fields, isShowEmptyFields, isStackFields);
-				let colorColumns = '#ffffff'; //default
+				let colorColumns = 'currentColor';
 				if (group1Selected && this.dataSources[group1Selected]) {
 					const selectedColor = this.dataSources[group1Selected].find((d) => String(d.Code) == String(column_custom_key))?.Color;
 					colorColumns = this.convertColorToCssColor(selectedColor?.toLowerCase()) || colorColumns;
 				}
 
-				const style = isColorColumns ? `style="background: ${colorColumns};"` : '';
+				const style = isColorColumns ? `style="border-top: 4px solid ${colorColumns};"` : '';
 				return `
           <div class="wx-content svelte-kqkezg"${style}>
               <div class="wx-card-header svelte-upffav">
