@@ -98,6 +98,10 @@ export class BoardComponent implements OnInit {
 		if (field?.Code == 'IDOwner') {
 			return task?._Staff?.FullName || '';
 		}
+		if (field?.Code == 'Priority') {
+			const priorityCode = task?.[field?.Name] ?? task?.[field?.Code];
+			return this.dataSources.Priority?.find((priority: any) => String(priority.Code) == String(priorityCode))?.Name || '';
+		}
 		return task?.[field?.Name] || task?.[field?.Code] || '';
 	}
 
