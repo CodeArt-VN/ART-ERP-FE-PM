@@ -249,109 +249,128 @@ export class TaskModalPage extends PageBase {
 		this.saveChange();
 	}
 
-	changeStartDate() {
-		let startDate = new Date(this.formGroup.controls.StartDate.value);
-		let endDate = new Date(this.formGroup.controls.EndDate.value);
-		let duration = this.formGroup.controls.Duration.value;
-		if (!endDate && duration && duration > 0) {
-			let endDateValue = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
-			this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDateValue, 'yyyy-mm-ddThh:MM:ss'));
-			this.formGroup.controls.EndDate.markAsDirty();
+	private getDateValue(controlName: string): Date | null {
+		const value = this.formGroup.controls[controlName].value;
+		if (!value) return null;
+
+		const date = new Date(value);
+		return isNaN(date.getTime()) ? null : date;
+	}
+
+	private getDurationValue(controlName: string): number | null {
+		const value = this.formGroup.controls[controlName].value;
+		if (value === null || value === undefined || value === '') return null;
+
+		const duration = Number(value);
+		return isNaN(duration) ? null : Math.max(duration, 0);
+	}
+
+	private formatDateTimeLocal(date: Date): string {
+		return date.toLocaleString('sv-SE', { hour12: false }).replace(' ', 'T').slice(0, 16);
+	}
+
+	private addDays(date: Date, duration: number): Date {
+		const endDate = new Date(date);
+		const wholeDays = Math.floor(duration);
+		const fractionalDay = duration - wholeDays;
+		endDate.setDate(endDate.getDate() + wholeDays);
+		endDate.setHours(endDate.getHours() + fractionalDay * 24);
+		return endDate;
+	}
+
+	private calculateDuration(startDate: Date, endDate: Date): number {
+		const duration = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+		return Number(Math.max(duration, 0).toFixed(4));
+	}
+
+	private setDateControl(controlName: string, date: Date) {
+		this.formGroup.controls[controlName].setValue(this.formatDateTimeLocal(date));
+		this.formGroup.controls[controlName].markAsDirty();
+	}
+
+	private setDurationControl(controlName: string, duration: number) {
+		this.formGroup.controls[controlName].setValue(duration);
+		this.formGroup.controls[controlName].markAsDirty();
+	}
+
+	private changeStartDateByDuration(startControl: string, endControl: string, durationControl: string) {
+		const startDate = this.getDateValue(startControl);
+		if (!startDate) {
+			this.saveChange();
+			return;
 		}
-		if (endDate && (duration != null || duration != undefined) && endDate < startDate) {
-			let endDateValue = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
-			this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDateValue, 'yyyy-mm-ddThh:MM:ss'));
-			this.formGroup.controls.EndDate.markAsDirty();
-		}
-		if (endDate && endDate > startDate) {
-			const duration = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-			this.formGroup.controls.Duration.setValue(duration);
-			this.formGroup.controls.Duration.markAsDirty();
+
+		const duration = this.getDurationValue(durationControl);
+		const endDate = this.getDateValue(endControl);
+
+		if (duration !== null) {
+			this.setDateControl(endControl, this.addDays(startDate, duration));
+		} else if (endDate) {
+			if (endDate < startDate) {
+				this.setDateControl(endControl, startDate);
+				this.setDurationControl(durationControl, 0);
+			} else {
+				this.setDurationControl(durationControl, this.calculateDuration(startDate, endDate));
+			}
 		}
 
 		this.saveChange();
+	}
+
+	private changeEndDateByStartDate(startControl: string, endControl: string, durationControl: string) {
+		const startDate = this.getDateValue(startControl);
+		let endDate = this.getDateValue(endControl);
+
+		if (!startDate || !endDate) {
+			this.saveChange();
+			return;
+		}
+
+		if (endDate < startDate) {
+			endDate = new Date(startDate);
+			this.setDateControl(endControl, endDate);
+		}
+
+		this.setDurationControl(durationControl, this.calculateDuration(startDate, endDate));
+		this.saveChange();
+	}
+
+	private changeDurationByStartDate(startControl: string, endControl: string, durationControl: string) {
+		const startDate = this.getDateValue(startControl);
+		let duration = this.getDurationValue(durationControl);
+
+		if (duration === null) duration = 0;
+		this.setDurationControl(durationControl, duration);
+
+		if (startDate) {
+			this.setDateControl(endControl, this.addDays(startDate, duration));
+		}
+
+		this.saveChange();
+	}
+
+	changeStartDate() {
+		this.changeStartDateByDuration('StartDate', 'EndDate', 'Duration');
 	}
 
 	changeEndDate() {
-		const startDate = new Date(this.formGroup.controls.StartDate.value);
-		let endDate = new Date(this.formGroup.controls.EndDate.value);
-		if (endDate < startDate) {
-			endDate = new Date(startDate);
-			this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDate));
-		}
-
-		const duration = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-
-		this.formGroup.controls.Duration.setValue(duration);
-		this.formGroup.controls.Duration.markAsDirty();
-		this.saveChange();
+		this.changeEndDateByStartDate('StartDate', 'EndDate', 'Duration');
 	}
 
 	changeDuration() {
-		const startDate = new Date(this.formGroup.controls.StartDate.value);
-		let duration = this.formGroup.controls.Duration.value;
-
-		if (duration < 0) {
-			duration = 0;
-			this.formGroup.controls.Duration.setValue(0);
-		}
-
-		const endDateValue = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
-		this.formGroup.controls.EndDate.setValue(lib.dateFormat(endDateValue, 'yyyy-mm-ddThh:MM:ss'));
-		this.formGroup.controls.EndDate.markAsDirty();
-		this.saveChange();
+		this.changeDurationByStartDate('StartDate', 'EndDate', 'Duration');
 	}
 
 	changeStartDatePlan() {
-		let startDatePlan = new Date(this.formGroup.controls.StartDatePlan.value);
-		let endDatePlan = new Date(this.formGroup.controls.EndDatePlan.value);
-		let durationPlan = this.formGroup.controls.DurationPlan.value;
-		if (!endDatePlan && durationPlan && durationPlan > 0) {
-			let endDateValue = new Date(startDatePlan.getTime() + durationPlan * 24 * 60 * 60 * 1000);
-			this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDateValue, 'yyyy-mm-ddThh:MM:ss'));
-			this.formGroup.controls.EndDatePlan.markAsDirty();
-		}
-		if (endDatePlan && (durationPlan != null || durationPlan != undefined) && endDatePlan < startDatePlan) {
-			let endDateValue = new Date(startDatePlan.getTime() + durationPlan * 24 * 60 * 60 * 1000);
-			this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDateValue, 'yyyy-mm-ddThh:MM:ss'));
-			this.formGroup.controls.EndDatePlan.markAsDirty();
-		}
-		if (endDatePlan && endDatePlan > startDatePlan) {
-			const duration = (endDatePlan.getTime() - startDatePlan.getTime()) / (1000 * 60 * 60 * 24);
-			this.formGroup.controls.DurationPlan.setValue(duration);
-			this.formGroup.controls.DurationPlan.markAsDirty();
-		}
-		this.saveChange();
+		this.changeStartDateByDuration('StartDatePlan', 'EndDatePlan', 'DurationPlan');
 	}
 
 	changeEndDatePlan() {
-		const startDatePlan = new Date(this.formGroup.controls.StartDatePlan.value);
-		let endDatePlan = new Date(this.formGroup.controls.EndDatePlan.value);
-		if (endDatePlan < startDatePlan) {
-			endDatePlan = new Date(startDatePlan);
-			this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDatePlan, 'yyyy-mm-ddThh:MM:ss'));
-		}
-
-		const durationPlan = (endDatePlan.getTime() - startDatePlan.getTime()) / (1000 * 60 * 60 * 24);
-
-		this.formGroup.controls.DurationPlan.setValue(durationPlan);
-		this.formGroup.controls.DurationPlan.markAsDirty();
-		this.saveChange();
+		this.changeEndDateByStartDate('StartDatePlan', 'EndDatePlan', 'DurationPlan');
 	}
 
 	changeDurationPlan() {
-		const startDatePlan = new Date(this.formGroup.controls.StartDatePlan.value);
-		let durationPlan = this.formGroup.controls.DurationPlan.value;
-
-		if (durationPlan < 0) {
-			durationPlan = 0;
-			this.formGroup.controls.DurationPlan.setValue(0);
-		}
-
-		const endDateValuePlan = new Date(startDatePlan.getTime() + durationPlan * 24 * 60 * 60 * 1000);
-		this.formGroup.controls.EndDatePlan.setValue(lib.dateFormat(endDateValuePlan, 'yyyy-mm-ddThh:MM:ss'));
-		this.formGroup.controls.EndDatePlan.markAsDirty();
-		this.saveChange();
+		this.changeDurationByStartDate('StartDatePlan', 'EndDatePlan', 'DurationPlan');
 	}
 
 	saveTask(update = false) {
