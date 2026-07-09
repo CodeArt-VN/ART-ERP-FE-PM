@@ -23,6 +23,7 @@ export class BoardComponent implements OnInit {
 
 	submitAttempt = false;
 	board;
+	reloadKanbanTimer;
 
 	dataSources: any = {};
 	statusTypeOrder = ['Active', 'Done', 'Closed'];
@@ -69,6 +70,7 @@ export class BoardComponent implements OnInit {
 	items: any = [];
 	@Input() set _items(val: any) {
 		this.items = val?.filter((task: any) => task.Type === 'Task' || task.Type === 'Todo') || [];
+		this.queueLoadKanban();
 	}
 	@Input() groupByConfig: any;
 	@Input() statusList: any;
@@ -111,6 +113,19 @@ export class BoardComponent implements OnInit {
 		this.groupPopover.event = e;
 		this.isGroupPopoverOpen = true;
 	}
+
+	queueLoadKanban() {
+		if (!this.board) {
+			return;
+		}
+		if (this.reloadKanbanTimer) {
+			clearTimeout(this.reloadKanbanTimer);
+		}
+		this.reloadKanbanTimer = setTimeout(() => {
+			this.loadKanban();
+		}, 0);
+	}
+
 	loadKanbanLibrary() {
 		Promise.all([this.env.getType('TaskPriority'), this.env.getType('TaskType')]).then((values: any) => {
 			let priorityData = values[0];
@@ -206,8 +221,6 @@ export class BoardComponent implements OnInit {
 				const generateFieldsHtml = (fields, isShowEmptyFields, isStackFields) => {
 					const fieldHtml = fields
 						.map((field) => {
-							const color = field.Color || '';
-							const icon = field.Icon || '';
 							const fieldValue = this.getTaskFieldValue(task, field);
 
 							const show = isShowEmptyFields || fieldValue;
@@ -215,35 +228,14 @@ export class BoardComponent implements OnInit {
 
 							return show
 								? `
-            <div class="wx-card-icons svelte-vhwr63">
-              <div class="wx-icons-container svelte-vhwr63">
-                <div class="wx-date svelte-vhwr63">
-                  <span class="icon-status">
-                    <ion-icon class="menu-icon ios ion-color ion-color-${color} hydrated" role="img" name="${icon}"></ion-icon>
-                  </span>
-                  <span class="wx-date-value svelte-vhwr63">${displayText}</span>
-                </div>
-              </div>
-              <div class="wx-icons-container svelte-vhwr63">  </div>
+            <div class="wx-card-field svelte-vhwr63">
+              <span class="wx-date-value svelte-vhwr63">${displayText}</span>
             </div>
           `
 								: '';
 						})
 						.join('');
-
-					if (isStackFields) {
-						return `
-            <div class="wx-footer svelte-vhwr63 stack-fields">
-              ${fieldHtml}
-            </div>
-          `;
-					} else {
-						return `
-            <div class="wx-footer svelte-vhwr63 no-stack-fields">
-              ${fieldHtml}
-            </div>
-          `;
-					}
+					return fieldHtml;
 				};
 
 				const fieldsHtml = generateFieldsHtml(viewConfig.Fields, isShowEmptyFields, isStackFields);

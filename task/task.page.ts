@@ -548,7 +548,7 @@ Segment change:
 		});
 	}
 
-	segmentChanged(event: any) {
+	async segmentChanged(event: any) {
 		if (this.pageConfig.isShowFeature) {
 			this.toggleFeature();
 		}
@@ -570,9 +570,6 @@ Segment change:
 		}
 
 		this.isSegmentActive = false;
-		setTimeout(() => {
-			this.isSegmentActive = true;
-		}, 50);
 
 		if (this.viewConfig) {
 			let activeView = this.viewConfig.ViewConfig.Views.find((d) => {
@@ -673,7 +670,11 @@ Segment change:
 			};
 			this.groupByConfig = groupBySpace;
 		}
-		this.loadDataCheckFilter();
+		await this.loadDataCheckFilter();
+		this.isSegmentActive = false;
+		setTimeout(() => {
+			this.isSegmentActive = true;
+		}, 50);
 	}
 
 	customizeView(type) {
@@ -1280,7 +1281,7 @@ Segment change:
 		const { data, role } = await modal.onWillDismiss();
 		if (role == 'confirm') {
 			//Process data
-			this.setFormValues(data);
+			this.loadDataCheckFilter();
 		}
 	}
 
@@ -1380,7 +1381,7 @@ Segment change:
 	submitAttempt = false; 
 	loadDataCheckFilter(isScrollLoad = false, event = null) {
 		if (this.submitAttempt) {
-			return;
+			return Promise.resolve();
 		}
 		this.submitAttempt = true;
 		this.pageConfig.showSpinner = false;
@@ -1418,12 +1419,14 @@ Segment change:
 
 		if (isFilter) {
 			query._AdvanceConfig = activeViewConfig.Filter[0];
+			this.query._AdvanceConfig = activeViewConfig.Filter[0];
 		} else {
 			delete query._AdvanceConfig;
+			delete this.query._AdvanceConfig;
 		}
 		if (this.pageProvider && !this.pageConfig.isEndOfData) {
 
-			this.env
+			return this.env
 				.showLoading('Please wait for a few moments', this.pageProvider.read(query, this.pageConfig.forceLoadData))
 				.then((result: any) => {
 					if (result.data.length == 0) {
@@ -1463,6 +1466,7 @@ Segment change:
 		} else {
 			this.isViewCreated = true;
 			this.submitAttempt = false;
+			return Promise.resolve();
 		}
 	}
 
