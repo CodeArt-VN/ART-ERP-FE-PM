@@ -92,16 +92,14 @@
 					<app-form-control
 						[field]="{id:'ViewType', type : 'ng-select', label: 'View type', form : editView._formGroup , dataSource: viewTypeDataSource,  bindLabel: 'Name',  bindValue: 'Code'}"
 					></app-form-control>
-					<ng-container *ngIf="editView._formGroup?.controls.ViewType.value == 'Gantt' && isViewCreated">
-						<ion-list lines="none">
-							<ion-list-header>
-								<ion-label>
-									<h3>{{ 'Gantt settings' | translate }}</h3>
-								</ion-label>
-							</ion-list-header>
-							<ion-button (click)="showFilterAdvanced()" title="{{'show-filter' | translate}}">
-									<ion-icon slot="icon-only" [name]="'funnel'"></ion-icon>
+					<ng-container *ngIf="editView._formGroup?.controls.ViewType.value">
+						<ion-list class="task-view-config-filter" lines="none">
+							<ion-item lines="none">
+								<ion-label>{{ 'Config' | translate }}</ion-label>
+								<ion-button size="small" (click)="showFilterAdvanced()" title="{{'show-filter' | translate}}">
+									<ion-icon slot="icon-only" name="funnel"></ion-icon>
 							</ion-button>
+							</ion-item>
 						</ion-list>
 					</ng-container>
 					<ng-container *ngIf="editView._formGroup?.controls.ViewType.value == 'Board'">

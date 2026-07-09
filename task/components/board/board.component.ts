@@ -90,6 +90,13 @@ export class BoardComponent implements OnInit {
 		public dynamicScriptLoaderService: DynamicScriptLoaderService
 	) {}
 
+	getTaskFieldValue(task: any, field: any) {
+		if (field?.Code == 'IDOwner') {
+			return task?._Staff?.FullName || '';
+		}
+		return task?.[field?.Name] || task?.[field?.Code] || '';
+	}
+
 	ngOnInit(): void {
 		this.groupBy.level1.list = this.viewList;
 		this.groupBy.level2.list = this.viewList;
@@ -155,7 +162,7 @@ export class BoardComponent implements OnInit {
 				id: code,
 				label: priority.Name,
 				value: code,
-				color: this.convertColorToHex(priority.Color.toLowerCase()),
+				color: this.convertColorToCssColor(priority.Color.toLowerCase()),
 			};
 		});
 
@@ -179,7 +186,7 @@ export class BoardComponent implements OnInit {
 			attached: false,
 		};
 
-		const cardTemplate = ({ cardFields, selected, dragging, cardShape }, viewConfig, viewList, group1Selected) => {
+		const cardTemplate = ({ cardFields, selected, dragging, cardShape }, viewConfig, group1Selected) => {
 			const { task, id, label, priority, users, start_date, end_date, status, progress, duration, row_custom_key, column_custom_key } = cardFields;
 
 			const isShowEmptyFields = viewConfig.Layout.Card.IsEmptyFields;
@@ -201,10 +208,10 @@ export class BoardComponent implements OnInit {
 						.map((field) => {
 							const color = field.Color || '';
 							const icon = field.Icon || '';
-							const fieldValue = task[field.Name] || '-';
+							const fieldValue = this.getTaskFieldValue(task, field);
 
-							const show = isShowEmptyFields || task[field.Name];
-							const displayText = task[field.Name] ? `${field.Name}: ${fieldValue}` : isShowEmptyFields ? `-` : '';
+							const show = isShowEmptyFields || fieldValue;
+							const displayText = fieldValue ? `${field.Name}: ${fieldValue}` : isShowEmptyFields ? `-` : '';
 
 							return show
 								? `
@@ -240,26 +247,10 @@ export class BoardComponent implements OnInit {
 				};
 
 				const fieldsHtml = generateFieldsHtml(viewConfig.Fields, isShowEmptyFields, isStackFields);
-				const colorMap = {
-					primary: '#3880ff',
-					secondary: '#0cd1e8',
-					tertiary: '#7044ff',
-					success: '#10dc60',
-					warning: '#ffce00',
-					danger: '#f04141',
-					red: '#ff0000',
-					pink: '#ff69b4',
-					purple: '#800080',
-					blue: '#0000ff',
-					bluegreen: '#00ced1',
-					dark: '#000000',
-					medium: '#808080',
-					light: '#f0f0f0',
-				};
 				let colorColumns = '#ffffff'; //default
-				if (group1Selected) {
-					const selectedColor = viewList.find((d) => d.Code == group1Selected)?.Color;
-					colorColumns = colorMap[selectedColor] || colorColumns;
+				if (group1Selected && this.dataSources[group1Selected]) {
+					const selectedColor = this.dataSources[group1Selected].find((d) => String(d.Code) == String(column_custom_key))?.Color;
+					colorColumns = this.convertColorToCssColor(selectedColor?.toLowerCase()) || colorColumns;
 				}
 
 				const style = isColorColumns ? `style="background: ${colorColumns};"` : '';
@@ -321,7 +312,7 @@ export class BoardComponent implements OnInit {
 			rowKey: 'row_custom_key',
 			columnKey: 'column_custom_key',
 			cardShape,
-			cardTemplate: kanban.template((card) => cardTemplate(card, viewConfig, this.viewList, this.group1Selected)),
+			cardTemplate: kanban.template((card) => cardTemplate(card, viewConfig, this.group1Selected)),
 			readonly: {
 				edit: true,
 				add: false,
@@ -694,25 +685,25 @@ export class BoardComponent implements OnInit {
 		this.loaded.emit();
 	}
 
-	convertColorToHex(colorName) {
+	convertColorToCssColor(colorName) {
 		const colorMap = {
 			primary: '#005ce6',
-			secondary: '#32db64',
-			tertiary: '#ffcc00',
-			success: '#28a745',
-			warning: '#ffc107',
-			danger: '#dc3545',
-			red: '#ff0000',
-			pink: '#ff69b4',
-			purple: '#800080',
-			blue: '#0000ff',
-			bluegreen: '#00ced1',
-			dark: '#000000',
-			medium: '#808080',
-			light: '#f0f0f0',
+			secondary: '#e1150b',
+			tertiary: '#ffffff',
+			success: '#67cb49',
+			warning: '#ffc409',
+			danger: '#eb445a',
+			red: '#f44336',
+			pink: '#e91e63',
+			purple: '#9c27b0',
+			blue: '#03a9f4',
+			bluegreen: '#00bcd4',
+			dark: '#26292c',
+			medium: '#394951',
+			light: '#f4f5f8',
 		};
 
-		return colorMap[colorName] || null;
+		return colorName && colorMap[colorName] ? `var(--ion-color-${colorName}, ${colorMap[colorName]})` : null;
 	}
 
 	//TODO: Remove empty functions

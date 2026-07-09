@@ -35,6 +35,24 @@
 	flex: 1 1 auto;
 }
 
+.task-view-config-filter ion-item {
+    --padding-start: 0;
+    --padding-bottom: 15px;
+}
+.task-view-config-filter ion-label {
+	flex: 0 0 auto;
+	margin: 0 10px 0 0;
+	color: var(--ion-color-medium) !important;
+    font-size: 14px !important;
+    font-weight: bold;
+    opacity: 0.8;
+}
+.task-view-config-filter ion-button {
+	width: 25px;
+	height: 25px;
+	margin: 0;
+}
+
 .task-view-actions {
 	position: sticky;
 	bottom: 0;
