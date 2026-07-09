@@ -17,3 +17,58 @@
 	text-align: end;
 	padding-right: 16px;
 }
+
+.task-view-config {
+	min-height: 100%;
+	padding-bottom: 0 !important;
+}
+
+.task-view-config-form {
+	min-height: calc(100vh - 40px);
+	padding-bottom: 0;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+}
+
+.task-view-config-body {
+	flex: 1 1 auto;
+}
+
+.task-view-config-filter ion-item {
+    --padding-start: 0;
+    --padding-bottom: 15px;
+}
+.task-view-config-filter ion-label {
+	flex: 0 0 auto;
+	margin: 0 10px 0 0;
+	color: var(--ion-color-medium) !important;
+    font-size: 14px !important;
+    font-weight: bold;
+    opacity: 0.8;
+}
+.task-view-config-filter ion-button {
+	width: 25px;
+	height: 25px;
+	margin: 0;
+}
+
+.task-view-actions {
+	position: sticky;
+	bottom: 0;
+	z-index: 10;
+	margin: 0 -20px;
+	padding: 10px 12px;
+	border-top: 1px solid var(--ion-color-light-shade);
+}
+.task-view-actions-inner {
+	display: flex;
+	justify-content: flex-end;
+	gap: 12px;
+}
+.task-view-actions-inner ion-button {
+	margin: 0;
+	min-width: 64px;
+	height: 44px;
+	font-weight: 600;
+}

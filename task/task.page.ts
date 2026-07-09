@@ -68,7 +68,7 @@ Segment change:
 
 	// URL params
 	space = { Id: null, Name: '', statusList: [], activeSpace: null, spaceList: [] };
-	view = { activeView: { Name: '', Type: '', From: '', Sort: 0 }, viewList: [] };
+	view = { activeView: { Name: '', Type: '', From: '', Sort: [] }, viewList: [] };
 
 	typeList = [];
 	spaceTreeList = []; // Header space stree data source
@@ -85,6 +85,7 @@ Segment change:
 	viewConfig;
 	groupByConfig;
 	schemaOriginal;
+	schemaFieldOrder: any = {};
 
 	activeViewIndex;
 
@@ -123,8 +124,26 @@ Segment change:
 			Name: 'Gantt',
 		},
 	];
+	groupOrderDataSource = [
+		{
+			Code: 'asc',
+			Name: 'Ascending',
+		},
+		{
+			Code: 'desc',
+			Name: 'Descending',
+		},
+	];
+	boardGroupBy: any = {
+		Horizontal: { Code: null, Sort: null },
+		Vertical: { Code: null, Sort: null },
+	};
+	statusTypeOrder = ['Active', 'Done', 'Closed'];
 
 	isViewCreated: boolean = false; // Track a view created
+	lastViewType: string = null;
+	isRevertingViewType: boolean = false;
+	isViewTypeConfigCleared: boolean = false;
 
 	constructor(
 		public pageProvider: PM_TaskProvider,
@@ -185,12 +204,13 @@ Segment change:
 			]).then((values: any) => {
 				this.space.spaceList = values[0].data;
 				let taskList = values[1].data;
-				let viewData = values[2]?.Fields || [];
+				let viewData = this.normalizeTaskSchemaFields(values[2]?.Fields || []);
+				this.setSchemaFieldOrder(viewData);
 				this.statusGroupBy = viewData;
-				this.schemaOriginal = [...this.groupValue];
+				this.schemaOriginal = this.cloneGroupValue(this.groupValue);
 				this.schemaOriginal.forEach((group) => {
 					if (group.Name == 'Hidden') {
-						group.Fields.push(...viewData);
+						group.Fields.push(...viewData.map((field) => ({ ...field })));
 					}
 				});
 
@@ -327,7 +347,7 @@ Segment change:
 						}
 
 						//get status list in space
-						this.space.statusList = values[indexPromises].data;
+						this.space.statusList = this.sortSpaceStatus(values[indexPromises].data || []);
 
 						// Check is 'view' or 'space'
 						if (this.view.activeView.From == '') {
@@ -459,8 +479,26 @@ Segment change:
 					this.isSegmentActive = true;
 				}, 50);
 
-				//loaded View config
-				if (this.view.activeView.Type === 'Gantt') {
+				// Reload data with the active view filter config on first page load.
+				let activeViewConfig;
+				if (this.viewConfig) {
+					activeViewConfig = this.viewConfig.ViewConfig.Views.find(
+						(d) => d.Layout.View.Name == this.view.activeView.Name && d.Layout.View.Type == this.view.activeView.Type && d.Sort[0] == this.view.activeView.Sort[0]
+					);
+				}
+				if (!activeViewConfig && this.space.activeSpace) {
+					const spaceConfig = JSON.parse(this.space.activeSpace.ViewConfig);
+					activeViewConfig = spaceConfig.Views.find(
+						(d) => d.Layout.View.Name == this.view.activeView.Name && d.Layout.View.Type == this.view.activeView.Type && d.Sort[0] == this.view.activeView.Sort[0]
+					);
+				}
+				const hasActiveViewFilter =
+					activeViewConfig &&
+					Array.isArray(activeViewConfig.Filter) &&
+					activeViewConfig.Filter.length > 0 &&
+					activeViewConfig.Filter[0] &&
+					Object.keys(activeViewConfig.Filter[0]).length > 0;
+				if (hasActiveViewFilter) {
 					await this.loadDataCheckFilter();
 				}
 			})
@@ -510,7 +548,7 @@ Segment change:
 		});
 	}
 
-	segmentChanged(event: any) {
+	async segmentChanged(event: any) {
 		if (this.pageConfig.isShowFeature) {
 			this.toggleFeature();
 		}
@@ -532,9 +570,6 @@ Segment change:
 		}
 
 		this.isSegmentActive = false;
-		setTimeout(() => {
-			this.isSegmentActive = true;
-		}, 50);
 
 		if (this.viewConfig) {
 			let activeView = this.viewConfig.ViewConfig.Views.find((d) => {
@@ -635,89 +670,42 @@ Segment change:
 			};
 			this.groupByConfig = groupBySpace;
 		}
-		this.loadDataCheckFilter();
+		await this.loadDataCheckFilter();
+		this.isSegmentActive = false;
+		setTimeout(() => {
+			this.isSegmentActive = true;
+		}, 50);
 	}
 
 	customizeView(type) {
 		this.pageConfig.isShowFeature = !this.pageConfig.isShowFeature;
-		this.groupValue = [...this.schemaOriginal];
+		this.groupValue = this.cloneGroupValue(this.schemaOriginal);
+		this.resetBoardGroupBy();
+		this.lastViewType = null;
+		this.isViewTypeConfigCleared = false;
 		if (this.pageConfig.isShowFeature) {
 			if (type == 'add') {
 				// add
 				// Clear Advanced Filter when creating a new view
 				this.query._AdvanceConfig = {};
 				this.isViewCreated = false;
-
-				const groupValue = this.groupValue.map((group) => {
-					if (group.Name == 'Hidden') {
-						const shownGroup = this.groupValue.find((g) => g.Name === 'Shown');
-						const shownItems = shownGroup?.Fields || [];
-
-						const validHidden = group.Fields.filter(
-							(f) => f.Code && f.Code.trim() !== ''
-						);
-						const validShown = shownItems.filter(
-							(f) => f.Code && f.Code.trim() !== ''
-						);
-						// Disable all fields
-						const disabledHidden = validHidden.map((item) => ({
-							...item,
-							Enable: false,
-						}));
-						const disabledShown = validShown.map((item) => ({
-							...item,
-							Enable: false,
-						}));
-
-						const merged = [...disabledHidden, ...disabledShown];
-						const uniqueHidden = Array.from(
-							new Map(merged.map((f) => [f.Code, f])).values()
-						);
-
-						return {
-							...group,
-							Fields: uniqueHidden,
-						};
-					} else if (group.Name == 'Shown') {
-						//Shown
-						return {
-							Name: 'Shown',
-							Fields: [],
-						};
-					} else {
-						// Layout
-						const layoutItems = group.Fields.map((item) => ({
-							...item,
-							Enable: false,
-						}));
-						return {
-							...group,
-							Fields: layoutItems,
-						};
-					}
-				});
-
-				this.groupValue = groupValue;
+				this.resetViewTypeConfig();
 				const view = {
 					Id: 0,
-					_formGroup: this.formBuilder.group({
-						ViewName: ['', Validators.required],
-						ViewType: ['', Validators.required],
-					}),
+					_formGroup: this.buildViewForm('', ''),
 				};
 				this.editView = view;
+				this.lastViewType = null;
 			} else {
 				// edit
 				let view = this.viewConfig?.ViewConfig?.Views?.find((d) => {
 					return d.Layout.View.Name == this.view.activeView.Name && d.Layout.View.Type == this.view.activeView.Type && d.Sort[0] == this.view.activeView.Sort[0];
 				});
 				if (view) {
+					this.setBoardGroupByFromView(view);
 					const customizeView = {
 						Id: this.viewConfig.Id,
-						_formGroup: this.formBuilder.group({
-							ViewName: [view.Layout.View.Name, Validators.required],
-							ViewType: [view.Layout.View.Type, Validators.required],
-						}),
+						_formGroup: this.buildViewForm(view.Layout.View.Name, view.Layout.View.Type),
 					};
 					const shownGroup = this.groupValue.find((g) => g.Name == 'Shown');
 					const hiddenGroup = this.groupValue.find((g) => g.Name == 'Hidden');
@@ -725,19 +713,20 @@ Segment change:
 					const updateFields = (group) => {
 						if (group && group.Fields.length > 0) {
 							view.Fields.forEach((field) => {
-								const existingField: any = group.Fields.find((f) => f.Code == field.Code);
+								const viewField = this.normalizeTaskSchemaField(field);
+								const existingField: any = group.Fields.find((f) => f.Code == viewField.Code);
 								if (existingField) {
 									//update Name, Icon, Color
-									existingField.Color = field.Color;
-									existingField.Icon = field.Icon;
-									existingField.Name = field.Name;
+									existingField.Color = viewField.Color;
+									existingField.Icon = viewField.Icon;
+									existingField.Name = viewField.Name;
 									existingField.Enable = true;
 									// Add to Shown
-									if (!shownGroup.Fields.find((f) => f.Code == field.Code)) {
+									if (!shownGroup.Fields.find((f) => f.Code == viewField.Code)) {
 										shownGroup.Fields.push(existingField);
 									}
 									// Remove from Hidden
-									hiddenGroup.Fields = hiddenGroup.Fields.filter((f) => f.Code !== field.Code);
+									hiddenGroup.Fields = hiddenGroup.Fields.filter((f) => f.Code !== viewField.Code);
 								}
 							});
 							shownGroup.Fields = shownGroup.Fields.filter((field) => {
@@ -790,16 +779,19 @@ Segment change:
 						this.groupValue = groupValue;
 					}
 					this.editView = customizeView;
+					this.lastViewType = view.Layout.View.Type || null;
 				} else {
 					let space = JSON.parse(this.space.activeSpace.ViewConfig);
-					let value = space.Views.find((d) => d.Layout.View.Name == this.view.activeView.Name && d.Sort[0] == this.view.activeView.Sort);
+					let value = space.Views.find((d) => d.Layout.View.Name == this.view.activeView.Name && d.Sort[0] == this.view.activeView.Sort[0]);
+					if (!value) {
+						this.env.showMessage('View not found!', 'warning');
+						return;
+					}
+					this.setBoardGroupByFromView(value);
 					if (value.Fields) {
 						const customizeView = {
 							Id: this.space.Id,
-							_formGroup: this.formBuilder.group({
-								ViewName: [value.Layout.View.Name, Validators.required],
-								ViewType: [value.Layout.View.Type, Validators.required],
-							}),
+							_formGroup: this.buildViewForm(value.Layout.View.Name, value.Layout.View.Type),
 						};
 
 						const shownGroup = this.groupValue.find(g => g.Name === 'Shown');
@@ -811,17 +803,20 @@ Segment change:
 							...(shownGroup.Fields || []),
 							...(hiddenGroup.Fields || []),
 						];
-						const fieldMap = new Map(allFields.map(f => [f.Code, f]));
+						const fieldMap = new Map<string, any>(allFields.map((f: any) => [f.Code, f]));
 
 						// Reset 
 						shownGroup.Fields = [];
 						hiddenGroup.Fields = [];
 
-						fieldMap.forEach((field, code) => {
+						fieldMap.forEach((field: any, code) => {
 							const matched = value.Fields.find(f => f.Code === code);
 
 							if (matched) {
-								field.Name = matched.Name;
+								const viewField = this.normalizeTaskSchemaField(matched);
+								field.Name = viewField.Name;
+								field.Icon = viewField.Icon;
+								field.Color = viewField.Color;
 								field.Enable = true;
 								shownGroup.Fields.push(field);
 							} else {
@@ -832,7 +827,7 @@ Segment change:
 
 						value.Fields.forEach(f => {
 							if (!fieldMap.has(f.Code)) {
-								shownGroup.Fields.push({ ...f, Enable: true });
+								shownGroup.Fields.push({ ...this.normalizeTaskSchemaField(f), Enable: true });
 							}
 						});
 
@@ -852,6 +847,7 @@ Segment change:
 						}
 
 						this.editView = customizeView;
+						this.lastViewType = value.Layout.View.Type || null;
 					}
 					else {
 						// case config
@@ -887,15 +883,14 @@ Segment change:
 
 						const view = {
 							Id: this.space.Id,
-							_formGroup: this.formBuilder.group({
-								ViewName: [value.Layout.View.Name, Validators.required],
-								ViewType: [value.Layout.View.Type, Validators.required],
-							}),
+							_formGroup: this.buildViewForm(value.Layout.View.Name, value.Layout.View.Type),
 						};
 						this.editView = view;
+						this.lastViewType = value.Layout.View.Type || null;
 					}
 				}
 			}
+			this.sortHiddenFields();
 		}
 	}
 
@@ -907,7 +902,7 @@ Segment change:
 				shownItems.forEach((item) => (item.Enable = false));
 				return {
 					...group,
-					Fields: [...group.Fields, ...shownItems],
+					Fields: this.sortFieldsBySchema([...group.Fields, ...shownItems]),
 				};
 			} else if (group.Name == 'Shown') {
 				//Shown
@@ -922,7 +917,12 @@ Segment change:
 		});
 
 		this.groupValue = groupValue;
-		this.saveView(this.editView);
+	}
+
+	cancelEditView() {
+		this.pageConfig.isShowFeature = false;
+		this.pageConfig.isSubActive = false;
+		this.editView = null;
 	}
 
 	nav() {
@@ -963,7 +963,6 @@ Segment change:
 		const layoutCode = ['IsStackFields', 'IsEmptyFields', 'IsCollapseEmptyColumns', 'IsColorColumns'];
 		item.Enable = !item.Enable;
 		if (layoutCode.includes(item.Code)) {
-			this.saveView(this.editView);
 			return;
 		}
 
@@ -981,10 +980,10 @@ Segment change:
 		//add
 		if (targetGroup) {
 			targetGroup.Fields.push(item);
+			if (targetGroup.Name == 'Hidden') {
+				targetGroup.Fields = this.sortFieldsBySchema(targetGroup.Fields);
+			}
 		}
-
-		//save
-		this.saveView(this.editView);
 	}
 
 	doReorder(ev: any, fields: any[], nameGroup: string) {
@@ -998,7 +997,225 @@ Segment change:
 		if (groupUpdate) {
 			groupUpdate.Fields = reorderedFields;
 		}
-		this.saveView(this.editView);
+	}
+
+	buildViewForm(viewName: string, viewType: string) {
+		const formGroup = this.formBuilder.group({
+			ViewName: [viewName, Validators.required],
+			ViewType: [viewType, Validators.required],
+			Horizontal: [this.boardGroupBy.Horizontal.Code],
+			HorizontalOrder: [this.boardGroupBy.Horizontal.Sort],
+			Vertical: [this.boardGroupBy.Vertical.Code],
+			VerticalOrder: [this.boardGroupBy.Vertical.Sort],
+		});
+		formGroup.controls.ViewType.valueChanges.subscribe((viewType) => this.confirmViewTypeChange(viewType));
+		return formGroup;
+	}
+
+	resetViewTypeConfig() {
+		const sourceGroups = this.cloneGroupValue(this.schemaOriginal || this.groupValue || []);
+		this.groupValue = sourceGroups.map((group) => {
+			const fields = (group.Fields || []).filter((f) => f.Code && f.Code.trim() !== '');
+			if (group.Name == 'Hidden') {
+				const shownGroup = sourceGroups.find((g) => g.Name === 'Shown');
+				const shownItems = (shownGroup?.Fields || []).filter((f) => f.Code && f.Code.trim() !== '');
+				const disabledHidden = fields.map((item) => ({ ...item, Enable: false }));
+				const disabledShown = shownItems.map((item) => ({ ...item, Enable: false }));
+				const merged = [...disabledHidden, ...disabledShown];
+				const uniqueHidden = Array.from(new Map(merged.map((f) => [f.Code, f])).values());
+				return {
+					...group,
+					Fields: this.sortFieldsBySchema(uniqueHidden),
+				};
+			}
+			if (group.Name == 'Shown') {
+				return {
+					Name: 'Shown',
+					Fields: [],
+				};
+			}
+			return {
+				...group,
+				Fields: fields.map((item) => ({ ...item, Enable: false })),
+			};
+		});
+	}
+
+	normalizeTaskSchemaFields(fields: any[] = []) {
+		return fields.map((field) => this.normalizeTaskSchemaField(field));
+	}
+
+	cloneGroupValue(groups: any[] = []) {
+		return groups.map((group) => ({
+			...group,
+			Fields: (group.Fields || []).map((field) => ({ ...field })),
+		}));
+	}
+
+	setSchemaFieldOrder(fields: any[] = []) {
+		this.schemaFieldOrder = {};
+		fields.forEach((field, index) => {
+			if (field?.Code) {
+				this.schemaFieldOrder[field.Code] = index;
+			}
+		});
+	}
+
+	normalizeTaskSchemaField(field: any) {
+		if (field?.Code == 'IDOwner') {
+			return {
+				...field,
+				Name: 'Owner',
+				Icon: field.Icon || 'person-outline',
+			};
+		}
+		return field;
+	}
+
+	getSchemaFieldSortIndex(code: string) {
+		const index = this.schemaFieldOrder?.[code];
+		return index === undefined ? Number.MAX_SAFE_INTEGER : index;
+	}
+
+	sortFieldsBySchema(fields: any[] = []) {
+		const uniqueFields = Array.from(new Map(fields.map((field) => [field.Code, field])).values());
+		return uniqueFields.sort((a: any, b: any) => {
+			const sortCompare = this.getSchemaFieldSortIndex(a.Code) - this.getSchemaFieldSortIndex(b.Code);
+			if (sortCompare) return sortCompare;
+			return (a.Name || a.Code || '').localeCompare(b.Name || b.Code || '');
+		});
+	}
+
+	sortHiddenFields() {
+		const hiddenGroup = this.groupValue.find((group) => group.Name == 'Hidden');
+		if (hiddenGroup) {
+			hiddenGroup.Fields = this.sortFieldsBySchema(hiddenGroup.Fields);
+		}
+	}
+
+	clearConfigByViewType() {
+		this.query._AdvanceConfig = {};
+		this.isViewTypeConfigCleared = true;
+		this.resetBoardGroupBy();
+		this.resetViewTypeConfig();
+		this.editView?._formGroup?.patchValue(
+			{
+				Horizontal: null,
+				HorizontalOrder: null,
+				Vertical: null,
+				VerticalOrder: null,
+			},
+			{ emitEvent: false }
+		);
+	}
+
+	hasViewTypeConfigData(viewType: string) {
+		const advanceConfig = this.query?._AdvanceConfig;
+		const hasFilter = advanceConfig && Object.keys(advanceConfig).length > 0;
+		if (hasFilter) {
+			return true;
+		}
+		if (viewType != 'Board') {
+			return false;
+		}
+		const formValue = this.editView?._formGroup?.value || {};
+		const hasGroupBy = !!(formValue.Horizontal || formValue.HorizontalOrder || formValue.Vertical || formValue.VerticalOrder);
+		const hasShownFields = (this.groupValue.find((g) => g.Name == 'Shown')?.Fields || []).some((field) => field.Enable);
+		const hasLayoutConfig = (this.groupValue.find((g) => g.Name == 'Layout')?.Fields || []).some((field) => field.Enable);
+		return hasGroupBy || hasShownFields || hasLayoutConfig;
+	}
+
+	async confirmViewTypeChange(viewType: string) {
+		if (this.isRevertingViewType) {
+			return;
+		}
+		if (!this.lastViewType) {
+			this.lastViewType = viewType || null;
+			return;
+		}
+		if (!viewType || viewType == this.lastViewType) {
+			return;
+		}
+
+		const previousViewType = this.lastViewType;
+		if (!this.hasViewTypeConfigData(previousViewType)) {
+			this.clearConfigByViewType();
+			this.lastViewType = viewType;
+			return;
+		}
+
+		const alert = await this.alertCtrl.create({
+			header: 'Change view type',
+			message: 'All configs related to the previous view type will be cleared. Do you want to continue?',
+			buttons: [
+				{
+					text: 'Cancel',
+					role: 'cancel',
+					handler: () => {
+						this.isRevertingViewType = true;
+						this.editView?._formGroup?.controls.ViewType.setValue(previousViewType, { emitEvent: false });
+						this.isRevertingViewType = false;
+					},
+				},
+				{
+					text: 'Continue',
+					handler: () => {
+						this.clearConfigByViewType();
+						this.lastViewType = viewType;
+					},
+				},
+			],
+		});
+		await alert.present();
+	}
+
+	resetBoardGroupBy() {
+		this.boardGroupBy = {
+			Horizontal: { Code: null, Sort: null },
+			Vertical: { Code: null, Sort: null },
+		};
+	}
+
+	setBoardGroupByFromView(view: any) {
+		this.boardGroupBy = {
+			Horizontal: {
+				Code: view?.GroupBy?.Group1?.Code || null,
+				Sort: view?.GroupBy?.Group1?.Sort || null,
+			},
+			Vertical: {
+				Code: view?.GroupBy?.Group2?.Code || null,
+				Sort: view?.GroupBy?.Group2?.Sort || null,
+			},
+		};
+	}
+
+	onBoardGroupByChange() {
+		if (this.editView?._formGroup?.valid) {
+			this.syncBoardGroupByFromForm();
+		}
+	}
+
+	syncBoardGroupByFromForm() {
+		this.boardGroupBy = {
+			Horizontal: {
+				Code: this.editView?._formGroup?.value?.Horizontal || null,
+				Sort: this.editView?._formGroup?.value?.HorizontalOrder || null,
+			},
+			Vertical: {
+				Code: this.editView?._formGroup?.value?.Vertical || null,
+				Sort: this.editView?._formGroup?.value?.VerticalOrder || null,
+			},
+		};
+	}
+
+	sortSpaceStatus(statusList: any[] = []) {
+		return [...statusList].sort((a, b) => {
+			const aTypeIndex = this.statusTypeOrder.indexOf(a.Type);
+			const bTypeIndex = this.statusTypeOrder.indexOf(b.Type);
+			const typeCompare = (aTypeIndex == -1 ? this.statusTypeOrder.length : aTypeIndex) - (bTypeIndex == -1 ? this.statusTypeOrder.length : bTypeIndex);
+			if (typeCompare) return typeCompare;
+			return (a.Sort || 0) - (b.Sort || 0);
+		});
 	}
 
 	async setStaffIsFilter(task) {
@@ -1064,7 +1281,7 @@ Segment change:
 		const { data, role } = await modal.onWillDismiss();
 		if (role == 'confirm') {
 			//Process data
-			this.setFormValues(data);
+			this.loadDataCheckFilter();
 		}
 	}
 
@@ -1075,12 +1292,13 @@ Segment change:
 	async showFilterAdvanced() {
 		let filterConfig: any = {};
 		let activeViewConfig;
-		if (this.viewConfig) {
+		const isNewView = !this.editView?.Id;
+		if (!isNewView && !this.isViewTypeConfigCleared && this.viewConfig) {
 			activeViewConfig = this.viewConfig.ViewConfig.Views.find(
 				(d) => d.Layout.View.Name === this.view.activeView.Name && d.Layout.View.Type === this.view.activeView.Type && d.Sort[0] === this.view.activeView.Sort[0]
 			);
 		}
-		if (!activeViewConfig && this.space.activeSpace) {
+		if (!isNewView && !this.isViewTypeConfigCleared && !activeViewConfig && this.space.activeSpace) {
 			const spaceConfig = JSON.parse(this.space.activeSpace.ViewConfig);
 			activeViewConfig = spaceConfig.Views.find(
 				(d) => d.Layout.View.Name === this.view.activeView.Name && d.Layout.View.Type === this.view.activeView.Type && d.Sort[0] === this.view.activeView.Sort[0]
@@ -1163,7 +1381,7 @@ Segment change:
 	submitAttempt = false; 
 	loadDataCheckFilter(isScrollLoad = false, event = null) {
 		if (this.submitAttempt) {
-			return;
+			return Promise.resolve();
 		}
 		this.submitAttempt = true;
 		this.pageConfig.showSpinner = false;
@@ -1176,7 +1394,9 @@ Segment change:
 		}
 		if (!activeViewConfig && this.space.activeSpace) {
 			const spaceConfig = JSON.parse(this.space.activeSpace.ViewConfig);
-			activeViewConfig = spaceConfig.Views.find((d) => d.Layout.View.Name === this.view.activeView.Name);
+			activeViewConfig = spaceConfig.Views.find(
+				(d) => d.Layout.View.Name === this.view.activeView.Name && d.Layout.View.Type === this.view.activeView.Type && d.Sort[0] === this.view.activeView.Sort[0]
+			);
 		}
 
 		let isFilter =
@@ -1197,14 +1417,16 @@ Segment change:
 			this.pageConfig.isEndOfData = false; // reset khi load mới
 		}
 
-		if (isFilter && activeViewConfig?.Layout?.View?.Type == 'Gantt') {
+		if (isFilter) {
 			query._AdvanceConfig = activeViewConfig.Filter[0];
+			this.query._AdvanceConfig = activeViewConfig.Filter[0];
 		} else {
 			delete query._AdvanceConfig;
+			delete this.query._AdvanceConfig;
 		}
 		if (this.pageProvider && !this.pageConfig.isEndOfData) {
 
-			this.env
+			return this.env
 				.showLoading('Please wait for a few moments', this.pageProvider.read(query, this.pageConfig.forceLoadData))
 				.then((result: any) => {
 					if (result.data.length == 0) {
@@ -1244,6 +1466,7 @@ Segment change:
 		} else {
 			this.isViewCreated = true;
 			this.submitAttempt = false;
+			return Promise.resolve();
 		}
 	}
 
@@ -1271,11 +1494,16 @@ Segment change:
 		if (!i._formGroup.valid) {
 			this.env.showMessage('Please recheck information highlighted in red above', 'warning');
 		} else {
+			this.syncBoardGroupByFromForm();
 			config.Layout.View.Name = i._formGroup.value.ViewName;
 			config.Layout.View.Type = i._formGroup.value.ViewType;
 			config.Layout.View.IsActive = true;
 			config.Sort = this.view.activeView.Sort;
 			if (i._formGroup.value.ViewType == 'Board') {
+				config.GroupBy = {
+					Group1: { Code: this.boardGroupBy.Horizontal.Code || '', Sort: this.boardGroupBy.Horizontal.Sort || '' },
+					Group2: this.boardGroupBy.Vertical.Code ? { Code: this.boardGroupBy.Vertical.Code, Sort: this.boardGroupBy.Vertical.Sort || '' } : null,
+				};
 				config.Fields = this.groupValue
 					.find((g) => g.Name == 'Shown')
 					.Fields.map((field: any) => ({
@@ -1320,7 +1548,7 @@ Segment change:
 					if (!submitItem.Id) {
 						submitItem.Id = this.viewConfig.Id;
 						const existViews = this.viewConfig?.ViewConfig?.Views || [];
-						let newSortPosition = existViews.length > 0 ? Math.max(...existViews.map((view) => view.Sort || 0)) + 1 : 1;
+						let newSortPosition = existViews.length > 0 ? Math.max(...existViews.map((view) => view.Sort?.[0] || 0)) + 1 : 1;
 						config.Sort = [newSortPosition];
 						submitItem.ViewConfig = JSON.stringify({
 							Views: [...existViews, config],
@@ -1328,11 +1556,11 @@ Segment change:
 					} else {
 						const existViews = this.viewConfig?.ViewConfig?.Views || [];
 						const updatedViews = existViews.map((view) => {
-							if (view.Layout.View.Type == config.Layout.View.Type && view.Sort[0] == config.Sort[0]) {
+							if (view.Sort[0] == config.Sort[0]) {
 								const updatedView = {
 									...view,
 									...config,
-									GroupBy: view.GroupBy,
+									GroupBy: config.GroupBy,
 									Sort: view.Sort,
 								};
 								return updatedView;
@@ -1347,12 +1575,26 @@ Segment change:
 						.save(submitItem)
 						.then((result: any) => {
 							this.editView.Id = result.Id;
+							if (result?.ViewConfig) {
+								this.viewConfig = {
+									...(this.viewConfig || {}),
+									Id: result.Id,
+									ViewConfig: JSON.parse(result.ViewConfig),
+								};
+							} else {
+								this.viewConfig = {
+									...(this.viewConfig || {}),
+									Id: result.Id,
+									ViewConfig: JSON.parse(submitItem.ViewConfig),
+								};
+							}
+							this.upsertViewList(config, 'View');
 							this.env.showMessage('View saved', 'success');
 							this.submitAttempt = false;
 							this.isViewCreated = true;
+							this.lastViewType = config.Layout.View.Type || null;
+							this.isViewTypeConfigCleared = false;
 							this.editView._formGroup.markAsPristine();
-							this.loadedData();
-							// Nav
 							this.navToNewView(config.Layout.View.Name, config.Layout.View.Type, config.Sort[0]);
 						})
 						.catch((err) => {
@@ -1369,7 +1611,7 @@ Segment change:
 					if (!submitItem.Id) {
 						const existSpaces = spaceValue.Views || [];
 
-						let newSortPosition = existSpaces.length > 0 ? Math.max(...existSpaces.map((view) => view.Sort || 0)) + 1 : 1;
+						let newSortPosition = existSpaces.length > 0 ? Math.max(...existSpaces.map((view) => view.Sort?.[0] || 0)) + 1 : 1;
 						config.Sort = [newSortPosition];
 						submitItemSpace.ViewConfig = JSON.stringify({
 							Views: [...spaceValue.Views, config],
@@ -1382,7 +1624,7 @@ Segment change:
 								return {
 									...space,
 									...config,
-									GroupBy: space.GroupBy,
+									GroupBy: config.GroupBy,
 									Sort: space.Sort,
 								};
 							}
@@ -1404,12 +1646,13 @@ Segment change:
 								this.space.activeSpace.ViewConfig = JSON.stringify(spaceValue);
 							}
 
+							this.upsertViewList(config, 'Space');
 							this.env.showMessage('View saved', 'success');
 							this.submitAttempt = false;
 							this.isViewCreated = true;
+							this.lastViewType = config.Layout.View.Type || null;
+							this.isViewTypeConfigCleared = false;
 							this.editView._formGroup.markAsPristine();
-							this.loadedData();
-							// Nav
 							this.navToNewView(config.Layout.View.Name, config.Layout.View.Type, config.Sort[0]);
 						})
 						.catch((err) => {
@@ -1421,19 +1664,40 @@ Segment change:
 		}
 	}
 
+	upsertViewList(config: any, from: string) {
+		const nextView = {
+			Type: config.Layout.View.Type,
+			Name: config.Layout.View.Name,
+			From: from,
+			Sort: config.Sort,
+		};
+		const index = this.view.viewList.findIndex((view) => view.Sort?.[0] === config.Sort?.[0] && view.From == from);
+		if (index == -1) {
+			this.view.viewList = [...this.view.viewList, nextView];
+			this.activeViewIndex = this.view.viewList.length - 1;
+		} else {
+			this.view.viewList[index] = nextView;
+			this.view.viewList = [...this.view.viewList];
+			this.activeViewIndex = index;
+		}
+		this.view.activeView = { ...nextView };
+		this.isSegmentActive = false;
+		setTimeout(() => {
+			this.isSegmentActive = true;
+		}, 50);
+	}
+
 	navToNewView(viewName: string, viewType: string, sortValue: number) {
 		if (this.view.viewList && this.view.viewList.length > 0) {
 			const newViewIndex = this.view.viewList.findIndex((view) => view.Sort[0] === sortValue);
-			//change name view
-			if (viewName !== this.view.activeView?.Name && newViewIndex != -1) {
-				this.view.activeView.Name = viewName;
+			if (newViewIndex != -1) {
+				this.activeViewIndex = newViewIndex;
+				this.view.activeView = { ...this.view.viewList[newViewIndex] };
 				this.nav();
 			}
 			if (newViewIndex == -1) {
-				if (this.pageConfig.isShowFeature) {
-					this.toggleFeature();
-				}
-				this.preLoadData();
+				this.view.activeView = { Name: viewName, Type: viewType, From: '', Sort: [sortValue] };
+				this.nav();
 				
 			}else {
 				

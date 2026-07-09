@@ -23,8 +23,12 @@ export class BoardComponent implements OnInit {
 
 	submitAttempt = false;
 	board;
+	reloadKanbanTimer;
+	collapsedColumns: any = {};
+	collapsedRows: any = {};
 
 	dataSources: any = {};
+	statusTypeOrder = ['Active', 'Done', 'Closed'];
 
 	groupBy = {
 		level1: {
@@ -68,6 +72,7 @@ export class BoardComponent implements OnInit {
 	items: any = [];
 	@Input() set _items(val: any) {
 		this.items = val?.filter((task: any) => task.Type === 'Task' || task.Type === 'Todo') || [];
+		this.queueLoadKanban();
 	}
 	@Input() groupByConfig: any;
 	@Input() statusList: any;
@@ -89,6 +94,17 @@ export class BoardComponent implements OnInit {
 		public dynamicScriptLoaderService: DynamicScriptLoaderService
 	) {}
 
+	getTaskFieldValue(task: any, field: any) {
+		if (field?.Code == 'IDOwner') {
+			return task?._Staff?.FullName || '';
+		}
+		if (field?.Code == 'Priority') {
+			const priorityCode = task?.[field?.Name] ?? task?.[field?.Code];
+			return this.dataSources.Priority?.find((priority: any) => String(priority.Code) == String(priorityCode))?.Name || '';
+		}
+		return task?.[field?.Name] || task?.[field?.Code] || '';
+	}
+
 	ngOnInit(): void {
 		this.groupBy.level1.list = this.viewList;
 		this.groupBy.level2.list = this.viewList;
@@ -103,6 +119,47 @@ export class BoardComponent implements OnInit {
 		this.groupPopover.event = e;
 		this.isGroupPopoverOpen = true;
 	}
+
+	queueLoadKanban() {
+		if (!this.board) {
+			return;
+		}
+		if (this.reloadKanbanTimer) {
+			clearTimeout(this.reloadKanbanTimer);
+		}
+		this.reloadKanbanTimer = setTimeout(() => {
+			this.loadKanban();
+		}, 0);
+	}
+
+	captureCollapsedState() {
+		if (!this.board?.serialize) {
+			return;
+		}
+		const state = this.board.serialize();
+		(state?.columns || []).forEach((column: any) => {
+			this.collapsedColumns[String(column.id)] = !!column.collapsed;
+		});
+		(state?.rows || []).forEach((row: any) => {
+			this.collapsedRows[String(row.id)] = !!row.collapsed;
+		});
+	}
+
+	applyCollapsedState(columns: any[] = [], rows: any[] = []) {
+		columns.forEach((column: any) => {
+			const key = String(column.id);
+			if (Object.prototype.hasOwnProperty.call(this.collapsedColumns, key)) {
+				column.collapsed = this.collapsedColumns[key];
+			}
+		});
+		rows.forEach((row: any) => {
+			const key = String(row.id);
+			if (Object.prototype.hasOwnProperty.call(this.collapsedRows, key)) {
+				row.collapsed = this.collapsedRows[key];
+			}
+		});
+	}
+
 	loadKanbanLibrary() {
 		Promise.all([this.env.getType('TaskPriority'), this.env.getType('TaskType')]).then((values: any) => {
 			let priorityData = values[0];
@@ -111,7 +168,7 @@ export class BoardComponent implements OnInit {
 			});
 			this.dataSources.Priority = priorityData;
 			this.dataSources.Type = values[1];
-			this.dataSources.Status = this.statusList;
+			this.dataSources.Status = this.sortSpaceStatus(this.statusList || []);
 
 			if (typeof kanban !== 'undefined') {
 				setTimeout(() => {
@@ -154,7 +211,7 @@ export class BoardComponent implements OnInit {
 				id: code,
 				label: priority.Name,
 				value: code,
-				color: this.convertColorToHex(priority.Color.toLowerCase()),
+				color: this.convertColorToCssColor(priority.Color.toLowerCase()),
 			};
 		});
 
@@ -178,7 +235,7 @@ export class BoardComponent implements OnInit {
 			attached: false,
 		};
 
-		const cardTemplate = ({ cardFields, selected, dragging, cardShape }, viewConfig, viewList, group1Selected) => {
+		const cardTemplate = ({ cardFields, selected, dragging, cardShape }, viewConfig, group1Selected) => {
 			const { task, id, label, priority, users, start_date, end_date, status, progress, duration, row_custom_key, column_custom_key } = cardFields;
 
 			const isShowEmptyFields = viewConfig.Layout.Card.IsEmptyFields;
@@ -198,70 +255,31 @@ export class BoardComponent implements OnInit {
 				const generateFieldsHtml = (fields, isShowEmptyFields, isStackFields) => {
 					const fieldHtml = fields
 						.map((field) => {
-							const color = field.Color || '';
-							const icon = field.Icon || '';
-							const fieldValue = task[field.Name] || '-';
+							const fieldValue = this.getTaskFieldValue(task, field);
 
-							const show = isShowEmptyFields || task[field.Name];
-							const displayText = task[field.Name] ? `${field.Name}: ${fieldValue}` : isShowEmptyFields ? `-` : '';
+							const show = isShowEmptyFields || fieldValue;
+							const displayText = fieldValue ? fieldValue : isShowEmptyFields ? `${field.Name}: ` : '';
 
 							return show
 								? `
-            <div class="wx-card-icons svelte-vhwr63">
-              <div class="wx-icons-container svelte-vhwr63">
-                <div class="wx-date svelte-vhwr63">
-                  <span class="icon-status">
-                    <ion-icon class="menu-icon ios ion-color ion-color-${color} hydrated" role="img" name="${icon}"></ion-icon>
-                  </span>
-                  <span class="wx-date-value svelte-vhwr63">${displayText}</span>
-                </div>
-              </div>
-              <div class="wx-icons-container svelte-vhwr63">  </div>
+            <div class="wx-card-field svelte-vhwr63">
+              <span class="wx-date-value svelte-vhwr63">${displayText}</span>
             </div>
           `
 								: '';
 						})
 						.join('');
-
-					if (isStackFields) {
-						return `
-            <div class="wx-footer svelte-vhwr63 stack-fields">
-              ${fieldHtml}
-            </div>
-          `;
-					} else {
-						return `
-            <div class="wx-footer svelte-vhwr63 no-stack-fields">
-              ${fieldHtml}
-            </div>
-          `;
-					}
+					return fieldHtml;
 				};
 
 				const fieldsHtml = generateFieldsHtml(viewConfig.Fields, isShowEmptyFields, isStackFields);
-				const colorMap = {
-					primary: '#3880ff',
-					secondary: '#0cd1e8',
-					tertiary: '#7044ff',
-					success: '#10dc60',
-					warning: '#ffce00',
-					danger: '#f04141',
-					red: '#ff0000',
-					pink: '#ff69b4',
-					purple: '#800080',
-					blue: '#0000ff',
-					bluegreen: '#00ced1',
-					dark: '#000000',
-					medium: '#808080',
-					light: '#f0f0f0',
-				};
-				let colorColumns = '#ffffff'; //default
-				if (group1Selected) {
-					const selectedColor = viewList.find((d) => d.Code == group1Selected)?.Color;
-					colorColumns = colorMap[selectedColor] || colorColumns;
+				let colorColumns = 'currentColor';
+				if (group1Selected && this.dataSources[group1Selected]) {
+					const selectedColor = this.dataSources[group1Selected].find((d) => String(d.Code) == String(column_custom_key))?.Color;
+					colorColumns = this.convertColorToCssColor(selectedColor?.toLowerCase()) || colorColumns;
 				}
 
-				const style = isColorColumns ? `style="background: ${colorColumns};"` : '';
+				const style = isColorColumns ? `style="border-top: 4px solid ${colorColumns};"` : '';
 				return `
           <div class="wx-content svelte-kqkezg"${style}>
               <div class="wx-card-header svelte-upffav">
@@ -320,7 +338,7 @@ export class BoardComponent implements OnInit {
 			rowKey: 'row_custom_key',
 			columnKey: 'column_custom_key',
 			cardShape,
-			cardTemplate: kanban.template((card) => cardTemplate(card, viewConfig, this.viewList, this.group1Selected)),
+			cardTemplate: kanban.template((card) => cardTemplate(card, viewConfig, this.group1Selected)),
 			readonly: {
 				edit: true,
 				add: false,
@@ -364,6 +382,10 @@ export class BoardComponent implements OnInit {
 		});
 
 		this.board.api.intercept('move-card', (task) => {
+			if (String(task.columnId ?? '') == String(oldColumnId ?? '') && String(task.rowId ?? '') == String(oldRowId ?? '')) {
+				return false;
+			}
+
 			const allowedFields = [
 				'Code',
 				'Name',
@@ -439,6 +461,7 @@ export class BoardComponent implements OnInit {
 		if (!this.group1Selected) {
 			return;
 		}
+		this.captureCollapsedState();
 		const cards = this.items.map((task: any) => {
 			return {
 				task,
@@ -556,12 +579,14 @@ export class BoardComponent implements OnInit {
 		}
 
 		//collapsed rows
-		rows.forEach((row: any) => {
-			const hasTasks = cards.some((i) => i.row_custom_key == row.id);
-			if (!hasTasks) {
-				row.collapsed = true;
-			}
-		});
+		if (viewConfig.Layout.Card.IsCollapseEmptyColumns) {
+			rows.forEach((row: any) => {
+				const hasTasks = cards.some((i) => i.row_custom_key == row.id);
+				if (!hasTasks) {
+					row.collapsed = true;
+				}
+			});
+		}
 
 		if (this.group2Selected) {
 			rows.sort((a, b) => {
@@ -574,10 +599,22 @@ export class BoardComponent implements OnInit {
 			});
 		}
 
+		this.applyCollapsedState(columns, rows);
+
 		this.board.parse({
 			columns,
 			cards,
 			rows,
+		});
+	}
+
+	sortSpaceStatus(statusList: any[] = []) {
+		return [...statusList].sort((a, b) => {
+			const aTypeIndex = this.statusTypeOrder.indexOf(a.Type);
+			const bTypeIndex = this.statusTypeOrder.indexOf(b.Type);
+			const typeCompare = (aTypeIndex == -1 ? this.statusTypeOrder.length : aTypeIndex) - (bTypeIndex == -1 ? this.statusTypeOrder.length : bTypeIndex);
+			if (typeCompare) return typeCompare;
+			return (a.Sort || 0) - (b.Sort || 0);
 		});
 	}
 
@@ -683,25 +720,25 @@ export class BoardComponent implements OnInit {
 		this.loaded.emit();
 	}
 
-	convertColorToHex(colorName) {
+	convertColorToCssColor(colorName) {
 		const colorMap = {
 			primary: '#005ce6',
-			secondary: '#32db64',
-			tertiary: '#ffcc00',
-			success: '#28a745',
-			warning: '#ffc107',
-			danger: '#dc3545',
-			red: '#ff0000',
-			pink: '#ff69b4',
-			purple: '#800080',
-			blue: '#0000ff',
-			bluegreen: '#00ced1',
-			dark: '#000000',
-			medium: '#808080',
-			light: '#f0f0f0',
+			secondary: '#e1150b',
+			tertiary: '#ffffff',
+			success: '#67cb49',
+			warning: '#ffc409',
+			danger: '#eb445a',
+			red: '#f44336',
+			pink: '#e91e63',
+			purple: '#9c27b0',
+			blue: '#03a9f4',
+			bluegreen: '#00bcd4',
+			dark: '#26292c',
+			medium: '#394951',
+			light: '#f4f5f8',
 		};
 
-		return colorMap[colorName] || null;
+		return colorName && colorMap[colorName] ? `var(--ion-color-${colorName}, ${colorMap[colorName]})` : null;
 	}
 
 	//TODO: Remove empty functions

@@ -85,48 +85,71 @@
 		horizontal="end"
 		slot="fixed"
 	>
-		<div class="ion-padding" *ngIf="editView">
-			<form [formGroup]="editView._formGroup">
-				<app-form-control [field]="{id:'ViewName', type : 'text', label: 'View name', form : editView._formGroup }" (change)="saveView(editView)"></app-form-control>
-				<app-form-control
-					[field]="{id:'ViewType', type : 'ng-select', label: 'View type', form : editView._formGroup , dataSource: viewTypeDataSource,  bindLabel: 'Name',  bindValue: 'Code'}"
-					(change)="saveView(editView)"
-				></app-form-control>
-				<ng-container *ngIf="editView._formGroup?.controls.ViewType.value == 'Gantt' && isViewCreated">
-					<ion-list lines="none">
-						<ion-list-header>
-							<ion-label>
-								<h3>{{ 'Gantt settings' | translate }}</h3>
-							</ion-label>
-						</ion-list-header>
-						<ion-button (click)="showFilterAdvanced()" title="{{'show-filter' | translate}}">
-								<ion-icon slot="icon-only" [name]="'funnel'"></ion-icon>
-						</ion-button>
-					</ion-list>
-				</ng-container>
-				<ng-container *ngIf="editView._formGroup?.controls.ViewType.value == 'Board'">
-					<ion-list lines="none" *ngFor="let i of groupValue">
-						<ion-list-header>
-							<ion-label>
-								<h3>{{ i.Name | translate }}</h3>
-							</ion-label>
-							<ion-label (click)="hiddenAll()" *ngIf="i.Name == 'Shown' && groupValue[0].Fields.length > 0">
-								<h3 class="hidden-all">{{ 'Hide all' | translate }}</h3>
-							</ion-label>
-						</ion-list-header>
-						<ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, groupValue[0].Fields, i.Name)">
-							<ion-item class="item-status" *ngFor="let g of i.Fields">
-							
-								<ion-reorder *ngIf="i.Name !== 'Layout' && g.Enable" slot="start"></ion-reorder>
-								<span class="icon-status">
-									<ion-icon class="menu-icon" [color]="$any(g).Color" [name]="$any(g).Icon || 'pricetag-outline'"></ion-icon>
-								</span>
-								<ion-label><h3>{{ g.Name | translate }}</h3></ion-label>
-								<ion-toggle slot="end" [checked]="g.Enable" (ionChange)="viewEnable(g)"></ion-toggle>
+		<div class="ion-padding task-view-config" *ngIf="editView">
+			<form class="task-view-config-form" [formGroup]="editView._formGroup">
+				<div class="task-view-config-body">
+					<app-form-control [field]="{id:'ViewName', type : 'text', label: 'View name', form : editView._formGroup }"></app-form-control>
+					<app-form-control
+						[field]="{id:'ViewType', type : 'ng-select', label: 'View type', form : editView._formGroup , dataSource: viewTypeDataSource,  bindLabel: 'Name',  bindValue: 'Code'}"
+					></app-form-control>
+					<ng-container *ngIf="editView._formGroup?.controls.ViewType.value">
+						<ion-list class="task-view-config-filter" lines="none">
+							<ion-item lines="none">
+								<ion-label>{{ 'Config' | translate }}</ion-label>
+								<ion-button size="small" (click)="showFilterAdvanced()" title="{{'show-filter' | translate}}">
+									<ion-icon slot="icon-only" name="funnel"></ion-icon>
+							</ion-button>
 							</ion-item>
-						</ion-reorder-group>
-					</ion-list>
-				</ng-container>
+						</ion-list>
+					</ng-container>
+					<ng-container *ngIf="editView._formGroup?.controls.ViewType.value == 'Board'">
+						<ion-list lines="none">
+							<app-form-control
+								[field]="{id:'Horizontal', type : 'ng-select', label: 'Horizontal', form : editView._formGroup , dataSource: statusGroupBy, bindLabel: 'Name', bindValue: 'Code'}"
+							></app-form-control>
+							<app-form-control
+								[field]="{id:'HorizontalOrder', type : 'ng-select', label: 'Horizontal order', form : editView._formGroup , dataSource: groupOrderDataSource, bindLabel: 'Name', bindValue: 'Code'}"
+							></app-form-control>
+							<app-form-control
+								[field]="{id:'Vertical', type : 'ng-select', label: 'Vertical', form : editView._formGroup , dataSource: statusGroupBy, bindLabel: 'Name', bindValue: 'Code'}"
+							></app-form-control>
+							<app-form-control
+								[field]="{id:'VerticalOrder', type : 'ng-select', label: 'Vertical order', form : editView._formGroup , dataSource: groupOrderDataSource, bindLabel: 'Name', bindValue: 'Code'}"
+							></app-form-control>
+						</ion-list>
+						<ion-list lines="none" *ngFor="let i of groupValue">
+							<ion-list-header>
+								<ion-label>
+									<h3>{{ i.Name | translate }}</h3>
+								</ion-label>
+								<ion-label (click)="hiddenAll()" *ngIf="i.Name == 'Shown' && groupValue[0].Fields.length > 0">
+									<h3 class="hidden-all">{{ 'Hide all' | translate }}</h3>
+								</ion-label>
+							</ion-list-header>
+							<ion-reorder-group [disabled]="false" (ionItemReorder)="doReorder($event, groupValue[0].Fields, i.Name)">
+								<ion-item class="item-status" *ngFor="let g of i.Fields">
+								
+									<ion-reorder *ngIf="i.Name !== 'Layout' && g.Enable" slot="start"></ion-reorder>
+									<span class="icon-status">
+										<ion-icon class="menu-icon" [color]="$any(g).Color" [name]="$any(g).Icon || 'pricetag-outline'"></ion-icon>
+									</span>
+									<ion-label><h3>{{ g.Name | translate }}</h3></ion-label>
+									<ion-toggle slot="end" [checked]="g.Enable" (ionChange)="viewEnable(g)"></ion-toggle>
+								</ion-item>
+							</ion-reorder-group>
+						</ion-list>
+					</ng-container>
+				</div>
+				<ion-list class="task-view-actions" lines="none">
+					<div class="task-view-actions-inner">
+						<ion-button fill="outline" color="warning" (click)="cancelEditView()">
+							{{'Cancel' | translate}}
+						</ion-button>
+						<ion-button (click)="saveView(editView)">
+							{{'Save' | translate}}
+						</ion-button>
+					</div>
+				</ion-list>
 			</form>
 		</div>
 	</ion-fab>

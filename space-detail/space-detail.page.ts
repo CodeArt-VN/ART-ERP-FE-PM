@@ -131,7 +131,8 @@ export class SpaceDetailPage extends PageBase {
 	private patchSpaceStatusValue() {
 		this.formGroup.controls.SpaceStatus = new FormArray([]);
 		if (this.item.SpaceStatus?.length) {
-			for (let i of this.item.SpaceStatus) {
+			const statusList = [...this.item.SpaceStatus].sort((a, b) => this.compareSpaceStatus(a, b));
+			for (let i of statusList) {
 				this.addSpaceStatusValue(i);
 			}
 		}
@@ -165,6 +166,36 @@ export class SpaceDetailPage extends PageBase {
 		}
 	}
 
+	private updateSpaceStatusValue(formGroup, data, markAsDirty = true) {
+		formGroup.get('Code').setValue(data.Code);
+		formGroup.get('Color').setValue(data.Color);
+		formGroup.get('Icon').setValue(data.Icon);
+		formGroup.get('Name').setValue(data.Name);
+		formGroup.get('Remark').setValue(data.Remark);
+		formGroup.get('Sort').setValue(data.Sort);
+		formGroup.get('Type').setValue(data.Type);
+
+		if (markAsDirty) {
+			formGroup.get('Code').markAsDirty();
+			formGroup.get('Color').markAsDirty();
+			formGroup.get('Icon').markAsDirty();
+			formGroup.get('Name').markAsDirty();
+			formGroup.get('Remark').markAsDirty();
+			formGroup.get('Sort').markAsDirty();
+			formGroup.get('Type').markAsDirty();
+		}
+	}
+
+	private upsertSpaceStatusValue(data, markAsDirty = true) {
+		let groups = <FormArray>this.formGroup.controls.SpaceStatus;
+		let existingGroup = data?.Id ? groups.controls.find((g: any) => g.get('Id').value == data.Id) : null;
+		if (existingGroup) {
+			this.updateSpaceStatusValue(existingGroup, data, markAsDirty);
+		} else {
+			this.addSpaceStatusValue(data, markAsDirty);
+		}
+	}
+
 	doReorder(ev, groups, nameGroup) {
 		groups = groups.filter((f) => f.value.Type == nameGroup);
 		groups = ev.detail.complete(groups);
@@ -174,6 +205,15 @@ export class SpaceDetailPage extends PageBase {
 			g.controls.Sort.markAsDirty();
 		}
 		this.saveChange();
+	}
+
+	private compareSpaceStatus(a, b) {
+		const statusTypeOrder = this.groupStatus.map((i) => i.Name);
+		const aTypeIndex = statusTypeOrder.indexOf(a.Type);
+		const bTypeIndex = statusTypeOrder.indexOf(b.Type);
+		const typeCompare = (aTypeIndex == -1 ? statusTypeOrder.length : aTypeIndex) - (bTypeIndex == -1 ? statusTypeOrder.length : bTypeIndex);
+		if (typeCompare) return typeCompare;
+		return (a.Sort || 0) - (b.Sort || 0);
 	}
 
 	viewEnable(itemView, i) {
@@ -277,6 +317,7 @@ export class SpaceDetailPage extends PageBase {
 			component: SpaceStatusModalPage,
 			componentProps: {
 				item: item,
+				applyStatus: (status) => this.upsertSpaceStatusValue(status, false),
 			},
 			cssClass: 'modal90vh',
 		});
@@ -284,25 +325,8 @@ export class SpaceDetailPage extends PageBase {
 		const { data, role } = await modal.onWillDismiss();
 
 		if (role === 'confirm') {
-			if (data.Id == 0) {
-				this.addSpaceStatusValue(data, true);
-			} else {
-				formGroup.get('Code').setValue(data.Code);
-				formGroup.get('Color').setValue(data.Color);
-				formGroup.get('Icon').setValue(data.Icon);
-				formGroup.get('Name').setValue(data.Name);
-				formGroup.get('Remark').setValue(data.Remark);
-				formGroup.get('Sort').setValue(data.Sort);
-				formGroup.get('Type').setValue(data.Type);
-
-				formGroup.get('Code').markAsDirty();
-				formGroup.get('Color').markAsDirty();
-				formGroup.get('Icon').markAsDirty();
-				formGroup.get('Name').markAsDirty();
-				formGroup.get('Remark').markAsDirty();
-				formGroup.get('Sort').markAsDirty();
-				formGroup.get('Type').markAsDirty();
-			}
+			if (formGroup) this.updateSpaceStatusValue(formGroup, data);
+			else this.upsertSpaceStatusValue(data, true);
 			this.saveChange();
 		}
 	}
@@ -323,7 +347,7 @@ export class SpaceDetailPage extends PageBase {
 	}
 
 	filterStatusType(item, statusType) {
-		return item.filter((f) => f.value.Type == statusType);
+		return item.filter((f) => f.value.Type == statusType).sort((a, b) => (a.value.Sort || 0) - (b.value.Sort || 0));
 	}
 
 	resetViewConfig() {

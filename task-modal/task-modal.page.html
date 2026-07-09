@@ -128,6 +128,43 @@
 					</ion-col>
 				</ion-row>
 
+				<!-- Remark -->
+				<ion-row class="hr-group">
+					<ion-col size="12" size-sm="12" size-md="12" size-xl="3">
+						<ion-list-header class="ion-no-padding">
+							<ion-label color="primary">{{'Content' | translate}}</ion-label>
+						</ion-list-header>
+					</ion-col>
+					<ion-col size="12" size-sm="12" size-md="10" size-lg="9" size-xl="8" class="task-remark-editor">
+						<ion-toolbar class="task-remark-toolbar">
+							<ion-buttons slot="end">
+								<ion-button title="{{'Update' | translate}}" *ngIf="!isEditRemark" (click)="editRemark()">
+									<ion-icon size="medium" color="success" slot="icon-only" name="create-outline"></ion-icon>
+								</ion-button>
+								<ion-button title="{{'Preview' | translate}}" *ngIf="isEditRemark" (click)="previewRemark()">
+									<ion-icon size="medium" name="eye-outline"></ion-icon>
+								</ion-button>
+							</ion-buttons>
+						</ion-toolbar>
+						<div *ngIf="!isEditRemark" [innerHtml]="(formGroup.controls.Remark.value || '') | safeHtml" class="ql-editor task-remark-preview"></div>
+						<app-input-control
+							*ngIf="isEditRemark"
+							[field]="{
+								id: 'Remark',
+								type: 'editor',
+								label: 'Remark',
+								placeholder: 'Remark',
+								form: formGroup
+							}"
+							(change)="saveChange()"
+						></app-input-control>
+						<div class="c-control ion-text-right task-remark-actions">
+							<label class="c-label" for=""></label>
+							<ion-button (click)="saveChange()">{{'Save' | translate}}</ion-button>
+						</div>
+					</ion-col>
+				</ion-row>
+
 				<!-- Other information -->
 				<ion-row class="hr-group" *ngIf="formGroup.controls.Id">
 					<ion-col size="12" size-sm="12" size-md="12" size-xl="3">
@@ -143,7 +180,6 @@
 					</ion-col>
 					<ion-col size="12" size-sm size-xl="4">
 						<app-form-control [field]="{id: 'IDBranch', type: 'branch-breadcrumbs', label: 'Branch', form: formGroup, dataSource: env.branchList }"></app-form-control>
-						<app-form-control [field]="{id: 'Remark', type: 'textarea', label: 'Remark', form: formGroup }" (change)="saveChange()"></app-form-control>
 					</ion-col>
 				</ion-row>
 			</form>
