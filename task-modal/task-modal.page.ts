@@ -20,6 +20,7 @@ export class TaskModalPage extends PageBase {
 	parentTask = null;
 	space = null;
 	typeList = [];
+	isEditRemark = false;
 
 	formDataSources: any = {
 		Type: [],
@@ -361,6 +362,14 @@ export class TaskModalPage extends PageBase {
 
 	async saveChange() {
 		this.saveChange2();
+	}
+
+	editRemark() {
+		this.isEditRemark = true;
+	}
+
+	previewRemark() {
+		this.isEditRemark = false;
 	}
 
 	//TODO: Remove empty functions

@@ -378,6 +378,10 @@ export class BoardComponent implements OnInit {
 		});
 
 		this.board.api.intercept('move-card', (task) => {
+			if (String(task.columnId ?? '') == String(oldColumnId ?? '') && String(task.rowId ?? '') == String(oldRowId ?? '')) {
+				return false;
+			}
+
 			const allowedFields = [
 				'Code',
 				'Name',
