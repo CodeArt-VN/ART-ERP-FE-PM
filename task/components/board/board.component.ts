@@ -24,6 +24,8 @@ export class BoardComponent implements OnInit {
 	submitAttempt = false;
 	board;
 	reloadKanbanTimer;
+	collapsedColumns: any = {};
+	collapsedRows: any = {};
 
 	dataSources: any = {};
 	statusTypeOrder = ['Active', 'Done', 'Closed'];
@@ -126,6 +128,34 @@ export class BoardComponent implements OnInit {
 		}, 0);
 	}
 
+	captureCollapsedState() {
+		if (!this.board?.serialize) {
+			return;
+		}
+		const state = this.board.serialize();
+		(state?.columns || []).forEach((column: any) => {
+			this.collapsedColumns[String(column.id)] = !!column.collapsed;
+		});
+		(state?.rows || []).forEach((row: any) => {
+			this.collapsedRows[String(row.id)] = !!row.collapsed;
+		});
+	}
+
+	applyCollapsedState(columns: any[] = [], rows: any[] = []) {
+		columns.forEach((column: any) => {
+			const key = String(column.id);
+			if (Object.prototype.hasOwnProperty.call(this.collapsedColumns, key)) {
+				column.collapsed = this.collapsedColumns[key];
+			}
+		});
+		rows.forEach((row: any) => {
+			const key = String(row.id);
+			if (Object.prototype.hasOwnProperty.call(this.collapsedRows, key)) {
+				row.collapsed = this.collapsedRows[key];
+			}
+		});
+	}
+
 	loadKanbanLibrary() {
 		Promise.all([this.env.getType('TaskPriority'), this.env.getType('TaskType')]).then((values: any) => {
 			let priorityData = values[0];
@@ -224,7 +254,7 @@ export class BoardComponent implements OnInit {
 							const fieldValue = this.getTaskFieldValue(task, field);
 
 							const show = isShowEmptyFields || fieldValue;
-							const displayText = fieldValue ? `${field.Name}: ${fieldValue}` : isShowEmptyFields ? `-` : '';
+							const displayText = fieldValue ? fieldValue : isShowEmptyFields ? `${field.Name}: ` : '';
 
 							return show
 								? `
@@ -423,6 +453,7 @@ export class BoardComponent implements OnInit {
 		if (!this.group1Selected) {
 			return;
 		}
+		this.captureCollapsedState();
 		const cards = this.items.map((task: any) => {
 			return {
 				task,
@@ -540,12 +571,14 @@ export class BoardComponent implements OnInit {
 		}
 
 		//collapsed rows
-		rows.forEach((row: any) => {
-			const hasTasks = cards.some((i) => i.row_custom_key == row.id);
-			if (!hasTasks) {
-				row.collapsed = true;
-			}
-		});
+		if (viewConfig.Layout.Card.IsCollapseEmptyColumns) {
+			rows.forEach((row: any) => {
+				const hasTasks = cards.some((i) => i.row_custom_key == row.id);
+				if (!hasTasks) {
+					row.collapsed = true;
+				}
+			});
+		}
 
 		if (this.group2Selected) {
 			rows.sort((a, b) => {
@@ -557,6 +590,8 @@ export class BoardComponent implements OnInit {
 				return 0;
 			});
 		}
+
+		this.applyCollapsedState(columns, rows);
 
 		this.board.parse({
 			columns,
