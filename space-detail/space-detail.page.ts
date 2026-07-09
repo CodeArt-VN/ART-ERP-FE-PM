@@ -216,6 +216,15 @@ export class SpaceDetailPage extends PageBase {
 		return (a.Sort || 0) - (b.Sort || 0);
 	}
 
+	private getNextStatusSort(type: string) {
+		const groups = (<FormArray>this.formGroup.controls.SpaceStatus)?.controls || [];
+		const sorts = groups
+			.filter((g: FormGroup) => g.get('Type').value == type)
+			.map((g: FormGroup) => Number(g.get('Sort').value) || 0);
+
+		return sorts.length ? Math.max(...sorts) + 1 : 1;
+	}
+
 	viewEnable(itemView, i) {
 		if (itemView) {
 			itemView.Enable = !itemView.Enable;
@@ -307,7 +316,7 @@ export class SpaceDetailPage extends PageBase {
 			Id: 0,
 			IDSpace: this.item.Id,
 			Type: name,
-			Sort: 0,
+			Sort: this.getNextStatusSort(name),
 		};
 		if (formGroup) {
 			item = formGroup.value;
