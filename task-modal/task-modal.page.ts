@@ -94,7 +94,7 @@ export class TaskModalPage extends PageBase {
 			this.formDataSources.Status = this.space.statusList;
 
 			this.formDataSources.Priority.forEach((i) => {
-				i.Code = parseInt(i.Code);
+				i.Code = parseInt(i.Code, 10);
 			});
 			this.getTypeDataSourceByParentTaskType();
 
@@ -159,11 +159,12 @@ export class TaskModalPage extends PageBase {
 			if (this.item.Deadline) this.formGroup.controls.Deadline.markAsDirty();
 			
 			if (this.item.IDOwner || this.item._Staff) {
-				this.formGroup.controls.IDOwner.setValue(this.item._Staff.Id);
+				this.formGroup.controls.IDOwner.setValue(this.item._Staff?.Id || this.item.IDOwner);
 				this.formGroup.controls.IDOwner.markAsDirty();
 			}
 			if (this.item.Priority) this.formGroup.controls.Priority.markAsDirty();
 		}
+		this.normalizeDataSourceValues();
 		let listType = [...new Set(this.formDataSources.Status.map((o) => o.Type))].map((o) => {
 			return {
 				Id: lib.generateUID(),
@@ -182,6 +183,22 @@ export class TaskModalPage extends PageBase {
 			this.formDataSources.Status = [...resp];
 			this.formDataSources.Status.filter((o) => !o.IDParent).forEach((x) => (x.disabled = true));
 		});
+	}
+
+	private normalizeNumberControl(controlName: string) {
+		const value = this.formGroup.controls[controlName].value;
+		if (value === null || value === undefined || value === '') {
+			return;
+		}
+
+		const numberValue = Number(value);
+		if (!isNaN(numberValue) && numberValue !== value) {
+			this.formGroup.controls[controlName].setValue(numberValue, { emitEvent: false });
+		}
+	}
+
+	private normalizeDataSourceValues() {
+		['IDSpace', 'IDParent', 'IDOwner', 'Priority'].forEach((controlName) => this.normalizeNumberControl(controlName));
 	}
 
 	getTypeDataSourceByParentTaskType() {
