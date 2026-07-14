@@ -7,6 +7,7 @@ import { BRA_BranchProvider, PM_TaskLinkProvider, PM_TaskProvider } from 'src/ap
 import { Link, Task } from '../../../_models/task';
 import { DynamicScriptLoaderService } from 'src/app/services/custom/custom.service';
 import { thirdPartyLibs } from 'src/app/services/static/thirdPartyLibs';
+import { Subscription } from 'rxjs';
 
 declare var gantt: any;
 
@@ -31,6 +32,7 @@ export class GanttComponent implements OnInit {
 	@Input() linksData: Link[] = [];
 	@Input() listParent: any[] = [];
 	submitAttempt = false;
+	eventSubscription: Subscription;
 
 	constructor(
 		public pageProvider: PM_TaskProvider,
@@ -45,7 +47,7 @@ export class GanttComponent implements OnInit {
 		public location: Location,
 		public dynamicScriptLoaderService: DynamicScriptLoaderService
 	) {
-		this.env.getEvents().subscribe((data) => {
+		this.eventSubscription = this.env.getEvents().subscribe((data) => {
 			if (data.Code == 'app:autoCalculateLink') {
 				this.autoCalculateLink();
 			}
@@ -56,6 +58,7 @@ export class GanttComponent implements OnInit {
 	ngOnInit(): void {}
 
 	ngOnDestroy() {
+		this.eventSubscription?.unsubscribe();
 		this.clearGanttEvents();
 	}
 
