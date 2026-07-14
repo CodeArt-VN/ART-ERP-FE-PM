@@ -21,9 +21,13 @@
 			</ng-template>
 		</ng-select>
 
-		<ion-button (click)="autoCalculateLink()" title="{{ 'Auto calculate link' | translate }}" class="ion-hide-sm-down" *ngIf="view.activeView?.Name == 'Gantt'">
+		<ion-button (click)="autoCalculateLink()" title="{{ 'Auto calculate link' | translate }}" class="ion-hide-sm-down" *ngIf="view.activeView?.Type == 'Gantt'">
 			<ion-icon slot="icon-only" name="aperture-outline"></ion-icon>
 		</ion-button>
+		<div class="task-show-name-toggle ion-hide-sm-down" *ngIf="view.activeView?.Type == 'Board'">
+			<ion-label>{{ 'Only name' | translate }}</ion-label>
+			<ion-toggle [checked]="showNameTask" (ionChange)="toggleShowNameTask($event)"></ion-toggle>
+		</div>
 	</app-toolbar>
 	<ion-toolbar *ngIf="view.viewList.length">
 		<ion-segment scrollable="true" (ionChange)="segmentChanged($event)" [value]="activeViewIndex">
@@ -166,6 +170,7 @@
 			<app-board
 				*ngIf="view.activeView?.Type == 'Board'"
 				[_items]="items"
+				[showNameTask]="showNameTask"
 				[statusList]="this.space.statusList"
 				[groupByConfig]="this.groupByConfig"
 				[viewList]="this.statusGroupBy"
