@@ -10,6 +10,21 @@
 	white-space: nowrap;
 }
 
+.task-show-name-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0 6px;
+	color: var(--ion-color-medium);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.task-show-name-toggle ion-toggle {
+	width: 42px;
+	height: 24px;
+}
+
 .item-status .icon-status {
 	margin-right: 10px;
 }

@@ -144,6 +144,11 @@ Segment change:
 	lastViewType: string = null;
 	isRevertingViewType: boolean = false;
 	isViewTypeConfigCleared: boolean = false;
+	showNameTask = false;
+
+	toggleShowNameTask(event: any) {
+		this.showNameTask = !!event?.detail?.checked;
+	}
 
 	constructor(
 		public pageProvider: PM_TaskProvider,

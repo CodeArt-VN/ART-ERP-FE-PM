@@ -74,6 +74,11 @@ export class BoardComponent implements OnInit {
 		this.items = val?.filter((task: any) => task.Type === 'Task' || task.Type === 'Todo') || [];
 		this.queueLoadKanban();
 	}
+	showOnlyTaskName = false;
+	@Input() set showNameTask(val: boolean) {
+		this.showOnlyTaskName = !!val;
+		this.queueLoadKanban();
+	}
 	@Input() groupByConfig: any;
 	@Input() statusList: any;
 	@Input() viewList: any;
@@ -103,6 +108,24 @@ export class BoardComponent implements OnInit {
 			return this.dataSources.Priority?.find((priority: any) => String(priority.Code) == String(priorityCode))?.Name || '';
 		}
 		return task?.[field?.Name] || task?.[field?.Code] || '';
+	}
+
+	escapeHtml(value: any) {
+		return String(value ?? '')
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
+	}
+
+	stripHtml(value: any) {
+		if (value === null || value === undefined) {
+			return '';
+		}
+		const element = document.createElement('div');
+		element.innerHTML = String(value);
+		return element.textContent || element.innerText || '';
 	}
 
 	ngOnInit(): void {
@@ -259,11 +282,12 @@ export class BoardComponent implements OnInit {
 
 							const show = isShowEmptyFields || fieldValue;
 							const displayText = fieldValue ? fieldValue : isShowEmptyFields ? `${field.Name}: ` : '';
+							const renderedText = field?.Code == 'Remark' && fieldValue ? displayText : this.escapeHtml(this.stripHtml(displayText));
 
 							return show
 								? `
             <div class="wx-card-field svelte-vhwr63">
-              <span class="wx-date-value svelte-vhwr63">${displayText}</span>
+              <span class="wx-date-value svelte-vhwr63">${renderedText}</span>
             </div>
           `
 								: '';
@@ -272,7 +296,13 @@ export class BoardComponent implements OnInit {
 					return fieldHtml;
 				};
 
-				const fieldsHtml = generateFieldsHtml(viewConfig.Fields, isShowEmptyFields, isStackFields);
+				const fieldsHtml = this.showOnlyTaskName
+					? `
+            <div class="wx-card-field svelte-vhwr63">
+              <span class="wx-date-value svelte-vhwr63">${this.escapeHtml(task?.Name)}</span>
+            </div>
+          `
+					: generateFieldsHtml(viewConfig.Fields, isShowEmptyFields, isStackFields);
 				let colorColumns = 'currentColor';
 				if (group1Selected && this.dataSources[group1Selected]) {
 					const selectedColor = this.dataSources[group1Selected].find((d) => String(d.Code) == String(column_custom_key))?.Color;
