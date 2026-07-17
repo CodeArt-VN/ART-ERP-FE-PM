@@ -107,7 +107,28 @@ export class BoardComponent implements OnInit {
 			const priorityCode = task?.[field?.Name] ?? task?.[field?.Code];
 			return this.dataSources.Priority?.find((priority: any) => String(priority.Code) == String(priorityCode))?.Name || '';
 		}
-		return task?.[field?.Name] || task?.[field?.Code] || '';
+		const value = task?.[field?.Name] || task?.[field?.Code] || '';
+		return this.isDateTimeField(field?.Code) ? this.formatDateTime(value) : value;
+	}
+
+	isDateTimeField(fieldCode: string) {
+		return ['StartDate', 'EndDate', 'StartDatePlan', 'EndDatePlan', 'Deadline', 'PredictedClosingDate', 'CreatedDate', 'ModifiedDate'].includes(fieldCode);
+	}
+
+	formatDateTime(value: any) {
+		if (!value) {
+			return '';
+		}
+		const date = new Date(value);
+		if (isNaN(date.getTime())) {
+			return value;
+		}
+		const day = String(date.getDate()).padStart(2, '0');
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const year = date.getFullYear();
+		const hour = String(date.getHours()).padStart(2, '0');
+		const minute = String(date.getMinutes()).padStart(2, '0');
+		return `${day}/${month}/${year} ${hour}:${minute}`;
 	}
 
 	escapeHtml(value: any) {
