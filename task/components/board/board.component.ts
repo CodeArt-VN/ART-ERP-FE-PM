@@ -1,9 +1,10 @@
-import { Component, EventEmitter, Input, OnInit, Output, ViewChild, ViewEncapsulation } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, SecurityContext, ViewChild, ViewEncapsulation } from '@angular/core';
 import { NavController, ModalController, AlertController, LoadingController, PopoverController } from '@ionic/angular';
 import { EnvService } from 'src/app/services/core/env.service';
 import { BRA_BranchProvider, PM_SpaceProvider, PM_TaskLinkProvider, PM_TaskProvider, PM_ViewProvider } from 'src/app/services/static/services.service';
 import { Location } from '@angular/common';
 import { DynamicScriptLoaderService } from 'src/app/services/custom/custom.service';
+import { DomSanitizer } from '@angular/platform-browser';
 
 declare var kanban: any;
 @Component({
@@ -96,7 +97,8 @@ export class BoardComponent implements OnInit {
 		public env: EnvService,
 		public navCtrl: NavController,
 		public location: Location,
-		public dynamicScriptLoaderService: DynamicScriptLoaderService
+		public dynamicScriptLoaderService: DynamicScriptLoaderService,
+		private sanitizer: DomSanitizer
 	) {}
 
 	getTaskFieldValue(task: any, field: any) {
@@ -147,6 +149,13 @@ export class BoardComponent implements OnInit {
 		const element = document.createElement('div');
 		element.innerHTML = String(value);
 		return element.textContent || element.innerText || '';
+	}
+
+	sanitizeHtml(value: any) {
+		if (!value) {
+			return '';
+		}
+		return this.sanitizer.sanitize(SecurityContext.HTML, String(value)) || '';
 	}
 
 	ngOnInit(): void {
@@ -303,7 +312,7 @@ export class BoardComponent implements OnInit {
 
 							const show = isShowEmptyFields || fieldValue;
 							const displayText = fieldValue ? fieldValue : isShowEmptyFields ? `${field.Name}: ` : '';
-							const renderedText = field?.Code == 'Remark' && fieldValue ? displayText : this.escapeHtml(this.stripHtml(displayText));
+							const renderedText = field?.Code == 'Remark' && fieldValue ? this.sanitizeHtml(displayText) : this.escapeHtml(this.stripHtml(displayText));
 
 							return show
 								? `

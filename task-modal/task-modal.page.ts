@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Type } from '@angular/core';
+import { Component, ChangeDetectorRef, SecurityContext, Type } from '@angular/core';
 import { NavController, ModalController, NavParams, LoadingController, AlertController } from '@ionic/angular';
 import { PageBase } from 'src/app/page-base';
 import { ActivatedRoute } from '@angular/router';
@@ -9,6 +9,7 @@ import { HRM_StaffProvider, PM_TaskLinkProvider, PM_TaskProvider } from 'src/app
 import { Subject, concat, of, distinctUntilChanged, tap, switchMap, catchError, filter } from 'rxjs';
 import { lib } from 'src/app/services/static/global-functions';
 import { PM_Space, PM_Task } from 'src/app/models/model-list-interface';
+import { DomSanitizer } from '@angular/platform-browser';
 
 @Component({
 	selector: 'app-task-modal',
@@ -42,7 +43,8 @@ export class TaskModalPage extends PageBase {
 		public navParams: NavParams,
 		public formBuilder: FormBuilder,
 		public cdr: ChangeDetectorRef,
-		public loadingController: LoadingController
+		public loadingController: LoadingController,
+		private sanitizer: DomSanitizer
 	) {
 		super();
 		this.pageConfig.isDetailPage = true;
@@ -129,6 +131,7 @@ export class TaskModalPage extends PageBase {
 
 	loadedData(event) {
 		super.loadedData(event);
+		this.sanitizeRemarkControl(false);
 		if (!this.item.Id) {
 			this.formGroup.controls.IDBranch.markAsDirty();
 
@@ -397,15 +400,44 @@ export class TaskModalPage extends PageBase {
 	}
 
 	async saveChange() {
+		this.sanitizeRemarkControl();
 		this.saveChange2();
 	}
 
 	editRemark() {
+		this.sanitizeRemarkControl(false);
 		this.isEditRemark = true;
 	}
 
 	previewRemark() {
+		this.sanitizeRemarkControl(false);
 		this.isEditRemark = false;
+	}
+
+	get sanitizedRemark() {
+		return this.sanitizeRemarkHtml(this.formGroup.controls.Remark.value);
+	}
+
+	private sanitizeRemarkControl(markAsDirty = true) {
+		const control = this.formGroup.controls.Remark;
+		const value = control.value;
+		if (value === null || value === undefined || value === '') {
+			return;
+		}
+		const sanitizedValue = this.sanitizeRemarkHtml(value);
+		if (value !== sanitizedValue) {
+			control.setValue(sanitizedValue, { emitEvent: false });
+			if (markAsDirty) {
+				control.markAsDirty();
+			}
+		}
+	}
+
+	private sanitizeRemarkHtml(value: any) {
+		if (!value) {
+			return '';
+		}
+		return this.sanitizer.sanitize(SecurityContext.HTML, String(value)) || '';
 	}
 
 	//TODO: Remove empty functions

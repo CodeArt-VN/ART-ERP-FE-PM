@@ -146,7 +146,7 @@
 								</ion-button>
 							</ion-buttons>
 						</ion-toolbar>
-						<div *ngIf="!isEditRemark" [innerHtml]="(formGroup.controls.Remark.value || '') | safeHtml" class="ql-editor task-remark-preview"></div>
+						<div *ngIf="!isEditRemark" [innerHtml]="sanitizedRemark" class="ql-editor task-remark-preview"></div>
 						<app-input-control
 							*ngIf="isEditRemark"
 							[field]="{
