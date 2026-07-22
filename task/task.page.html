@@ -57,7 +57,7 @@
 		message="{{'No data to show...' | translate}}"
 		subMessage="{{'Please select space to begin' | translate}}"
 		[itemsLength]="items.length"
-		[showSpinner]="pageConfig.showSpinner"
+		[showSpinner]="pageConfig.showSpinner || (submitAttempt && !items.length)"
 	>
 		<hr />
 		<div class="c-control" style="min-width: 260px">
