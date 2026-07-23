@@ -252,8 +252,6 @@ Segment change:
 		//Load task list from id or show empty message
 
 		this.query.AllChildren = true;
-		this.query.AllParent = true;
-		this.query.Take = 200;
 		if (this.space.Id) {
 			this.pageConfig.ShowAdd = true;
 			delete this.query.Id;
@@ -1414,8 +1412,6 @@ Segment change:
 			Object.keys(activeViewConfig.Filter[0]).length > 0;
 
 		let query = { ...this.query };
-		query.AllParent = true;
-		query.AllChildren = true;
 
 		if (isScrollLoad) {
 			query.Skip = this.items.length;
