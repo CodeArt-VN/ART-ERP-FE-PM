@@ -1419,6 +1419,7 @@ Segment change:
 		}
 		return query;
 	}
+	isEndOfGanttRootData = false;
 
 	getGanttRootSkip() {
 		if (!this.items) return 0;
@@ -1502,9 +1503,12 @@ Segment change:
 		this.submitAttempt = true;
 		const parentId = event?.parentId ?? null;
 		const isRootScroll = event?.isRootScroll;
-		if (isRootScroll && this.pageConfig.isEndOfData) {
+		if (isRootScroll && this.isEndOfGanttRootData) {
 			this.submitAttempt = false;
 			return Promise.resolve();
+		}
+		if (!isRootScroll && parentId == null) {
+			this.isEndOfGanttRootData = false;
 		}
 		const query = this.buildGanttBranchQuery(event);
 
@@ -1525,7 +1529,7 @@ Segment change:
 					const exists = new Set(this.items.map((d) => d.Id));
 					const newItems = data.filter((d) => !exists.has(d.Id));
 					this.items = [...this.items, ...newItems];
-					this.pageConfig.isEndOfData = data.length < query.Take;
+					this.isEndOfGanttRootData = data.length < query.Take;
 				} else {
 					this.items = data;
 					const rootTask = this.items.find((d) => d.Id == this.id);
@@ -1533,7 +1537,7 @@ Segment change:
 						rootTask._GanttChildrenLoaded = true;
 						rootTask.IsOpen = true;
 					}
-					this.pageConfig.isEndOfData = data.length < query.Take;
+					this.isEndOfGanttRootData = data.length < query.Take;
 				}
 				this.processMemberData();
 				await this.reloadTaskLinks();
