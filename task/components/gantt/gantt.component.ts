@@ -28,6 +28,8 @@ export class GanttComponent implements OnInit {
 	previousParent = null;
 	previousIndex = null;
 	loadMorePending = false;
+	pendingRestoreScroll: any = null;
+	pendingRestoreTaskId: any = null;
 	@Input() items: any;
 	@Input() linksData: Link[] = [];
 	@Input() listParent: any[] = [];
@@ -53,7 +55,7 @@ export class GanttComponent implements OnInit {
 			}
 		});
 	}
-	@Output() loadDataGantt = new EventEmitter();
+	@Output() loadDataGantt = new EventEmitter<any>();
 
 	ngOnInit(): void {}
 
@@ -67,7 +69,7 @@ export class GanttComponent implements OnInit {
 	}
 
 	ngOnChanges() {
-		this.isDataReady = this.items.length > 0;
+		this.isDataReady = Array.isArray(this.items) && this.items.length > 0;
 		if (this.isGanttLoaded && this.isDataReady) {
 			this.loadGantt();
 		}
@@ -244,6 +246,9 @@ export class GanttComponent implements OnInit {
 
 		gantt.config.order_branch = true;
 		gantt.config.order_branch_free = true;
+		gantt.config.smart_rendering = false;
+		gantt.config.branch_loading = true;
+		gantt.config.branch_loading_property = '$has_child';
 
 		gantt.templates.timeline_cell_class = function (task, date) {
 			if (!gantt.isWorkTime(date)) return 'week_end';
@@ -354,8 +359,24 @@ export class GanttComponent implements OnInit {
 			})
 		);
 
+		this.ganttEvents.push(
+			gantt.attachEvent('onTaskClick', (id, e) => {
+				const target = e.target as HTMLElement;
+				const isExpandIcon = !!target.closest('.gantt_tree_icon.gantt_close, .gantt_tree_icon.gantt_open');
+				const task = this.items.find((d) => d.Id == id);
+
+				if (isExpandIcon && task?._HasChild && !task?._GanttChildrenLoaded) {
+					this.pendingRestoreScroll = gantt.getScrollState ? gantt.getScrollState() : null;
+					this.pendingRestoreTaskId = id;
+					this.loadDataGantt.emit({ parentId: id });
+					return false;
+				}
+
+				return true;
+			})
+		);
+
 		this.isGanttLoaded = true;
-		// onScroll
 		this.attachGanttScroll();
 		// Thêm dòng này để cập nhật lại layout và scrollbar
 
@@ -384,27 +405,30 @@ export class GanttComponent implements OnInit {
 	}
 
 	loadGantt() {
-		let data: Task[] = this.items.map((task: any) => {
-			let start = task.StartDate != null ? task.StartDate.split('T')[0] + ' ' + task.StartDate.split('T')[1].substring(0, 5) : null;
-			let end = task.EndDate != null ? task.EndDate.split('T')[0] + ' ' + task.EndDate.split('T')[1].substring(0, 5) : null;
-			return {
-				id: task.Id,
-				text: task.Name,
-				start_date: start, //.substring(0, 10)
-				end_date: end, //substring(0, 10)
-				type:
-					task.Type === 'Task' || task.Type === 'Todo' ? gantt.config.types.task : task.Type === 'Milestone' ? gantt.config.types.milestone : gantt.config.types.project,
-				duration: task.Duration,
-				progress: task.Progress,
-				parent: task._isRoot ? null : task.IDParent,
-				open: task.IsOpen,
-				avatar_owner: task.AvatarOwner,
-				full_name_owner: task._Staff?.FullName ?? '',
-				_task: task,
-			};
-		});
+		let data: Task[] = (this.items || [])
+			.filter((task: any) => task && task.Id != null)
+			.map((task: any) => {
+				let start = task.StartDate != null ? task.StartDate.split('T')[0] + ' ' + task.StartDate.split('T')[1].substring(0, 5) : null;
+				let end = task.EndDate != null ? task.EndDate.split('T')[0] + ' ' + task.EndDate.split('T')[1].substring(0, 5) : null;
+				return {
+					id: task.Id,
+					text: task.Name,
+					start_date: start, //.substring(0, 10)
+					end_date: end, //substring(0, 10)
+					type:
+						task.Type === 'Task' || task.Type === 'Todo' ? gantt.config.types.task : task.Type === 'Milestone' ? gantt.config.types.milestone : gantt.config.types.project,
+					duration: task.Duration,
+					progress: task.Progress,
+					parent: task._isRoot ? null : task.IDParent,
+					open: task._HasChild ? !!task._GanttChildrenLoaded && !!task.IsOpen : !!task.IsOpen,
+					$has_child: task._HasChild,
+					avatar_owner: task.AvatarOwner,
+					full_name_owner: task._Staff?.FullName ?? '',
+					_task: task,
+				};
+			});
 
-		let links: Link[] = this.linksData?.map((link: any) => {
+		let links: Link[] = (this.linksData || []).map((link: any) => {
 			return {
 				id: link.Id,
 				source: link.Source,
@@ -412,6 +436,11 @@ export class GanttComponent implements OnInit {
 				type: link.Type,
 			};
 		});
+
+		if (data.length === 0 && (!gantt.getTaskCount || gantt.getTaskCount() === 0)) {
+			gantt.clearAll();
+			return;
+		}
 
 		if (data.length === 0) {
 			return;
@@ -427,52 +456,61 @@ export class GanttComponent implements OnInit {
 		gantt.parse({ data, links });
 
 		gantt.eachTask((task) => {
-			task.$open = true;
+			task.$open = task._task?._HasChild ? !!task._task?._GanttChildrenLoaded && !!task._task?.IsOpen : !!task._task?.IsOpen;
 		});
 
 		gantt.refreshData();
 		gantt.setSizes();
+		this.restoreGanttScroll();
 		//gantt.render();
 	}
 
-	attachGanttScroll() {
-		const scrollWhenReady = () => {
-			const hasData = this.items && this.items.length > 0;
-			const scrollableElement = document.querySelector('.gantt_ver_scroll');
-			if (hasData && scrollableElement) {
-				this.ganttEvents.push(
-					gantt.attachEvent("onGanttScroll", () => {
-						const scrollTop = scrollableElement.scrollTop;
-						const scrollHeight = scrollableElement.scrollHeight;
-						const clientHeight = scrollableElement.clientHeight;
-						const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
-						if (isAtBottom && !this.loadMorePending) {
-							if (!(scrollTop == 0 && clientHeight == 0)) {
-								this.loadMorePending = true;
-								this.loadDataGantt.emit();
-								setTimeout(() => this.loadMorePending = false, 1000);
-							}
-						}
-					})
-				);
-				
-				return true;
+	restoreGanttScroll() {
+		if (!this.pendingRestoreScroll || !gantt.scrollTo) return;
+
+		const scrollState = this.pendingRestoreScroll;
+		const taskId = this.pendingRestoreTaskId;
+		this.pendingRestoreScroll = null;
+		this.pendingRestoreTaskId = null;
+
+		const restore = () => {
+			if (taskId != null && gantt.isTaskExists && gantt.isTaskExists(taskId)) {
+				gantt.showTask(taskId);
 			}
-			
-			return false;
+			gantt.scrollTo(scrollState.x || 0, scrollState.y || 0);
+			gantt.setSizes();
+			const scrollableElement = document.querySelector('.gantt_ver_scroll') as HTMLElement;
+			if (scrollableElement) {
+				scrollableElement.scrollTop = scrollState.y || 0;
+			}
 		};
 
-		if (!scrollWhenReady()) {
-			const retrySetup = () => {
-				if (!scrollWhenReady()) {
-					setTimeout(retrySetup, 500);
-				}
-			};
-			
-			setTimeout(retrySetup, 1000);
-		}
+		requestAnimationFrame(() => {
+			restore();
+			requestAnimationFrame(restore);
+		});
+		setTimeout(restore, 50);
+		setTimeout(restore, 150);
 	}
 
+	attachGanttScroll() {
+		this.ganttEvents.push(
+			gantt.attachEvent('onGanttScroll', () => {
+				if (this.loadMorePending) return true;
+
+				const scrollState = gantt.getScrollState();
+				const isAtBottom = scrollState.y + scrollState.inner_height >= scrollState.height - 2;
+
+				if (isAtBottom && scrollState.height > scrollState.inner_height) {
+					this.loadMorePending = true;
+					this.loadDataGantt.emit({ isRootScroll: true });
+					setTimeout(() => (this.loadMorePending = false), 1000);
+				}
+
+				return true;
+			})
+		);
+	}
 
 	@Output() openTask = new EventEmitter();
 	onOpenTask(task) {

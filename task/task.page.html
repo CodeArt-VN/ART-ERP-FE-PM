@@ -178,7 +178,13 @@
 				(openTask)="onOpenTask($event)"
 			></app-board>
 
-			<app-gantt *ngIf="view.activeView?.Type == 'Gantt'" [items]="items" [linksData]="linksData" (openTask)="onOpenTask($event)" (loadDataGantt)="loadDataCheckFilter(true)"></app-gantt>
+			<app-gantt
+				*ngIf="view.activeView?.Type == 'Gantt'"
+				[items]="items"
+				[linksData]="linksData"
+				(openTask)="onOpenTask($event)"
+				(loadDataGantt)="loadGanttBranch($event)"
+			></app-gantt>
 		</ng-container>
 	</div>
 </ion-content>

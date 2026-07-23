@@ -503,7 +503,7 @@ Segment change:
 					activeViewConfig.Filter.length > 0 &&
 					activeViewConfig.Filter[0] &&
 					Object.keys(activeViewConfig.Filter[0]).length > 0;
-				if (hasActiveViewFilter) {
+				if ((hasActiveViewFilter || this.view.activeView?.Type == 'Gantt') && (this.space.Id || this.id)) {
 					await this.loadDataCheckFilter();
 				}
 			})
@@ -1383,13 +1383,185 @@ Segment change:
 		}
 	}
 
-	submitAttempt = false; 
+	getActiveViewConfig() {
+		let activeViewConfig;
+		if (this.viewConfig) {
+			activeViewConfig = this.viewConfig.ViewConfig.Views.find(
+				(d) => d.Layout.View.Name === this.view.activeView.Name && d.Layout.View.Type === this.view.activeView.Type && d.Sort[0] === this.view.activeView.Sort[0]
+			);
+		}
+		if (!activeViewConfig && this.space.activeSpace) {
+			const spaceConfig = JSON.parse(this.space.activeSpace.ViewConfig);
+			activeViewConfig = spaceConfig.Views.find(
+				(d) => d.Layout.View.Name === this.view.activeView.Name && d.Layout.View.Type === this.view.activeView.Type && d.Sort[0] === this.view.activeView.Sort[0]
+			);
+		}
+		return activeViewConfig;
+	}
+
+	hasViewFilter(activeViewConfig) {
+		return (
+			activeViewConfig &&
+			Array.isArray(activeViewConfig.Filter) &&
+			activeViewConfig.Filter.length > 0 &&
+			activeViewConfig.Filter[0] &&
+			Object.keys(activeViewConfig.Filter[0]).length > 0
+		);
+	}
+
+	applyActiveViewFilter(query: any, activeViewConfig) {
+		if (this.hasViewFilter(activeViewConfig)) {
+			query._AdvanceConfig = activeViewConfig.Filter[0];
+			this.query._AdvanceConfig = activeViewConfig.Filter[0];
+		} else {
+			delete query._AdvanceConfig;
+			delete this.query._AdvanceConfig;
+		}
+		return query;
+	}
+
+	getGanttRootSkip() {
+		if (!this.items) return 0;
+		if (this.id) {
+			return this.items.filter((d) => d.IDParent == this.id).length;
+		}
+		return this.items.filter((d) => d.IDParent == null).length;
+	}
+
+	buildGanttBranchQuery(event: any = null, activeViewConfig = null) {
+		const parentId = event?.parentId ?? null;
+		const isRootScroll = event?.isRootScroll;
+		let query: any = {
+			...this.query,
+			GanttBranchLoading: true,
+			Skip: isRootScroll ? this.getGanttRootSkip() : 0,
+			Take: 200,
+		};
+
+		delete query.AllParent;
+		delete query.AllChildren;
+		delete query.IDParent;
+
+		if (this.id && !isRootScroll) {
+			query.GanttRootId = this.id;
+		}
+
+		if (isRootScroll && this.id) {
+			query.GanttParentId = this.id;
+			query.GanttRootPaging = true;
+		} else if (parentId != null) {
+			query.GanttParentId = parentId;
+			delete query.Skip;
+			delete query.Take;
+		}
+
+		return this.applyActiveViewFilter(query, activeViewConfig || this.getActiveViewConfig());
+	}
+
+	reloadTaskLinks() {
+		if (!this.items.length) {
+			this.linksData = [];
+			return Promise.resolve();
+		}
+
+		const taskIds = this.items.map((d) => d.Id);
+		return this.taskLinkService
+			.read({
+				Source: JSON.stringify(taskIds),
+				Target: JSON.stringify(taskIds),
+			})
+			.then((result: any) => {
+				this.linksData = result?.data || [];
+			});
+	}
+
+	getProviderData(result: any) {
+		const data = Array.isArray(result) ? result : result?.data || [];
+		const flattenData = (items: any[]): any[] => {
+			return items.reduce((result, item) => {
+				if (Array.isArray(item)) {
+					result.push(...flattenData(item));
+				} else if (item && item.Id != null) {
+					result.push(item);
+				}
+				return result;
+			}, []);
+		};
+
+		return Array.isArray(data) ? flattenData(data) : [];
+	}
+
+	loadGanttBranch(event: any = null) {
+		if (this.submitAttempt) {
+			return Promise.resolve();
+		}
+		if (!this.space.Id && !this.id) {
+			return Promise.resolve();
+		}
+
+		this.submitAttempt = true;
+		const parentId = event?.parentId ?? null;
+		const isRootScroll = event?.isRootScroll;
+		if (isRootScroll && this.pageConfig.isEndOfData) {
+			this.submitAttempt = false;
+			return Promise.resolve();
+		}
+		const query = this.buildGanttBranchQuery(event);
+
+		return this.env
+			.showLoading('Please wait for a few moments', this.pageProvider.read(query, this.pageConfig.forceLoadData))
+			.then(async (result: any) => {
+				const data = this.getProviderData(result);
+				if (parentId != null) {
+					const parentTask = this.items.find((d) => d.Id == parentId);
+					if (parentTask) {
+						parentTask._GanttChildrenLoaded = true;
+						parentTask.IsOpen = true;
+					}
+					const exists = new Set(this.items.map((d) => d.Id));
+					const newItems = data.filter((d) => !exists.has(d.Id));
+					this.items = [...this.items, ...newItems];
+				} else if (isRootScroll) {
+					const exists = new Set(this.items.map((d) => d.Id));
+					const newItems = data.filter((d) => !exists.has(d.Id));
+					this.items = [...this.items, ...newItems];
+					this.pageConfig.isEndOfData = data.length < query.Take;
+				} else {
+					this.items = data;
+					const rootTask = this.items.find((d) => d.Id == this.id);
+					if (rootTask) {
+						rootTask._GanttChildrenLoaded = true;
+						rootTask.IsOpen = true;
+					}
+					this.pageConfig.isEndOfData = data.length < query.Take;
+				}
+				this.processMemberData();
+				await this.reloadTaskLinks();
+				this.isViewCreated = true;
+			})
+			.catch((err) => {
+				if (err.message != null) {
+					this.env.showMessage(err.message, 'danger');
+				} else {
+					this.env.showMessage('Cannot extract data', 'danger');
+				}
+			})
+			.finally(() => {
+				this.submitAttempt = false;
+			});
+	}
+
+	submitAttempt = false;
 	loadDataCheckFilter(isScrollLoad = false, event = null) {
 		if (this.submitAttempt) {
 			return Promise.resolve();
 		}
 		this.submitAttempt = true;
 		this.pageConfig.showSpinner = false;
+		if (this.view.activeView?.Type == 'Gantt') {
+			this.submitAttempt = false;
+			return this.loadGanttBranch();
+		}
 		// Check Filter của view đang active
 		let activeViewConfig;
 		if (this.viewConfig) {
